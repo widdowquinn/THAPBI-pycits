@@ -76,6 +76,7 @@ def last_exception():
     return ''.join(traceback.format_exception(exc_type, exc_value,
                                               exc_traceback))
 
+
 # Run as script
 if __name__ == '__main__':
 
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     logger.info("\ttrim_quality... (%s)" % args.trim_quality)
     trim_quality = seq_crumbs.Trim_Quality(args.trim_quality, logger)
     logger.info("\tjoin_paired_ends.py... (%s)" % args.join_paired_ends)
-    jpe = ea_utils.Join_Paired_Ends(args.join_paired_ends, logger)
+    jpe = qiime.Join_Paired_Ends(args.join_paired_ends, logger)
     logger.info("\tconvert_format... (%s)" % args.convert_format)
     convert_format = seq_crumbs.Convert_Format(args.convert_format, logger)
     logger.info("\tblastclust... (%s)" % args.blastclust)
