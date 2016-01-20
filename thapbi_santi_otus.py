@@ -19,7 +19,7 @@ import traceback
 
 from argparse import ArgumentParser
 
-from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime
+from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime, tools
 
 # Process command-line arguments
 def parse_cmdline(args):
@@ -189,5 +189,27 @@ if __name__ == '__main__':
         logger.info("\t%s" % joined_fasta)
     except:
         logger.error("Error converting to FASTA (exiting)")
+        logger.error(last_exception())
+        sys.exit(1)
+
+    # Trim sequences by 20nt on left and right
+    logger.info("Trimming sequences")
+    trimmed_joined_fasta = os.path.splitext(joined_fasta)[0] + '_trimmed.fasta'
+    write_count = tools.trim_seq(joined_fasta, trimmed_joined_fasta)
+    logger.info("Trimmed, joined FASTA (%d sequences):" % write_count)
+    logger.info("\t%s" % trimmed_joined_fasta)
+
+    # Cluster OTUs with BLASTCLUST
+    logger.info("Clustering OTUs with BLASTCLUST")
+    try:
+        blastclustlst, blastclustout = blastclust.run(trimmed_joined_fasta,
+                                                      args.outdirname)
+        logger.info("Clustering joined, trimmed sequences with BLASTCLUST:")
+        logger.info("\t%s" % blastclustlst)
+        logger.info("BLASTCLUST output:")
+        for line in blastclustout:
+            logger.info("\t%s" % line)
+    except:
+        logger.error("Error clustering with BLASTCLUST (exiting)")
         logger.error(last_exception())
         sys.exit(1)
