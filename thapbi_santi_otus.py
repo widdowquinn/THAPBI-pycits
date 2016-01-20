@@ -213,3 +213,12 @@ if __name__ == '__main__':
         logger.error("Error clustering with BLASTCLUST (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+
+    # Convert BLASTCLUST output to FASTA sequence files
+    logger.info("Generating FASTA from BLASTCLUST output")
+    blastclust_outdir = tools.blastclust_to_fasta(blastclustlst,
+                                                 trimmed_joined_fasta,
+                                                 args.outdirname)
+    logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
+    logger.info("\t%s" % blastclust_outdir)
+    

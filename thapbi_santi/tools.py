@@ -26,3 +26,24 @@ def trim_seq(infname, outfname, lclip=21, rclip=20, minlen=100):
         s_trimmed = (s[lclip:-rclip] for s in SeqIO.parse(fh, 'fasta'))
         return SeqIO.write((s for s in s_trimmed if len(s) >= minlen),
                            outfname, 'fasta')
+
+# Function replacing Santi's blastclust_lst2fasta.py script
+def blastclust_to_fasta(infname, seqfname, outdir):
+    """Converts input BLASTCLUST output list to a subdirectory of FASTA files,
+    each of which contains all sequences from a single cluster. The sequences
+    matching the IDs listed in BLASTCLUST output should all be in the file
+    seqfname.
+    """
+    outdirname = os.path.join(outdir, "blastclust_FASTA")
+    os.makedirs(outdirname)
+    seqdict = SeqIO.index(seqfname, 'fasta')
+    with open(infname, 'r') as fh:
+        otu_id = 0
+        for line in fh:
+            otu_id += 1
+            outfname = os.path.join(outdirname,
+                                    "blastclust_OTU_%06d.fasta" % otu_id)
+            SeqIO.write((seqdict[key] for key in line.split()),
+                        outfname, 'fasta')
+    return outdirname
+            
