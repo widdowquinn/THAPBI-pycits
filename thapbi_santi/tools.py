@@ -34,8 +34,9 @@ def blastclust_to_fasta(infname, seqfname, outdir):
     matching the IDs listed in BLASTCLUST output should all be in the file
     seqfname.
     """
-    outdirname = os.path.join(outdir, "blastclust_FASTA")
-    os.makedirs(outdirname)
+    outdirname = os.path.join(outdir, "blastclust_OTUs")
+    if not os.path.exists(outdirname):
+        os.makedirs(outdirname)
     seqdict = SeqIO.index(seqfname, 'fasta')
     with open(infname, 'r') as fh:
         otu_id = 0

@@ -34,6 +34,9 @@ def parse_cmdline(args):
     parser.add_argument("-o", "--outdir", dest="outdirname",
                         action="store", default="script_output",
                         help="Path to directory to write output")
+    parser.add_argument("-r", "--reference", dest="reference_fasta",
+                        action="store", default=None,
+                        help="Path to reference sequence FASTA file")
     parser.add_argument("-v", "--verbose", dest="verbose",
                         action="store_true", default=False,
                         help="Report verbose output")
@@ -113,7 +116,7 @@ if __name__ == '__main__':
     # Report arguments, if verbose
     logger.info(args)
 
-    # Have we got an input directory and prefix? If not, exit.
+    # Have we got an input directory, reference set and prefix? If not, exit.
     if args.indirname is None:
         logger.error("No input directory name (exiting)")
         sys.exit(1)
@@ -121,6 +124,11 @@ if __name__ == '__main__':
     if args.prefix is None:
         logger.error("No read file prefix given (exiting)")
         sys.exit(1)
+    logger.info("Read file prefix: %s" % args.prefix)
+    if args.reference_fasta is None:
+        logger.error("No reference FASTA file given (exiting)")
+        sys.exit(1)
+    logger.info("Reference FASTA file: %s" % args.reference_fasta)
 
     # Have we got an output directory and prefix? If not, create it.
     if not os.path.exists(args.outdirname):
@@ -222,3 +230,16 @@ if __name__ == '__main__':
     logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
     logger.info("\t%s" % blastclust_outdir)
     
+    # Pick de novo OTUs with QIIME
+    logger.info("Picking UCLUST OTUs with QIIME")
+    try:
+        qiime_uclustdir = pick_otus.run(trimmed_joined_fasta,
+                                        args.reference_fasta,
+                                        args.outdirname)
+        logger.info("OTUs picked by QIIME with UCLUST written to:")
+        logger.info("\t%s" % qiime_uclustdir)
+    except:
+        logger.error("Error clustering with QIIME (UCLUST) (exiting)")
+        logger.error(last_exception())
+        sys.exit(1)
+        
