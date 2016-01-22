@@ -19,9 +19,9 @@ class Blastclust(object):
             sys.exit(1)
         self._exe_path = exe_path
 
-    def run(self, infnames, outdir):
+    def run(self, infnames, outdir, threads):
         """Run blastclust on the passed file"""
-        self.__build_cmd(infnames, outdir)
+        self.__build_cmd(infnames, outdir, threads)
         msg = ["Running...", "\t%s" % self._cmd]
         for m in msg:
             self._logger.info(m)
@@ -31,13 +31,13 @@ class Blastclust(object):
             sys.exit(1)
         return (self._outfname, pipe.stdout.readlines())
 
-    def __build_cmd(self, infname, outdir):
+    def __build_cmd(self, infname, outdir, threads):
         """Build a command-line for blastclust"""
         self._outfname = os.path.join(outdir,
                                       os.path.split(infname)[-1] +
                                       ".blastclust99.lst")
         cmd = ["blastclust",
-               "-L", "0.90", "-S", "99", "-a", "4", "-p", "F",
+               "-L", "0.90", "-S", "99", "-a", str(threads), "-p", "F",
                "-i", infname,
                "-o", self._outfname]
         self._cmd = ' '.join(cmd)

@@ -13,6 +13,7 @@
 
 import logging
 import logging.handlers
+import multiprocessing
 import os
 import sys
 import traceback
@@ -43,6 +44,10 @@ def parse_cmdline(args):
     parser.add_argument("-l", "--logfile", dest="logfile",
                         action="store", default=None,
                         help="Logfile location")
+    parser.add_argument("-t", "--threads", dest="threads",
+                        action="store", type=int,
+                        default=multiprocessing.cpu_count(),
+                        help="Number of threads to use (default: all)")
     parser.add_argument("--fastqc", dest="fastqc",
                         action="store", default="fastqc",
                         help="Path to FastQC executable")
@@ -166,6 +171,9 @@ if __name__ == '__main__':
                 args.pick_closed_reference_otus)
     pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
     
+    # How many threads are we using?
+    logger.info("Using %d threads/CPUs where available" % args.threads)
+
     # Trim reads on quality - forward and reverse reads
     logger.info("Trim reads by quality")
     try:
@@ -211,7 +219,8 @@ if __name__ == '__main__':
     logger.info("Clustering OTUs with BLASTCLUST")
     try:
         blastclustlst, blastclustout = blastclust.run(trimmed_joined_fasta,
-                                                      args.outdirname)
+                                                      args.outdirname,
+                                                      args.threads)
         logger.info("Clustering joined, trimmed sequences with BLASTCLUST:")
         logger.info("\t%s" % blastclustlst)
         logger.info("BLASTCLUST output:")
@@ -225,8 +234,8 @@ if __name__ == '__main__':
     # Convert BLASTCLUST output to FASTA sequence files
     logger.info("Generating FASTA from BLASTCLUST output")
     blastclust_outdir = tools.blastclust_to_fasta(blastclustlst,
-                                                 trimmed_joined_fasta,
-                                                 args.outdirname)
+                                                  trimmed_joined_fasta,
+                                                  args.outdirname)
     logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
     logger.info("\t%s" % blastclust_outdir)
     
@@ -243,3 +252,15 @@ if __name__ == '__main__':
         logger.error(last_exception())
         sys.exit(1)
         
+    # Pick closed-reference OTUs with QIIME
+    logger.info("Picking closed-reference OTUs with QIIME")
+    try:
+        qiime_pcrodir = pcro.run(trimmed_joined_fasta,
+                                 args.reference_fasta,
+                                 args.outdirname)
+        logger.info("OTUs picked by QIIME (closed-reference) written to:")
+        logger.info("\t%s" % qiime_pcrodir)
+    except:
+        logger.error("Error clustering with QIIME (closed-reference) (exiting)")
+        logger.error(last_exception())
+        sys.exit(1)
