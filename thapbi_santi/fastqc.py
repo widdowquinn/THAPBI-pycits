@@ -5,7 +5,9 @@
 # FastQC: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 
 import os
+import sys
 
+from subprocess import Popen, PIPE
 from tools import is_exe
 
 class FastQC(object):
@@ -22,3 +24,26 @@ class FastQC(object):
             self._no_run = True
         self._exe_path = exe_path
             
+    def run(self, infnames, outdir):
+        """Run fastqc on the passed file"""
+        self.__build_cmd(infnames, outdir)
+        if not os.path.exists(self._outdirname):
+            self._logger.info("Creating output directory: %s" %
+                              self._outdirname)
+            os.makedirs(self._outdirname)
+        msg = ["Running...", "\t%s" % self._cmd]
+        for m in msg:
+            self._logger.info(m)
+        pipe = Popen(self._cmd, shell=True, stdout=PIPE)
+        if pipe.wait() != 0:
+            self._logger.error("fastqc generated some errors")
+            sys.exit(1)
+        return (self._outdirname, pipe.stdout.readlines())
+
+    def __build_cmd(self, infname, outdir):
+        """Build a command-line for fastqc"""
+        self._outdirname = os.path.join(outdir, "FastQC_output")
+        cmd = ["fastqc",
+               "-i", infname,
+               "-o", self._outdirname]
+        self._cmd = ' '.join(cmd)

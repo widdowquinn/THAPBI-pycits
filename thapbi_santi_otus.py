@@ -16,6 +16,7 @@ import logging.handlers
 import multiprocessing
 import os
 import sys
+import time
 import traceback
 
 from argparse import ArgumentParser
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     args = parse_cmdline(sys.argv)
 
     # Set up logging
-    logger = logging.getLogger('thapbi_santi_otus.py')
+    logger = logging.getLogger('thapbi_santi_otus.py: %s' % time.asctime())
     logger.setLevel(logging.DEBUG)
     err_handler = logging.StreamHandler(sys.stderr)
     err_formatter = logging.Formatter('%(levelname)s: %(message)s')
@@ -119,7 +120,9 @@ if __name__ == '__main__':
     logger.addHandler(err_handler)
 
     # Report arguments, if verbose
+    logger.info("Command-line: %s" % ' '.join(sys.argv))
     logger.info(args)
+    logger.info("Starting pipeline: %s" % time.asctime())
 
     # Have we got an input directory, reference set and prefix? If not, exit.
     if args.indirname is None:
@@ -264,3 +267,20 @@ if __name__ == '__main__':
         logger.error("Error clustering with QIIME (closed-reference) (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+
+    # Run FastQC on the read files
+    logger.info("Running FastQC")
+    for infname in infilenames + trimmed_fnames + [joined_reads]:
+        try:
+            logger.info(infname)
+            fastqcdir, fastqcout = fastQC.run(infname, args.outdirname)
+            logger.info("Writing to %s" % fastqcdir)
+            for line in fastqcout:
+                logger.info("\t%s" % line)
+        except:
+            logger.error("Error running FASTQ on %s" % infname)
+            logger.error(last_exception())
+            sys.exit(1)
+
+    # Announce end of pipeline
+    logger.info("Pipeline complete: %s" % time.asctime())
