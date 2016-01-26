@@ -242,4 +242,5 @@ if __name__ == '__main__':
         logger.error("Error clustering with QIIME (UCLUST) (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+
         
