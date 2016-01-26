@@ -59,6 +59,32 @@ class Pick_Closed_Ref_Otus(object):
                                "(exiting)")
             sys.exit(1)
         self._exe_path = exe_path
+
+    def run(self, infnames, refname, outdir):
+        """Run pick_closed_reference_otus.py on the passed file"""
+        self.__build_cmd(infnames, refname, outdir)
+        msg = ["Running...", "\t%s" % self._cmd]
+        for m in msg:
+            self._logger.info(m)
+        retcode = call(self._cmd, shell=True)
+        if retcode < 0:
+            self._logger.error("pick_closed_reference_otus.py terminated by " +
+                               "signal %s" % -retcode)
+            sys.exit(1)
+        else:
+            self._logger.info("pick_closed_reference_otus.py returned " +
+                              "%s" % retcode)
+        return self._outdirname
+
+    def __build_cmd(self, infname, refname, outdir):
+        """Build a command-line for pick_closed_reference_otus.py"""
+        self._outdirname = os.path.join(outdir, "qiime_closedref_OTUs")
+        cmd = ["pick_otus.py",
+               "-i", infname,
+               "-r", refname,
+               "-o", self._outdirname]
+        self._cmd = ' '.join(cmd)
+
             
 class Join_Paired_Ends(object):
     """Class for working with join_paired_ends.py"""
