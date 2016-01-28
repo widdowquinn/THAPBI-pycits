@@ -22,7 +22,8 @@ import traceback
 from argparse import ArgumentParser
 from biom import load_table
 
-from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime, tools
+from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime, \
+    muscle, tools
 
 # Process command-line arguments
 def parse_cmdline(args):
@@ -169,6 +170,8 @@ if __name__ == '__main__':
     convert_format = seq_crumbs.Convert_Format(args.convert_format, logger)
     logger.info("\tblastclust... (%s)" % args.blastclust)
     blastclust = blast.Blastclust(args.blastclust, logger)
+    logger.info("\tmuscle... (%s)" % args.muscle)
+    muscle = muscle.Muscle(args.muscle, logger)
     logger.info("\tpick_otus.py... (%s)" % args.pick_otus)
     pick_otus = qiime.Pick_Otus(args.pick_otus, logger)
     logger.info("\tpick_closed_reference_otus.py... (%s)" %
@@ -243,6 +246,12 @@ if __name__ == '__main__':
     logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
     logger.info("\t%s" % blastclust_outdir)
     
+    # Align the BLASTCLUST OTUs with MUSCLE
+    logger.info("Aligning BLASTCLUST OTU sequences")
+    muscle_dir = muscle.run(blastclust_outdir)
+    logger.info("Aligned BLASTCLUST OTU sequences written to:")
+    logger.info("\t%s" % muscle_dir)
+
     # Pick de novo OTUs with QIIME
     logger.info("Picking UCLUST OTUs with QIIME")
     try:
