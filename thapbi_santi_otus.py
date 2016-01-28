@@ -20,6 +20,7 @@ import time
 import traceback
 
 from argparse import ArgumentParser
+from biom import load_table
 
 from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime, tools
 
@@ -255,7 +256,6 @@ if __name__ == '__main__':
         logger.error(last_exception())
         sys.exit(1)
 
-        
     # Pick closed-reference OTUs with QIIME
     logger.info("Picking closed-reference OTUs with QIIME")
     try:
@@ -264,10 +264,19 @@ if __name__ == '__main__':
                                  args.outdirname)
         logger.info("OTUs picked by QIIME (closed-reference) written to:")
         logger.info("\t%s" % qiime_pcrodir)
+        logger.info("Converting BIOM output to tabular (TSV) format")
+        biomfname = os.path.join(qiime_pcrodir, "otu_table.biom")
+        biom_table = load_table(biomfname)
+        tsvfname = os.path.splitext(biomfname)[0] + ".tsv"
+        with open(tsvfname, 'w') as ofh:
+            ofh.write(biom_table.to_tsv())
+        logger.info("TSV output written to:")
+        logger.info("\t%s" % tsvfname)
     except:
         logger.error("Error clustering with QIIME (closed-reference) (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+
 
     # Run FastQC on the read files
     logger.info("Running FastQC")

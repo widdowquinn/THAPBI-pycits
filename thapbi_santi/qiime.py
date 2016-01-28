@@ -79,7 +79,7 @@ class Pick_Closed_Ref_Otus(object):
     def __build_cmd(self, infname, refname, outdir):
         """Build a command-line for pick_closed_reference_otus.py"""
         self._outdirname = os.path.join(outdir, "qiime_closedref_OTUs")
-        cmd = ["pick_otus.py",
+        cmd = ["pick_closed_reference_otus.py", "-f",
                "-i", infname,
                "-r", refname,
                "-o", self._outdirname]
