@@ -2,6 +2,26 @@
 
 This directory contains conversions of Santiago Garcia's OTU-classification script from the original Word document reference to Bash, Makefile and Python.
 
+## Dependencies
+
+### Python packages
+
+Only required for the Python conversion, not the `Makefile`.
+
+* `biom-format`: available through `PyPI` at [https://pypi.python.org/pypi/biom-format](https://pypi.python.org/pypi/biom-format) (tested with v2.1.5)
+
+### Third-party tools
+
+Required for both the Python and `Makefile` conversions.
+
+These tools should either be in the `${PATH}`, or their executables should be specified in the script options.
+
+* `FastQC`: tested with v0.11.3
+* `seq_crumbs`: tested with v0.1.9 [https://github.com/JoseBlanca/seq_crumbs](https://github.com/JoseBlanca/seq_crumbs)
+* `BLAST+`: tested with v2.2.31+
+* `QIIME`: tested with v1.9.1
+* `MUSCLE`: tested with v3.8.31
+
 ## Original pipeline
 
 The original pipeline information and Santi's Python scripts are in the subdirectory `santi_docs`:
