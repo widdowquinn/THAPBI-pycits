@@ -33,13 +33,13 @@ setup(
     author="Leighton Pritchard",
     author_email="leighton.pritchard@hutton.ac.uk",
     description=''.join(["This script translates Santiago Garcia's "
-                         "metabarcoding pipeline",
-                         "into a Python script with associated modules,"
-                         "designed for flexibility and further development"]),
+                         "metabarcoding pipeline into a Python script "
+                         "with associated modules, designed for "
+                         "flexibility and further development"]),
     license="MIT",
     keywords="genome bioinformatics sequence sequencing metabarcoding",
     platforms="Posix; MacOS X",
-    url="http://widdowquinn.github.io/THAPBI/santi_script",  # project home page
+    url="http://widdowquinn.github.io/THAPBI/santi_script",  # project home
     download_url="https://github.com/widdowquinn/THAPBI/releases",
     scripts=['thapbi_santi_otus.py'],
     packages=['thapbi_santi'],
