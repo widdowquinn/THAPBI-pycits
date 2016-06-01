@@ -10,6 +10,7 @@ import sys
 from subprocess import Popen, PIPE
 from tools import is_exe
 
+
 class FastQC(object):
     """Class for working with FastQC"""
     def __init__(self, exe_path, logger):
@@ -23,7 +24,7 @@ class FastQC(object):
                 self._logger.warning(m)
             self._no_run = True
         self._exe_path = exe_path
-            
+
     def run(self, infnames, outdir):
         """Run fastqc on the passed file"""
         self.__build_cmd(infnames, outdir)

@@ -25,6 +25,7 @@ from biom import load_table
 from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime, \
     muscle, tools
 
+
 # Process command-line arguments
 def parse_cmdline(args):
     """Parse command-line arguments"""
@@ -79,6 +80,7 @@ def parse_cmdline(args):
                         help="Path to QIIME pick_closed_reference_otus.py " +
                         "script")
     return parser.parse_args()
+
 
 # Report last exception as string
 def last_exception():
@@ -148,12 +150,12 @@ if __name__ == '__main__':
 
     # Check for the presence of space characters in any of the input filenames
     # If we have any, abort here and now.
-    infilenames = sorted([os.path.join(args.indirname, fname) for 
+    infilenames = sorted([os.path.join(args.indirname, fname) for
                           fname in os.listdir(args.indirname) if
                           fname.startswith(args.prefix)])
     logger.info("Input files: %s" % infilenames)
     for fname in infilenames:
-        if ' ' in  os.path.abspath(fname):
+        if ' ' in os.path.abspath(fname):
             logger.error("File or directory '%s' contains whitespace" % fname)
             logger.error("(exiting)")
             sys.exit(1)
@@ -177,7 +179,7 @@ if __name__ == '__main__':
     logger.info("\tpick_closed_reference_otus.py... (%s)" %
                 args.pick_closed_reference_otus)
     pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
-    
+
     # How many threads are we using?
     logger.info("Using %d threads/CPUs where available" % args.threads)
 
@@ -192,7 +194,7 @@ if __name__ == '__main__':
         logger.error("Error running trim_quality (exiting)")
         logger.error(last_exception())
         sys.exit(1)
-    
+
     # Join the trimmed, paired-end reads together
     logger.info("Join trimmed, paired-end reads")
     try:
@@ -245,7 +247,7 @@ if __name__ == '__main__':
                                                   args.outdirname)
     logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
     logger.info("\t%s" % blastclust_outdir)
-    
+
     # Align the BLASTCLUST OTUs with MUSCLE
     logger.info("Aligning BLASTCLUST OTU sequences")
     muscle_dir = muscle.run(blastclust_outdir)
@@ -282,10 +284,10 @@ if __name__ == '__main__':
         logger.info("TSV output written to:")
         logger.info("\t%s" % tsvfname)
     except:
-        logger.error("Error clustering with QIIME (closed-reference) (exiting)")
+        logger.error("Error clustering with QIIME (closed-reference) " +
+                     "(exiting)")
         logger.error(last_exception())
         sys.exit(1)
-
 
     # Run FastQC on the read files
     logger.info("Running FastQC")

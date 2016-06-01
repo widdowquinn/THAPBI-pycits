@@ -3,12 +3,16 @@
 # Tools for working with seq_crumbs scripts
 #
 # seq_crumbs: https://github.com/JoseBlanca/seq_crumbs
+#
+# (c) The James Hutton Institute 2016
+# Author: Leighton Pritchard
 
 import os
 import sys
 
 from subprocess import call
 from tools import is_exe
+
 
 class Trim_Quality(object):
     """Class for working with trim_quality"""
@@ -30,8 +34,8 @@ class Trim_Quality(object):
             self._logger.info(m)
         retcode = call(self._cmd, shell=True)
         if retcode < 0:
-            self._logger.error("trim_quality terminated by signal %s" %
-                               -retcode)
+            self._logger.error("trim_quality terminated by " +
+                               "signal %s" % -retcode)
             sys.exit(1)
         else:
             self._logger.info("trim_quality returned %s" % retcode)
@@ -71,8 +75,8 @@ class Convert_Format(object):
             self._logger.info(m)
         retcode = call(self._cmd, shell=True)
         if retcode < 0:
-            self._logger.error("convert_format terminated by signal %s" %
-                               -retcode)
+            self._logger.error("convert_format terminated by " +
+                               "signal %s" % -retcode)
             sys.exit(1)
         else:
             self._logger.info("convert_format returned %s" % retcode)

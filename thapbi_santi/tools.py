@@ -1,9 +1,18 @@
 #!/usr/bin/env python
+#
+# tools.py
+#
+# Reimplementations of Santi's trim_longitudes.py and blastclust_lst2fasta.py
+# scripts/functions, and other miscellaneous functions
+#
+# (c) The James Hutton Institute 2016
+# Author: Leighton Pritchard
 
 import os
 
 from Bio import SeqIO
 from subprocess import check_output
+
 
 def is_exe(filename):
     """Returns True if path is to an executable file"""
@@ -12,6 +21,7 @@ def is_exe(filename):
     else:
         exefile = check_output(["which", filename]).strip()
     return os.path.isfile(exefile) and os.access(exefile, os.X_OK)
+
 
 # Function replacing Santi's trim_longitudes.py script
 # Defaults are equivalent to the default settings in Santi's script, excepting
@@ -26,6 +36,7 @@ def trim_seq(infname, outfname, lclip=21, rclip=20, minlen=100):
         s_trimmed = (s[lclip:-rclip] for s in SeqIO.parse(fh, 'fasta'))
         return SeqIO.write((s for s in s_trimmed if len(s) >= minlen),
                            outfname, 'fasta')
+
 
 # Function replacing Santi's blastclust_lst2fasta.py script
 def blastclust_to_fasta(infname, seqfname, outdir):
@@ -47,4 +58,3 @@ def blastclust_to_fasta(infname, seqfname, outdir):
             SeqIO.write((seqdict[key] for key in line.split()),
                         outfname, 'fasta')
     return outdirname
-            

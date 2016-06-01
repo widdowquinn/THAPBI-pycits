@@ -3,12 +3,16 @@
 # Tools for working with QIIME scripts
 #
 # QIIME: http://qiime.org/
+#
+# (c) The James Hutton Institute 2016
+# Author: Leighton Pritchard
 
 import os
 import sys
 
 from subprocess import call
 from tools import is_exe
+
 
 class Pick_Otus(object):
     """Class for working with pick_otus.py"""
@@ -29,8 +33,8 @@ class Pick_Otus(object):
             self._logger.info(m)
         retcode = call(self._cmd, shell=True)
         if retcode < 0:
-            self._logger.error("pick_otus.py terminated by signal %s" %
-                               -retcode)
+            self._logger.error("pick_otus.py terminated by " +
+                               "signal %s" % -retcode)
             sys.exit(1)
         else:
             self._logger.info("pick_otus.py returned %s" % retcode)
@@ -85,7 +89,7 @@ class Pick_Closed_Ref_Otus(object):
                "-o", self._outdirname]
         self._cmd = ' '.join(cmd)
 
-            
+
 class Join_Paired_Ends(object):
     """Class for working with join_paired_ends.py"""
     def __init__(self, exe_path, logger):
@@ -96,7 +100,7 @@ class Join_Paired_Ends(object):
             self._logger.error("No join_paired_ends.py script (exiting)")
             sys.exit(1)
         self._exe_path = exe_path
-            
+
     def run(self, infnames, outdir):
         """Run joined_paired_ends.py on the passed file"""
         self.__build_cmd(infnames, outdir)
@@ -105,8 +109,8 @@ class Join_Paired_Ends(object):
             self._logger.info(m)
         retcode = call(self._cmd, shell=True)
         if retcode < 0:
-            self._logger.error("join_paired_ends.py terminated by signal %s" %
-                               -retcode)
+            self._logger.error("join_paired_ends.py terminated by " +
+                               "signal %s" % -retcode)
             sys.exit(1)
         else:
             self._logger.info("join_paired_ends.py returned %s" % retcode)
