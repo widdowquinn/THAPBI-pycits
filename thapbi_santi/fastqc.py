@@ -45,6 +45,6 @@ class FastQC(object):
         """Build a command-line for fastqc"""
         self._outdirname = os.path.join(outdir, "FastQC_output")
         cmd = ["fastqc",
-               "-i", infname,
+               infname,
                "-o", self._outdirname]
         self._cmd = ' '.join(cmd)
