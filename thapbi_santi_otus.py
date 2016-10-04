@@ -9,7 +9,7 @@
 # Phytophthora.
 #
 # (c) The James Hutton Institute 2016
-# Author: Leighton Pritchard
+# Author: Leighton Pritchard, Peter Thorpe
 
 import logging
 import logging.handlers
