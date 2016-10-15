@@ -189,6 +189,7 @@ if __name__ == '__main__':
     pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
 
     # How many threads are we using?
+    args.threads = min(args.threads, multiprocessing.cpu_count())
     logger.info("Using %d threads/CPUs where available" % args.threads)
 
     # Trim reads on quality - forward and reverse reads
