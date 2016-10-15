@@ -11,6 +11,7 @@
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard, Peter Thorpe
 
+import errno
 import logging
 import logging.handlers
 import multiprocessing
@@ -143,10 +144,15 @@ if __name__ == '__main__':
     logger.info("Reference FASTA file: %s" % args.reference_fasta)
 
     # Have we got an output directory and prefix? If not, create it.
-    if not os.path.exists(args.outdirname):
-        logger.warning("Output directory %s does not exist - creating it" %
-                       args.outdirname)
+    try:
+        logger.info("Creating directory %s" % args.outdirname)
         os.makedirs(args.outdirname)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            logger.error("Error creating directory %s (exiting)" %
+                         args.outdirname)
+            logger.info(last_exception())
+            sys.exit(1)
 
     # Check for the presence of space characters in any of the input filenames
     # If we have any, abort here and now.
