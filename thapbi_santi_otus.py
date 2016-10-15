@@ -103,6 +103,7 @@ if __name__ == '__main__':
     err_handler = logging.StreamHandler(sys.stderr)
     err_formatter = logging.Formatter('%(levelname)s: %(message)s')
     err_handler.setFormatter(err_formatter)
+    logger.addHandler(err_handler)
 
     # Was a logfile specified? If so, use it
     if args.logfile is not None:
@@ -110,6 +111,7 @@ if __name__ == '__main__':
             logstream = open(args.logfile, 'w')
             err_handler_file = logging.StreamHandler(logstream)
             err_handler_file.setFormatter(err_formatter)
+            # logfile is always verbose
             err_handler_file.setLevel(logging.INFO)
             logger.addHandler(err_handler_file)
         except:
@@ -117,14 +119,13 @@ if __name__ == '__main__':
                          args.logfile)
             sys.exit(1)
 
-    # Do we need verbosity?
+    # Do we need verbosity at the terminal?
     if args.verbose:
         err_handler.setLevel(logging.INFO)
     else:
         err_handler.setLevel(logging.WARNING)
-    logger.addHandler(err_handler)
 
-    # Report arguments, if verbose
+    # Report input arguments
     logger.info("Command-line: %s" % ' '.join(sys.argv))
     logger.info(args)
     logger.info("Starting pipeline: %s" % time.asctime())
