@@ -161,8 +161,9 @@ if __name__ == '__main__':
                           fname.startswith(args.prefix)])
     logger.info("Input files: %s" % infilenames)
     for fname in infilenames:
-        if ' ' in os.path.abspath(fname):
-            logger.error("File or directory '%s' contains whitespace" % fname)
+        if ' ' in os.path.relpath(fname):
+            logger.error("Relative path to file or directory " +
+                         "'%s' contains whitespace" % fname)
             logger.error("(exiting)")
             sys.exit(1)
 
