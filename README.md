@@ -21,51 +21,10 @@ These tools should either be in the `${PATH}`, or their executables should be sp
 * `QIIME`: tested with v1.9.1
 * `MUSCLE`: tested with v3.8.31
 
-## Original pipeline
-
-The original pipeline information and Santi's Python scripts are in the subdirectory `santi_docs`:
-
-```
-$ tree santi_docs/
-santi_docs/
-├── Santi pipeline.docx
-├── blastclust_lst2fasta.py
-├── database.fasta
-└── trim_longitudes.py
-```
-
-* `Santi pipeline.docx`: The source material for reconstructing the pipeline.
-* `database.fasta`: A dataset of reference *Phytophthora* ITS sequences
-* `blastclust_lst2fasta.py`: Python script to convert `BLASTCLUST` output to a set of `FASTA` files, one file per cluster.
-* `trim_longitudes.py`: Python script to trim joined reads by a fixed number of bases, from each end.
-
-## Shell script conversion
-
-The `bash` shell script conversion is a transliteration of the pipeline given in the file `santi_docs/Santi pipeline.docx`, with comments to outline the actions at each step. This script is not very flexible, and does not segregate input from output from intermediate files very clearly. The script must be run in the same directory as the input read files.
-
-* `santi_script.sh`: Transliteration of the original pipeline into `bash` shell script.
-
-**Usage:**
-
-```
-$ santi_script.sh
-```
-
-## Makefile conversion
-
-The `Make` conversion introduces the ability to pass the input file prefix and sequence directory as arguments, so no longer requires to be run in the same directory as the input file. Pipeline dependencies are recognised, which saves time on re-running if the pipeline fails. However, the `Makefile` remains relatively inflexible, in that all commands/packages must be in the `${PATH}`, and the `Makefile` must still be copied to, and run in, the intended output directory (though a small modification to the script could avoid this).
-
-* `Makefile`: Conversion of original pipeline to `Makefile`
-
-**Usage:**
-
-```
-$ make otus -e PREFIX=<prefix of sequence data> SEQDIR=<path to sequence directory>
-```
 
 ## Python conversion
 
-The pipeline is also converted to a `Python` script, with supporting modules that wrap the packages to be called by the pipeline, and provide helper functions. The script and modules can be installed to the system with:
+The initial Python pipeline is a `Python` transliteration of Santi's script, with supporting modules that wrap the packages to be called by the pipeline, and provide helper functions. The script and modules can be installed to the system with:
 
 ```
 $ python setup.py install
