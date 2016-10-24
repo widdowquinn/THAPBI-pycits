@@ -1,6 +1,5 @@
-# README.py  - `santi_script`
-
-This directory contains conversions of Santiago Garcia's OTU-classification script from the original Word document reference to Bash, Makefile and Python.
+# README.py - `THAPBI-pycits`
+This repository is for development of ITS1-based diagnostic/profiling tools for the THAPBI Phyto-Threats project, funded by BBSRC.
 
 ## Dependencies
 
