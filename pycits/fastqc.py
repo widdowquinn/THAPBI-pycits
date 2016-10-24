@@ -8,7 +8,7 @@ import os
 import sys
 
 from subprocess import Popen, PIPE
-from tools import is_exe
+from .tools import is_exe
 
 
 class FastQC(object):
