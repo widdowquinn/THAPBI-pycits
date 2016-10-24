@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# thapbi_santi_otus.py
+# run-pycits.py
 #
 # Script to identify OTUs from metabarcoding reads.
 #
@@ -23,14 +23,14 @@ import traceback
 from argparse import ArgumentParser
 from biom import load_table
 
-from thapbi_santi import fastqc, seq_crumbs, ea_utils, blast, qiime, \
-    muscle, tools
+#from pycits import tools, fastqc, seq_crumbs, ea_utils, blast, qiime
+#from pycits import muscle, __version__
 
 
 # Process command-line arguments
 def parse_cmdline(args):
     """Parse command-line arguments"""
-    parser = ArgumentParser(prog="thapbi_santi_otus.py")
+    parser = ArgumentParser(prog="pycits.py")
     parser.add_argument("-p", "--prefix", dest="prefix",
                         action="store", default=None,
                         help="Paired readfiles prefix")
@@ -98,7 +98,8 @@ if __name__ == '__main__':
     args = parse_cmdline(sys.argv)
 
     # Set up logging
-    logger = logging.getLogger('thapbi_santi_otus.py: %s' % time.asctime())
+    logger = logging.getLogger('pycits.py: %s' % time.asctime())
+    logger = logging.getLogger('version: %s' % __version__)
     logger.setLevel(logging.DEBUG)
     err_handler = logging.StreamHandler(sys.stderr)
     err_formatter = logging.Formatter('%(levelname)s: %(message)s')

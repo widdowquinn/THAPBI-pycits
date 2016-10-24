@@ -10,40 +10,41 @@ try:
 except ImportError:
     from distutils.core import setup
 
-
+import os
 import sys
 import re
 
 # parse version from package/module without importing or evaluating the code
-with open('thapbi_santi/__init__.py') as fh:
+with open('pycits/__init__.py') as fh:
     for line in fh:
         m = re.search(r"^__version__ = '(?P<version>[^']+)'$", line)
         if m:
             version = m.group('version')
             break
 
-if sys.version_info <= (2, 5):
-    sys.stderr.write("ERROR: santi_script requires Python Version 2.6 " +
+if sys.version_info <= (3, 4):
+    sys.stderr.write("ERROR: pycits requires Python Version 3.5 " +
                      "or above...exiting.\n")
     sys.exit(1)
 
 setup(
-    name="santi_script",
+    name="pycits",
     version=version,
     author="Leighton Pritchard",
     author_email="leighton.pritchard@hutton.ac.uk",
-    description=''.join(["This script translates Santiago Garcia's "
-                         "metabarcoding pipeline into a Python script "
-                         "with associated modules, designed for "
-                         "flexibility and further development"]),
+    description=''.join(["This tool enables ITS1-based classification ",
+                         "for Phytophthora isolates, as part of the ",
+                         "THAPBI Phyto-Threats project"]),
     license="MIT",
     keywords="genome bioinformatics sequence sequencing metabarcoding",
     platforms="Posix; MacOS X",
-    url="http://widdowquinn.github.io/THAPBI/santi_script",  # project home
-    download_url="https://github.com/widdowquinn/THAPBI/releases",
-    scripts=['thapbi_santi_otus.py'],
-    packages=['thapbi_santi'],
-    install_requires=['biopython'],
+    url="http://widdowquinn.github.io/THAPBI-pycits",  # project home
+    download_url="https://github.com/widdowquinn/THAPBI-pycits",
+    scripts=[os.path.join('bin', 'pycits.py')],
+    packages=['pycits'],
+    setup_requires=['numpy'],  # ensures numpy installation
+    install_requires=['biopython',
+                      'biom-format'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -53,9 +54,7 @@ setup(
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         ],
     )
