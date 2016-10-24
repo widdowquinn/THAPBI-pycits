@@ -12,6 +12,12 @@ from subprocess import Popen, PIPE
 from .tools import is_exe, NotExecutableError
 
 
+class BlastclustError(Exception):
+    """Exception raised when blastclust fails"""
+    def __init__(self, message):
+        self.message = message
+
+
 class Blastclust(object):
     """Class for working with blastclust"""
     def __init__(self, exe_path):
@@ -36,11 +42,11 @@ class Blastclust(object):
             return(self._cmd)
         msg = ["Running...", "\t%s" % self._cmd]
         if logger:
-            [self._logger.info(m) for m in msg]
+            [logger.info(m) for m in msg]
         pipe = Popen(self._cmd, shell=True, stdout=PIPE)
         if pipe.wait() != 0:
-            self._logger.error("blastclust generated some errors")
-            sys.exit(1)
+            msg = "blastclust generated some errors"
+            raise BlastclustError(msg)
         return(self._outfname, pipe.stdout.readlines())
 
     def __build_cmd(self, infname, outdir, threads):

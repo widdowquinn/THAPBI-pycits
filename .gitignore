@@ -1,8 +1,11 @@
 # Python compiled files
 *.pyc
+pycits/__pycache__
 
 # Emacs intermediates
 *~
+*#
+*/.#*
 
 # Exclude distutils output
 .eggs/
@@ -16,3 +19,6 @@ venv-THAPBI-pycits/
 # Exclude test output
 test_out/
 test_out.log
+tests/test_out_blastclust
+error.log
+
