@@ -1,3 +1,9 @@
+# Python compiled files
+*.pyc
+
+# Emacs intermediates
+*~
+
 # Exclude distutils output
 .eggs/
 build/
