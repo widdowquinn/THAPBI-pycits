@@ -180,7 +180,7 @@ if __name__ == '__main__':
     logger.info("\tconvert_format... (%s)" % args.convert_format)
     convert_format = seq_crumbs.Convert_Format(args.convert_format, logger)
     logger.info("\tblastclust... (%s)" % args.blastclust)
-    blastclust = blast.Blastclust(args.blastclust, logger)
+    blastclust = blast.Blastclust(args.blastclust)
     logger.info("\tmuscle... (%s)" % args.muscle)
     muscle = muscle.Muscle(args.muscle, logger)
     logger.info("\tpick_otus.py... (%s)" % args.pick_otus)

@@ -9,31 +9,39 @@ import os
 import sys
 
 from subprocess import Popen, PIPE
-from .tools import is_exe
+from .tools import is_exe, NotExecutableError
 
 
 class Blastclust(object):
     """Class for working with blastclust"""
-    def __init__(self, exe_path, logger):
+    def __init__(self, exe_path):
         """Instantiate with location of executable"""
-        self._logger = logger
         self._no_run = False
         if not is_exe(exe_path):
-            self._logger.error("No blastclust at %s (exiting)" % exe_path)
-            sys.exit(1)
+            msg = "{0} is not executable".format(exe_path)
+            raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, infnames, outdir, threads):
-        """Run blastclust on the passed file"""
+    def run(self, infnames, outdir, threads, logger=None, dry_run=False):
+        """Run blastclust on the passed file.
+
+        - infnames - input filenames for clustering
+        - outdir   - output directory for clustered output
+        - threads  - number of threads for blastclust to use
+        - logger   - stream to write messages
+        - dry_run  - if True, returns cmd-line and does not run
+        """
         self.__build_cmd(infnames, outdir, threads)
+        if dry_run:
+            return(self._cmd)
         msg = ["Running...", "\t%s" % self._cmd]
-        for m in msg:
-            self._logger.info(m)
+        if logger:
+            [self._logger.info(m) for m in msg]
         pipe = Popen(self._cmd, shell=True, stdout=PIPE)
         if pipe.wait() != 0:
             self._logger.error("blastclust generated some errors")
             sys.exit(1)
-        return (self._outfname, pipe.stdout.readlines())
+        return(self._outfname, pipe.stdout.readlines())
 
     def __build_cmd(self, infname, outdir, threads):
         """Build a command-line for blastclust"""
