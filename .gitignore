@@ -1,0 +1,8 @@
+# Exclude distutils output
+.eggs/
+build/
+dist/
+pycits.egg-info/
+
+# Exclude virtualenv directory
+venv-THAPBI-pycits/
