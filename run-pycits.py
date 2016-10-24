@@ -23,8 +23,8 @@ import traceback
 from argparse import ArgumentParser
 from biom import load_table
 
-#from pycits import tools, fastqc, seq_crumbs, ea_utils, blast, qiime
-#from pycits import muscle, __version__
+from pycits import tools, fastqc, seq_crumbs, ea_utils, blast, qiime
+from pycits import muscle, __version__
 
 
 # Process command-line arguments

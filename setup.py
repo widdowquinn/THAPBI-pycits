@@ -40,7 +40,7 @@ setup(
     platforms="Posix; MacOS X",
     url="http://widdowquinn.github.io/THAPBI-pycits",  # project home
     download_url="https://github.com/widdowquinn/THAPBI-pycits",
-    scripts=[os.path.join('bin', 'pycits.py')],
+    scripts=['run-pycits.py'],
     packages=['pycits'],
     setup_requires=['numpy'],  # ensures numpy installation
     install_requires=['biopython',
