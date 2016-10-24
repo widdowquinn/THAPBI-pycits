@@ -1,11 +1,20 @@
 # README.py - `THAPBI-pycits`
 This repository is for development of ITS1-based diagnostic/profiling tools for the THAPBI Phyto-Threats project, funded by BBSRC.
 
+## Using a virtual environment
+
+In the root directory of the repository:
+
+```
+$ virtualenv -p python3.5 venv-THAPBI-pycits
+$ source venv-THAPBI-pycits/bin/activate
+<activity>
+$ deactivate
+```
+
 ## Dependencies
 
 ### Python packages
-
-Only required for the Python conversion, not the `Makefile`.
 
 * `biom-format`: available through `PyPI` at [https://pypi.python.org/pypi/biom-format](https://pypi.python.org/pypi/biom-format) (tested with v2.1.5)
 
