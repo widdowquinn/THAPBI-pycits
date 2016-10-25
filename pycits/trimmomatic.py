@@ -14,7 +14,6 @@ import os
 import sys
 
 from subprocess import Popen, PIPE
-from tools import is_exe
 
 
 class Trimmomatic(object):
@@ -23,9 +22,9 @@ class Trimmomatic(object):
         """Instantiate with location of executable"""
         self._logger = logger
         self._no_run = False
-        if not is_exe(exe_path):
+        if not os.path.isfile(exe_path):
             # TO DO: return this error message when it fails
-            msg = ''.join(["trimmomatic executable not valid",
+            msg = ''.join(["trimmomatic is not valid",
                    "trimming of reads will not be run...",
                    " SOLUTION: put trimmomatic in your PATH",
                    " and this is still failing "
@@ -35,8 +34,8 @@ class Trimmomatic(object):
                    "in your PATH",
                    " you can download the binaries from",
                    "http://www.usadellab.org/cms/?page=trimmomatic"])
-            for m in msg:
-                self._logger.warning(m)
+
+            self._logger.warning(msg)
             self._no_run = True
         self._exe_path = exe_path
 
