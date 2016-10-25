@@ -1,7 +1,8 @@
-![THAPBI-pycits TravisCI build status](https://api.travis-ci.org/widdowquinn/THAPBI-pycits.svg?branch=master) ![codecov.io coverage status](https://img.shields.io/codecov/c/github/widdowquinn/THAPBI-pycits.svg)
+![THAPBI-pycits TravisCI build status](https://api.travis-ci.org/widdowquinn/THAPBI-pycits.svg?branch=master) ![codecov.io coverage status](https://img.shields.io/codecov/c/github/widdowquinn/THAPBI-pycits.svg) [![Code Health](https://landscape.io/github/widdowquinn/THAPBI-pycits/master/landscape.svg?style=flat)](https://landscape.io/github/widdowquinn/THAPBI-pycits/master)
 
 * [Travis-CI page](https://travis-ci.org/widdowquinn/THAPBI-pycits/branches)
-* [`codecov`.io page](https://codecov.io/gh/widdowquinn/THAPBI-pycits)
+* [`codecov.io` page](https://codecov.io/gh/widdowquinn/THAPBI-pycits)
+* [`landscape.io` page](https://landscape.io/github/widdowquinn/THAPBI-pycits/1)
 
 # README.py - `THAPBI-pycits`
 This repository is for development of ITS1-based diagnostic/profiling tools for the THAPBI Phyto-Threats project, funded by BBSRC.
