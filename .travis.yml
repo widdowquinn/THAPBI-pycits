@@ -1,22 +1,19 @@
 language: python
+
 python:
-  - "3.5"
-  - "3.5-dev" # 3.5 development branch
-#  - "3.6-dev" # 3.6 development branch
-#  - "nightly" # currently points to 3.7-dev
+  - '3.5'
+  - 3.5-dev
 
-# command to install dependencies
+# Install Python module dependencies
 install:
-  - "pip install -r requirements.txt"
-  - "pip install codecov"
+  - pip install -r requirements.txt
+  - pip install codecov
 
-# command to run tests
-# Use --nocapture with nosetests to get extra verbose output for debugging
-# on Travis
+# Run tests. Use --nocapture to get extra verbose output for debugging
 script:
   - nosetests -v --with-coverage --cover-package=pycits
 
-# application dependencies: legacy BLAST
+# Install application dependencies (non-apt)
 before_install:
   - cd $HOME
   - wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
@@ -25,13 +22,11 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
 
 sudo: false
-#addons:
-#  apt:
-#    packages:
-#    - csh
-#    - ncbi-blast+
-#    - mummer
 
-# Use codecov for code coverage
 after_success:
   - codecov
+
+# Notify on builds via Slack
+notifications:
+  slack:
+    secure: D4KQswv45aiMZ6d8ilvvwQsalXQTx2U/3LJa0JnSMZifF4z99aNruQu97DZ3fsFD0u/P2glLEoSm8bicCf5hFEoQ4O6QeWF6sMO5n3TtpKXA1OalpXt9aQn9ckecAd81KZ4qamPGxX1w5SRlQEEhbf5ODHthnqpttlRdd4BhZ7jnM+InoBiOa22Ub+k5Rap4wtGT5rxfXDHleXgk0waTs+RINaQUgdswod+PHclW0zfppaldhzSy703WNiA8ceTHUJIvYehiv1UINNtjwg8JHKNseTdaLcN4+G1TJX+EuNqTdhtsV/7a+8mCEprsKyM7Uhjia26Tyd3yUuU1jnRmBA/L62x91MfH11AgJdbVekcjYuKTo5e+RBFWYAz6DlaX5s7CXUOU8n6zA2ei6wj3Erx8e2keTPBG6uafjawXQgEuGk3y2OtrkUYO2SwrEuFOirXcdS2EXkQ3Fw/8QQMT4xZzaIofbtma0UwWYeRy26TSMt0AnEPCwMc9vOgl4bZoHgJK9boStvcHEKjWI1biFx3Eu9MepAB+hhzTzVaMs/o9DbJZzLp3EOR8857UO0iMiZjhOLHyUkr8j5L2OCrkKiSDka1pJwqN4dU3UEXNL0nZ4pkL1x+1wcM/jLQytOeZohIGes9EvnS9rIVcQUDOO3uZYEf8NDGftEDm2Zrqxzk=
