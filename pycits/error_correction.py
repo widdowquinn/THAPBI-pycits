@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 #
-# PEAR * (assemble overlapping reads)
-# https://github.com/xflouris/PEAR
-# follow this link to get the binaries.
-# http://sco.h-its.org/exelixis/web/software/pear/files/
-# pear-0.9.10-bin-64.tar.gz
-#
+# error_correction * (correct Illumina specific errors)
+# http://bioinf.spbau.ru/spades/bayeshammer
+# This comes bunduled with SPAdes.
+# http://bioinf.spbau.ru/en/content/spades-download-0
+# tested with 3.9.0
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard and Peter Thorpe
-
-# WARNING: this module is not yet tested AT ALL.
 
 import os
 import sys
@@ -18,8 +15,8 @@ import subprocess
 from .tools import is_exe
 
 
-class Pear(object):
-    """Class for working with PEAR"""
+class Error_correction(object):
+    """Class for working with Bayes hammer"""
 
     def __init__(self, exe_path, logger=False):
         """Instantiate with location of executable"""
@@ -27,29 +24,23 @@ class Pear(object):
         self._no_run = False
         if not is_exe(exe_path):
             if logger:
-                self._logger.error("""No PEAR program in PATH (exiting)
-        The default name in the PEAR download is NOT PEAR. It is, for example
-        pear-0.9.5-bin-64 . We recomment you change directory into the PEAR/bin
-        forlder and 'cp pear-0.9.5-bin-64 pear' . This will create a copy of
-        pear in that name. Make sure the PATH to this bin directory is in
-        your PATH.
-
-        If you are having troubles installing PEAR, pre-built binaries can be
-        found at
-        http://sco.h-its.org/exelixis/web/software/pear/files/
-        pear-0.9.10-bin-64.tar.gz
+                self._logger.error("""No SPADES program in PATH (exiting)
+        please download from :
+        http://bioinf.spbau.ru/en/content/spades-download-0
+        and add to your PATH, or give full path to ...
         """)
             sys.exit(1)
         self._exe_path = exe_path
 
-    def run(self, L_reads, R_reads, threads, outdir,
+    def run(self, exe_path, L_reads, R_reads, outdir, threads,
             logger=False):
-        """Run PEAR on the read files"""
+        """Run SPAdes on the read files"""
         assert L_reads != R_reads, """Oh no,
-        I am trying to assemble two files that are the same!
+        I am trying to correct two files that are the same!
         Something has gone wrong in determining the left and right
         read files."""
-        self.__build_cmd(L_reads, R_reads, str(threads), outdir)
+        self.__build_cmd(exe_path, L_reads, R_reads,
+                         str(threads), outdir)
         if not os.path.exists(self._outdirname):
             if logger:
                 self._logger.info("Creating output directory: %s" %
@@ -66,25 +57,26 @@ class Pear(object):
                               check=True)
         if pipe.returncode != 0:
             if logger:
-                self._logger.error("PEAR terminated by " +
+                self._logger.error("SPAdes terminated by " +
                                    "signal %s" % pipe.returncode)
             sys.exit(1)
         else:
             if logger:
-                self._logger.info("pear.py returned %s"
+                self._logger.info("SPAdes.py returned %s"
                                   % pipe.returncode)
         # print ("\n\npipe.args = ", pipe.args, "\n\n")
         return pipe.args
 
-    def __build_cmd(self, L_reads, R_reads, threads, outdir):
-        """Build a command-line for pear to assemble the
-        overlapping paired end reads. """
-        prefix = L_reads.split("_R")[0]
-        prefix = prefix.split("/")[-1]
-        self._outdirname = os.path.join(outdir, "%s_PEAR" % (prefix))
-        cmd = ["pear",
-               "-f", L_reads,
-               "-r", R_reads,
+    def __build_cmd(self, exe_path, L_reads, R_reads,
+                    threads, outdir):
+        """Build a command-line for SPAdes to error correct the
+         paired end reads. """
+        self._outdirname = os.path.join(outdir)
+        cmd = ["python",
+               exe_path,
+               "-1", L_reads,
+               "-2", R_reads,
+               "--only-error-correction",
                "--threads", str(threads),
                "-o", self._outdirname]
         self._cmd = ' '.join(cmd)
