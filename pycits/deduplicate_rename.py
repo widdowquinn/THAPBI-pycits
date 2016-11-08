@@ -3,7 +3,9 @@
 # script to reformt fasta ID names and append the abundance of
 # that seq at the end of the new name.
 # Why: Swarm clustering will ot work on Illumina names and
-# requires abundance values. 
+# requires abundance values.
+# author: Peter Thorpe and Leighton Pritchard
+# September 2016. The James Hutton Insitute, Dundee, UK.
 
 # os imports
 import os
