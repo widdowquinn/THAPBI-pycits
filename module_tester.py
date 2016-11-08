@@ -12,8 +12,8 @@ import traceback
 
 from argparse import ArgumentParser
 
-from pycits import tools, trimmomatic, pear, error_correction#,\
-    #clean_up, swarm
+from pycits import tools, trimmomatic, pear, error_correction,\
+    clean_up, swarm, seq_crumbs
 
 # setting up some test variables
 threads = "4"
@@ -116,15 +116,28 @@ if __name__ == '__main__':
     delete_file = clean_up.Clean_up("rm", logger)
     for i in unwanted_list:
         delete_file.run(i)
+
 ###################################################################################################
 
-    # SWARM testing - assemble
-    cluster = swarm.Swarm("swarm", logger)
+# convert format
+    format_change = seq_crumbs.Convert_Format("convert_format", logger)
     assembled_reads = os.path.join("PEAR_assembled",
                     read_prefix+ "_paired_PEAR.assembled.fastq")
 
+    format_change.run(assembled_reads, "fasta_converted", logger)
+
+
+##################################################################################################
+
+
+
+    # SWARM testing - assemble
+    cluster = swarm.Swarm("swarm", logger)
+    assembled_fa_reads = os.path.join("fasta_converted",
+                    read_prefix+ "_paired_PEAR.assembled.fasta")
+
     logger.info("clustering with Swarm")
-    cluster.run(assembled_reads,
+    cluster.run(assembled_fa_reads,
                  threads, 1, "Swarm_cluster")
 
     
