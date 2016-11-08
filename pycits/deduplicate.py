@@ -11,6 +11,7 @@ import sys
 import subprocess
 from .tools import is_exe
 
+
 class Deduplicate(object):
     """Class for working with deduplicate script"""
     def __init__(self, exe_path, logger=False):
@@ -26,7 +27,7 @@ class Deduplicate(object):
                 self._logger.warning(msg)
             self._no_run = True
         self._exe_path = exe_path
-        
+
     def __build_cmd(self, exe_path, fasta, database,
                     out, logger=False):
         """Build a command-line for deduplicate_rename.py"""
@@ -38,7 +39,7 @@ class Deduplicate(object):
         self._cmd = ' '.join(cmd)
 
     def run(self, exe_path, fasta, database,
-                    out, logger=False):
+            out, logger=False):
         """deduplicate fasta file"""
         self.__build_cmd(exe_path, fasta, database,
                          out, logger)
@@ -48,7 +49,7 @@ class Deduplicate(object):
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
-                              check=True)            
+                              check=True)
         if pipe.returncode != 0:
             if logger:
                 self._logger.error("""deduplicate_rename
@@ -59,7 +60,3 @@ class Deduplicate(object):
                 self._logger.info(pipe)
         print ("pipe.args = ", pipe.args)
         return (pipe.args)
-
-
-
-
