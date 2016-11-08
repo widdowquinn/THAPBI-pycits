@@ -146,7 +146,7 @@ parser = OptionParser(usage=usage)
 parser.add_option("-f","--fasta", dest="fasta", default=None,
                   help="fasta file to have names altered")
 
-parser.add_option("-d", "--databse", dest="databse", default=None,
+parser.add_option("-d", "--database", dest="database", default=None,
                   help="outfile to keep track of old and new ID names",
                   metavar="FILE")
 parser.add_option("-b", "--barcode", dest="barcode", default=False,
@@ -158,10 +158,10 @@ parser.add_option("-o", "--out", dest="out", default=None,
 (options, args) = parser.parse_args()
 
 fasta = options.fasta
-databse = options.databse
+database = options.database
 barcode = options.barcode
 out = options.out
 
 # run the program
-parse_fasta_file(fasta, databse, out, barcode)
+parse_fasta_file(fasta, database, out, barcode)
 

@@ -58,7 +58,7 @@ class Deduplicate(object):
             if logger:
                 self._logger.info(pipe)
         print ("pipe.args = ", pipe.args)
-        return (self._outdirname, pipe.args)
+        return (pipe.args)
 
 
 
