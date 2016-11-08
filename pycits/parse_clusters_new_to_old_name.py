@@ -20,11 +20,11 @@ def coded_name_to_species(database_file):
     database of coded name to species file. Returns a dic
     of coded_name to species"""
     with open(database_file) as file:
-        data= file.read().split("\n")
-    coded_name_to_species_dict=dict()
+        data = file.read().split("\n")
+    coded_name_to_species_dict = dict()
     for line in data:
         if not line.strip():
-            continue #if the last line is blank
+            continue  # if the last line is blank
         if line.startswith("#"):
             continue 
         #print line
@@ -39,11 +39,11 @@ def rev_coded_name_to_species(database_file):
     database of coded name to species file. Returns a dic
     of coded_name to species"""
     with open(database_file) as file:
-        data= file.read().split("\n")
-    rev_coded_name_to_species_dict=dict()
+        data = file.read().split("\n")
+    rev_coded_name_to_species_dict = dict()
     for line in data:
         if not line.strip():
-            continue #if the last line is blank
+            continue  # if the last line is blank
         if line.startswith("#"):
             continue 
         #print line
@@ -69,7 +69,7 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
     count = int(0)
     for line in cluster_file:
         if not line.strip():
-            continue #if the last line is blank
+            continue  # if the last line is blank
         if line.startswith("#"):
             continue
         out_put_str = ""
@@ -78,7 +78,7 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
         else:
             # different clustering program?
             cluster_line = line.rstrip("\n").split()
-        count +=1
+        count += 1
         for member in cluster_line:
             #print member
             try:
@@ -101,7 +101,7 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
                 abundance = member.split("_")[1]
             # add the info to a str, we will write at the
             # end of the cluster line    
-            cluster_summary = "%s_abundance=%s\t" %(species, \
+            cluster_summary = "%s_abundance=%s\t" % (species, \
                                                     abundance)
             out_put_str = out_put_str + cluster_summary
         summary_out_file.write(out_put_str+"\n")
