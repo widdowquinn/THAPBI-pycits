@@ -67,9 +67,15 @@ class Convert_Format(object):
         self.informat = "fastq"
         self.outformat = "fasta"
 
-    def run(self, infname, outdir):
+    def run(self, infname, outdir, logger=None):
         """Run convert_format on the passed file"""
-        self.__build_cmd(infname, outdir)
+        self._outdirname = os.path.join(outdir)
+        if not os.path.exists(self._outdirname):
+            if logger:
+                self._logger.info("Creating output directory: %s" %
+                                  self._outdirname)
+                os.makedirs(self._outdirname)
+        self.__build_cmd(infname, self._outdirname)
         msg = ["Running...", "\t%s" % self._cmd]
         for m in msg:
             self._logger.info(m)
@@ -89,8 +95,8 @@ class Convert_Format(object):
         outfilename = os.path.join(outdir, outfname)
         cmd = ["convert_format",
                "-t", self.informat,
-               "-f", self.outformat,
                "-o", outfilename,
+               "-f", self.outformat,               
                infname]
         self._cmd = ' '.join(cmd)
         self._outfname = outfilename
