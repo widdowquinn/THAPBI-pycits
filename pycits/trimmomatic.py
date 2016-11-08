@@ -93,7 +93,7 @@ class Trimmomatic(object):
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
-                              check=True)
+                              check=True)            
         if pipe.returncode != 0:
             if logger:
                 self._logger.error("trimmomatic generated some errors")
