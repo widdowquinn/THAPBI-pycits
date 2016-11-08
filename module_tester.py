@@ -13,7 +13,7 @@ import traceback
 from argparse import ArgumentParser
 
 from pycits import tools, trimmomatic, pear, error_correction,\
-    clean_up, swarm, seq_crumbs
+    clean_up, swarm, seq_crumbs, deduplicate
 
 # setting up some test variables
 threads = "4"
@@ -86,9 +86,6 @@ if __name__ == '__main__':
     R_E_C = os.path.join("error_correction", "corrected",
                         read_prefix + "_paired_R2.fq" + ".00.0_0.cor.fastq.gz")
 
-
-
-
 ###################################################################################################
     # PEAR testing - assemble
     assemble = pear.Pear("pear", logger)
@@ -106,7 +103,6 @@ if __name__ == '__main__':
                  threads, "PEAR_assembled_EC", logger)
     
 ###################################################################################################
-
     # cleaning up unwanted files
     logger.info("testing the removal of unwanted file")
     unwanted_list = ["unpaired_R*.fq.gz",
@@ -118,7 +114,6 @@ if __name__ == '__main__':
         delete_file.run(i)
 
 ###################################################################################################
-
 # convert format
     format_change = seq_crumbs.Convert_Format("convert_format", logger)
     assembled_reads = os.path.join("PEAR_assembled",
@@ -129,15 +124,30 @@ if __name__ == '__main__':
 
 ##################################################################################################
 
+    # deduplicate read:
+    #python deduplicate_rename.py
+    #-f DNAMIX_S95_L001_paired_PEAR.assembled.fasta
+    #-d database.out
+    #-o temp.fasta
+    dedup_prog = os.path.join("pycits", "deduplicate_rename.py")
+    dedup = deduplicate.Deduplicate(dedup_prog, logger)
+    fasta_file = os.path.join("fasta_converted", "DNAMIX_S95_L001_paired_PEAR.assembled.fasta")
+    database = os.path.join("fasta_converted", "database.out")
+    out_dedup = os.path.join("fasta_converted", "temp.fasta")
+    dedup.run(dedup_prog, fasta_file, database, out_dedup, logger)
 
-
+########################################################################
     # SWARM testing - assemble
     cluster = swarm.Swarm("swarm", logger)
-    assembled_fa_reads = os.path.join("fasta_converted",
-                    read_prefix+ "_paired_PEAR.assembled.fasta")
+    assembled_fa_reads = os.path.join("fasta_converted", "temp.fasta")
 
     logger.info("clustering with Swarm")
     cluster.run(assembled_fa_reads,
                  threads, 1, "Swarm_cluster")
+
+##########################################################################
+    # recode cluster output
+    #python parse_clusters_new_to_old_name.py
+    # -i swarm_tempd1.out -d database.out -o decoded_clusters.out
 
     
