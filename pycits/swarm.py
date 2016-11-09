@@ -38,7 +38,6 @@ class Swarm(object):
                          "swarm_clustering_d%s" %
                          (clustering_threshold))
         cmd = ["swarm",
-               "--append-abundance", "1",
                "-d", clustering_threshold,
                "-o",
                os.path.join(self._outdirname,
