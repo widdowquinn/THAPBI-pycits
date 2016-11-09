@@ -49,7 +49,7 @@ def return_fasta(seq_dict, abundance_dict, fasta_out):
     above "seqID%d" % (count), and the abundance of that
     exact seq
     """
-    for seq_ID, sequence in seq_dict.items():
+    for seq_ID, sequence in sorted(seq_dict.items()):
         
         abundance = abundance_dict[seq_ID]
         title = "%s_%d" %(seq_ID, abundance)
