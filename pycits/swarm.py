@@ -12,21 +12,24 @@
 import os
 import sys
 
-from subprocess import call
+import subprocess
 from .tools import is_exe
 
 
 class Swarm(object):
     """Class for working with SWARM"""
-    def __init__(self, exe_path, logger):
+    def __init__(self, exe_path, logger=False):
         """Instantiate with location of executable"""
-        self._logger = logger
+        if logger:
+            self._logger = logger
         self._no_run = False
         if not is_exe(exe_path):
-            self._logger.error("""No SWARM program in PATH.""
+            msg = ("""No SWARM program in PATH.""
             please download/ install from:
             https://github.com/torognes/swarm
             and add to your PATH(exiting)""")
+            if logger:
+                self._logger.warning(msg)
             sys.exit(1)
         self._exe_path = exe_path
 
@@ -38,6 +41,7 @@ class Swarm(object):
                          "swarm_clustering_d%s" %
                          (clustering_threshold))
         cmd = ["swarm",
+               "-t", str(threads),
                "-d", clustering_threshold,
                "-o",
                os.path.join(self._outdirname,
@@ -47,24 +51,32 @@ class Swarm(object):
         self._cmd = ' '.join(cmd)
 
     def run(self, infname, threads, clustering_threshold,
-                    outdir):
+                    outdir, logger=False):
         """Run SWARM on the passed file"""
         self.__build_cmd(infname, threads, \
                          clustering_threshold,
                          outdir)
         if not os.path.exists(self._outdirname):
-            self._logger.info("Creating output directory: %s" %
-                              self._outdirname)
+            if logger:
+                self._logger.info("Creating output directory: %s" %
+                                  self._outdirname)
             os.makedirs(self._outdirname)
         msg = ["Running...", "\t%s" % self._cmd]
         for m in msg:
-            self._logger.info(m)
-        retcode = call(self._cmd, shell=True)
-        if retcode < 0:
-            self._logger.error("Swarm terminated by " +
-                               "signal %s" % -retcode)
+            if logger:
+                self._logger.info(m)
+        pipe = subprocess.run(self._cmd, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True) 
+        if pipe.returncode != 0:
+            if logger:
+                self._logger.error("Swarm terminated by " +
+                                   "signal %s" % -retcode)
             sys.exit(1)
-        else:
-            self._logger.info("SWARM returned %s" % retcode)
-        return self._outdirname
+        if pipe.returncode == 0:
+            if logger:
+                self._logger.info(pipe)
+        print ("pipe.args = ", pipe.args)
+        return (self._outdirname, pipe.args)
 
