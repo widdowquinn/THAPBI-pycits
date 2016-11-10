@@ -30,21 +30,24 @@ class Rename(object):
             self._no_run = True
         self._exe_path = exe_path
 
-    def __build_cmd(self, exe_path, infile, database,
+    def __build_cmd(self, exe_path, infile, ITS_database,
+                    database,
                     out, logger=False):
         """Build a command-line for
         parse_clusters_new_to_old_name.py"""
         cmd = ["python",
                exe_path,
                "-i", infile,
+               "--seq_db", ITS_database,
                "--database", database,
                "-o", out]
         self._cmd = ' '.join(cmd)
 
-    def run(self, exe_path, infile, database,
+    def run(self, exe_path, infile, ITS_database, database,
             out, logger=False):
         """deduplicate fasta file"""
-        self.__build_cmd(exe_path, infile, database,
+        self.__build_cmd(exe_path, infile, ITS_database,
+                         database,
                          out, logger)
         msg = ["Running...", "\t%s" % self._cmd]
         # for m in msg:

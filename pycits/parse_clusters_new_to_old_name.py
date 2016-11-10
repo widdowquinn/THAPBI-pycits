@@ -12,6 +12,9 @@ from optparse import OptionParser
 import datetime
 import os
 from sys import stdin,argv
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio import SeqIO
 
 
 ####################################################################
@@ -53,7 +56,16 @@ def rev_coded_name_to_species(database_file):
                                                            rstrip()
     return rev_coded_name_to_species_dict
 
-def parse_tab_file_get_clusters(filename1, database, out_file):
+def get_names_from_Seq_db(seq_db):
+    """function to get a list of name in the seq db"""
+    names = []
+    for seq_record in SeqIO.parse(seq_db, "fasta"):
+        names.append(seq_record.id)
+    return names
+    
+
+def parse_tab_file_get_clusters(filename1, seq_db,
+                                database, out_file):
     """script to open up a tab separeted clustering output and
     rename according to the name in the database file.
     Abundance is also appended to the name"""
@@ -65,6 +77,11 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
     #print coded_name_to_species_dict
     cluster_file = open (filename1, "r")
     summary_out_file = open(out_file, "w")
+    if seq_db:
+        names = get_names_from_Seq_db(seq_db)
+    else:
+        names = []
+    print (names)
 
     count = int(0)
     for line in cluster_file:
@@ -81,6 +98,11 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
         count += 1
         for member in cluster_line:
             #print member
+            # this is seq_db entry - keep the same
+            if member[:-2] in names:
+                out_put_str = out_put_str + member + "\t"
+                continue
+                
             try:
                 species = coded_name_to_species_dict\
                           [member.split("_")[0]]
@@ -134,6 +156,9 @@ parser = OptionParser(usage=usage)
 parser.add_option("-i","--in", dest="in_file", default=None,
                   help="clustering out file")
 
+parser.add_option("--seq_db", dest="seq_db", default=False,
+                  help="the databse used to cluster with")
+
 parser.add_option("-d", "--database", dest="database",
                   default="name_to_species_database.txt",
                   help="prefix to alter the id names",
@@ -146,9 +171,11 @@ parser.add_option("-o", "--out_prefix", dest="out_file",
 (options, args) = parser.parse_args()
 
 in_file = options.in_file
+seq_db = options.seq_db
 database = options.database
 out_file = options.out_file
 
 # run the program
 
-parse_tab_file_get_clusters(in_file, database, out_file)
+parse_tab_file_get_clusters(in_file, seq_db,
+                            database, out_file)
