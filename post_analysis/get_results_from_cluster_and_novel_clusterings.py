@@ -61,6 +61,14 @@ def get_fasta_stats(fasta):
     num_contig = len(sizes)
     return min_contig, max_contig, avg_contig, num_contig
 
+def count_reads(in_name, current_read_count):
+    """function to count the number of reads found in a cluster.
+    This is determined by the abundance count at the end of the read
+    name """
+    reads = in_name.split("_")[:-1]
+    return current_read_count + int(reads)
+    
+
 def parse_line(line):
     """finction to parse line"""
     if not line.strip():
@@ -71,7 +79,11 @@ def parse_line(line):
     out_put_str = ""
     cluster_line = line.rstrip("\n").split("\t")
     # are the database Phy singletons? - then we wont be interested
-    HHHHEEERHHRHRHRHRHRHRHRRHRHHRHRHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    current_read_count = 0
+    for memeber in cluster_line:
+        number_of_reads_hitting_species = count_reads(member,
+                                                      current_read_count)
+        
     number_of_reads_hitting_species = len(cluster_line)
     #set up some blank variables
     species = ""
@@ -140,11 +152,11 @@ def get_names_from_Seq_db(seq_db):
     return names
 
 def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
-                                min_novel_cluster_threshold, 
-                                read_prefix, show_me_the_reads,
+                                in_file,min_novel_cluster_threshold,
+                                show_me_the_reads,
                                 right_total_reads,
-                                working_directory,
-                                v, blast, align, out_file):
+                                working_directory, v, blast,
+                                align, out_file):
     """script to open up a tab separeted clustering output
     and identify the species in the clustering"""
 
@@ -158,8 +170,6 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
     #call the function to get fasta stats
     min_contig, max_contig, avg_contig, \
                 num_contig = get_fasta_stats(fasta)
-    read_prefix = str(read_prefix)
-
     cluster_file = open (in_file, "r")
     summary_out_file = open(out_file, "w")
 
@@ -208,18 +218,19 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                 #print member
                 species = species+member+" "
                 #remove all the memebr which are database memebers
-                number_of_reads_hitting_species = number_of_reads_hitting_species-1
-        if number_of_reads_hitting_species >=1 and db_species >0:
+                number_of_reads_hitting_species = number_of_reads_hitting_species - 1
+        #####################################################################################################
+        # this is MMMEEEESSSSYYYY!!!!!
+        # another loop
+        if number_of_reads_hitting_species >= 1 and db_species > 0:
             #after the line, are there more memeber that are not database members?
             for member in cluster_line:
-                if "Phytophthora" in member or "P." in member or "VHS" in member:
+                if member in names:
                     continue
-                if not member.startswith(read_prefix):
-                    continue
-                # we do not add the reads that hit the 
-                reads_of_interest = reads_of_interest+member+" "
+                # we do not add the reads that hit the database
+                reads_of_interest = reads_of_interest + member + " "
   
-            ITS_hitting_db_species = ITS_hitting_db_species+number_of_reads_hitting_species
+            ITS_hitting_db_species = ITS_hitting_db_species + number_of_reads_hitting_species
             #format the data
             if show_me_the_reads:
                 data_output = "%d\t%s\t%d\t%s\n" %(cluster_number, species.rstrip(), \
@@ -231,13 +242,15 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                 
             #write out the data
             summary_out_file.write(data_output)
-            phyto_read = (float(ITS_hitting_db_species)/ num_contig)*100
+            db_reads_perc = (float(ITS_hitting_db_species)/ num_contig)*100
         else:
             if len(cluster_line) > min_novel_cluster_threshold:
                 #print "cluster len", len(cluster_line), "threshold", min_novel_cluster_threshold, cluster_line
                 #print ("novel cluster cluster %d" %(cluster_number))
                 #open a file to put seq into
-                out_novel = "%s/novel_d%d/novel%d_len%d.fasta" %(working_directory, v, cluster_number, len(cluster_line))
+                out_novel = "%s/novel_d%d/novel%d_len%d.fasta" %(working_directory, v,
+                                                                 cluster_number,
+                                                                 en(cluster_line))
                 novel_fasta = open(out_novel, "w")
                 for member in cluster_line:
                     member = member.rstrip()
@@ -275,13 +288,17 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
         except:
             ValueError #no novel files to close
 
-    fasta_file_summary = """#Fasta file assembly summary: #min_contig = %d max_contig = %d avg_contig = %d
-#Total number of assemblerd sequences = %d
-#number of reads clustering with Phy = %d
-#number of starting reads = %d
-#percent of reads clustering with Phyto = %.2f""" %(min_contig, \
-                                            max_contig, avg_contig, num_contig, ITS_hitting_db_species,\
-                                            right_total_reads, phyto_read)
+    fasta_file_summary = """    #Fasta file assembly summary:
+    #min_contig = %d max_contig = %d avg_contig = %d
+    #Total number of assemblerd sequences = %d
+    #number of reads clustering with Phy = %d
+    #number of starting reads = %d
+    #percent of reads clustering with Phyto = %.2f""" %(min_contig, 
+                                                    max_contig, avg_contig,
+                                                    num_contig,
+                                                    ITS_hitting_db_species,
+                                                    right_total_reads,
+                                                    db_reads_perc)
     summary_out_file.write(fasta_file_summary)
     cluster_file.close()
     summary_out_file.close()
@@ -297,16 +314,17 @@ this scripts to summarise what clusters with what Phy species. The script also
 dumps one file per cluster, BLASTN searches these back against itself
 and aligns it.
 
-WARNING: THIS WILL PRODUCE 10 000S OF THOUSANDS OF FILES WHICH WILL SLOW YOU COMPUTER
-DOWN, AND MAKE YOU UNPOPULAR WITH SYS ADMIN. YOU ASKED FOR THIS FEATURE!!! The BLAST and alignment
-also makes it very slow. 
+WARNING: THIS WILL PRODUCE 10 000S OF THOUSANDS OF FILES WHICH WILL SLOW
+YOU COMPUTER DOWN, AND MAKE YOU UNPOPULAR WITH SYS ADMIN. YOU ASKED FOR
+THIS FEATURE!!! The BLAST and alignment also makes it very slow. 
 
 
-$ python parse_clusters.py -i clustering_outfile_already_decoded_from_temp_names -n 3 -a all_seqeucnes.fasta
---read_prefix M01157 -o summarise_clusters.out
+$ python parse_clusters.py -i clustering_outfile_already_decoded_from_temp_names
+-n 3 -a all_seqeucnes.fasta -o summarise_clusters.out
 
 command line option
 
+requires Biopython
 
 """
 
@@ -324,7 +342,8 @@ parser.add_option("-a","--all_fasta", dest="all_fasta", default=None,
 parser.add_option("--seq_db", dest="seq_db", default=False,
                   help="the databse used to cluster with")
 
-parser.add_option("-n","--min_novel_cluster_threshold", dest="min_novel_cluster_threshold", default=4,
+parser.add_option("-n","--min_novel_cluster_threshold",
+                  dest="min_novel_cluster_threshold", default=4,
                   help="min_novel_cluster_threshold to determine is this is a"
                   " novel clusters to output. Default = 4 ")
 
@@ -352,11 +371,6 @@ parser.add_option("-s", "--show_me_the_reads", dest="show_me_the_reads", default
 
 parser.add_option("-t", "--threads", dest="threads", default="4",
                   help="number of threads for blast - threads ",
-                  metavar="FILE")
-
-parser.add_option("--read_prefix", dest="read_prefix", default=None,
-                  help="read_prefix from the fq file. Only needs "
-                  " the first few letter e.g. read_prefix  M01157 ",
                   metavar="FILE")
 
 parser.add_option("--blast", dest="blast", default=False,
@@ -400,9 +414,6 @@ align = options.align
 v = options.v
 # --Name_of_project
 Name_of_project = options.Name_of_project
-#read_prefix
-read_prefix = options.read_prefix
-
 
 
 ###################################################################
@@ -439,9 +450,8 @@ for name in make_folder_list:
 #run the program
 parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                             in_file,min_novel_cluster_threshold,
-                            read_prefix, show_me_the_reads,
+                            show_me_the_reads,
                             right_total_reads,
                             working_directory, v, blast,
                             align, out_file)
 
-print "done"
