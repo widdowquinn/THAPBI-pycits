@@ -81,7 +81,6 @@ def parse_tab_file_get_clusters(filename1, seq_db,
         names = get_names_from_Seq_db(seq_db)
     else:
         names = []
-    print (names)
 
     count = int(0)
     for line in cluster_file:

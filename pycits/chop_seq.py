@@ -50,7 +50,7 @@ class Chop_seq(object):
         """function to run the command
         trim_fasta_file.py script"""
         self.__build_cmd(exe_path, fasta, database, left,
-                         right, fasta_out, barcode)
+                         right, fasta_out)
         msg = ["Running...", "\t%s" % self._cmd]
         # for m in msg:
         #    self._logger.info(m)

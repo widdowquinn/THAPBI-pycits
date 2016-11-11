@@ -13,7 +13,8 @@ import traceback
 from argparse import ArgumentParser
 
 from pycits import tools, trimmomatic, pear, error_correction,\
-    clean_up, swarm, seq_crumbs, deduplicate
+    clean_up, swarm, seq_crumbs, deduplicate, \
+    rename_clusters_new_to_old, chop_seq
 
 # setting up some test variables
 threads = "4"
@@ -22,6 +23,12 @@ right_reads = "./data/reads/DNAMIX_S95_L001_R2_001.fastq"
 
 read_prefix = left_reads.split("_R")[0]
 read_prefix = read_prefix.split("/")[-1]
+
+# left_trim 53 - this should be default??
+
+left_trim = 53
+right_trim = 0 
+
 
 # Report last exception as string
 def last_exception():
@@ -67,24 +74,29 @@ if __name__ == '__main__':
     
     logger.info("Trim reads by quality")
     trim.run(trimmo_prog, left_reads, right_reads,
-             threads, "trimmed_reads", 40, logger)
+             threads, "trimmed_reads", 0, logger)
     
 ###################################################################################################
     # error correction testing
     ByHam = "/home/pt40963/scratch/Downloads/SPAdes-3.9.0-Linux/bin/spades.py"
-    error_correct = error_correction.Error_correction(ByHam, logger)
+    error_correct = error_correction.Error_correction(ByHam,
+                                                      logger)
     Left_trimmed = os.path.join("trimmed_reads",
-                            read_prefix + "_paired_R1.fq.gz")
+                                read_prefix +
+                                "_paired_R1.fq.gz")
     Right_trimmed = os.path.join("trimmed_reads",
-                            read_prefix + "_paired_R2.fq.gz")
+                                 read_prefix +
+                                 "_paired_R2.fq.gz")
     logger.info("error correction using Bayes hammer")
     error_correct.run(ByHam, Left_trimmed, Right_trimmed,
                       "error_correction", threads, logger)
     L_E_C = os.path.join("error_correction", "corrected",
-                        read_prefix + "_paired_R1.fq" + ".00.0_0.cor.fastq.gz")
+                         read_prefix + "_paired_R1.fq" +
+                         ".00.0_0.cor.fastq.gz")
 
     R_E_C = os.path.join("error_correction", "corrected",
-                        read_prefix + "_paired_R2.fq" + ".00.0_0.cor.fastq.gz")
+                         read_prefix + "_paired_R2.fq" +
+                         ".00.0_0.cor.fastq.gz")
 
 ###################################################################################################
     # PEAR testing - assemble
@@ -115,11 +127,13 @@ if __name__ == '__main__':
 
 ###################################################################################################
 # convert format
-    format_change = seq_crumbs.Convert_Format("convert_format", logger)
+    format_change = seq_crumbs.Convert_Format("convert_format",
+                                              logger)
     assembled_reads = os.path.join("PEAR_assembled",
                     read_prefix+ "_paired_PEAR.assembled.fastq")
 
-    format_change.run(assembled_reads, "fasta_converted", logger)
+    format_change.run(assembled_reads, "fasta_converted",
+                      logger)
 
 
 ##################################################################################################
@@ -129,25 +143,69 @@ if __name__ == '__main__':
     #-f DNAMIX_S95_L001_paired_PEAR.assembled.fasta
     #-d database.out
     #-o temp.fasta
+    logger.info("deduplicating reads")
     dedup_prog = os.path.join("pycits", "deduplicate_rename.py")
     dedup = deduplicate.Deduplicate(dedup_prog, logger)
-    fasta_file = os.path.join("fasta_converted", "DNAMIX_S95_L001_paired_PEAR.assembled.fasta")
+    fasta_file = os.path.join("fasta_converted",
+                              "DNAMIX_S95_L001_paired_PEAR.assembled.fasta")
     database = os.path.join("fasta_converted", "database.out")
     out_dedup = os.path.join("fasta_converted", "temp.fasta")
-    dedup.run(dedup_prog, fasta_file, database, out_dedup, logger)
+    dedup.run(dedup_prog, fasta_file, database, out_dedup,
+              logger)
+
+##################################################################################################
+    # need to trim the left and right assembled seq so they
+    # cluster with the database.
+
+    left_trim = 53
+    right_trim = 0
+    chop_prog = os.path.join("pycits", "trim_fasta_file.py")
+
+    fasta_file = os.path.join("fasta_converted", "temp.fasta")
+    ITS_database = os.path.join("data",
+                                "ITS_database_NOT_confirmed_correct_last14bases_removed.fasta")
+    fasta_out = os.path.join("fasta_converted",
+                             "database_assembled_reads.fasta")
+
+    chopper = chop_seq.Chop_seq(chop_prog, logger)
+    #        run(exe_path, fasta, database, left, right,
+            #fasta_out, barcode="0", logger=False)
+    chopper.run(chop_prog, fasta_file, ITS_database, left_trim,
+                right_trim, fasta_out, logger)
+    
+
 
 ########################################################################
     # SWARM testing - assemble
     cluster = swarm.Swarm("swarm", logger)
-    assembled_fa_reads = os.path.join("fasta_converted", "temp.fasta")
+    assembled_fa_reads = os.path.join("fasta_converted",
+                                      "temp.fasta")
 
     logger.info("clustering with Swarm")
     cluster.run(assembled_fa_reads,
-                 threads, 1, "Swarm_cluster")
+                 threads, 1, "Swarm_cluster_assembled_reads_only", logger)
+    cluster.run(fasta_out,
+                 threads, 1, "Swarm_cluster", logger)
+                                    
 
 ##########################################################################
     # recode cluster output
-    #python parse_clusters_new_to_old_name.py
+    #python pycits/parse_clusters_new_to_old_name.py -i 
     # -i swarm_tempd1.out -d database.out -o decoded_clusters.out
+    logger.info("renaming swarm output")
+    rename_prog = os.path.join("pycits",
+                               "parse_clusters_new_to_old_name.py")
+    rename = rename_clusters_new_to_old.Rename(rename_prog, logger)
+    infile = os.path.join("Swarm_cluster", "swarm_clustering_d1",
+                          "swarm_clustering_d1")
+    outfile = os.path.join("Swarm_cluster", "swarm_clustering_d1",
+                          "swarm_clustering_d1_renamed.out")
+    rename.run(rename_prog, infile, ITS_database,
+               database, outfile, logger)
+
+##########################################################################
+    # need to summarise the clusters now
+    # how? scripts already made, are they good enough?
+                                      
 
     
