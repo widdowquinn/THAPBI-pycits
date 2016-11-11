@@ -2,7 +2,7 @@
 #
 #   module to clean up given files
 # (c) The James Hutton Institute 2016
-# Author: Leighton Pritchard
+# Author: Leighton Pritchard and Peter Thorpe
 
 import os
 import sys
@@ -10,6 +10,7 @@ from .tools import is_exe
 
 
 from subprocess import call
+
 
 class Clean_up(object):
     """Class for cleaning up files."""
@@ -21,7 +22,6 @@ class Clean_up(object):
             self._logger.error("error in command")
             sys.exit(1)
         self._exe_path = exe_path
-
 
     def run(self, infile):
         """Run clean up on unwanted files"""
