@@ -4,7 +4,7 @@
 # author: Peter Thorpe and Leighton Pritchard
 # September 2016. The James Hutton Insitute, Dundee, UK.
 
-#imports
+# imports
 import os
 import sys
 from optparse import OptionParser
@@ -38,9 +38,10 @@ except ImportError:
 
 assert mean([1,2,3,4,5]) == 3
 
-def count_reads(in_fastq):
+
+def count_fq_reads(in_fastq):
     """function count the number of reads"""
-    #open the fastq file
+    # open the fastq file
     in_file = open(in_fastq)
     # iterate through the fastq file
     total_reads = 0
@@ -49,6 +50,7 @@ def count_reads(in_fastq):
         total_reads = total_reads+1
     in_file.close()
     return total_reads
+
 
 def get_fasta_stats(fasta):
     """function to get stats on a given fasta file"""
@@ -61,11 +63,19 @@ def get_fasta_stats(fasta):
     num_contig = len(sizes)
     return min_contig, max_contig, avg_contig, num_contig
 
+
 def count_reads(in_name, current_read_count):
     """function to count the number of reads found in a cluster.
     This is determined by the abundance count at the end of the read
     name """
-    reads = in_name.split("_")[:-1]
+    # print (in_name)
+    reads = in_name.split("_")[-1]
+    try:
+        reads = reads.split("abundance=")[1]
+    except:
+        ValueError
+        # this is a database entry
+        reads = reads
     return current_read_count + int(reads)
     
 
@@ -77,41 +87,45 @@ def parse_line(line):
         return False
     line = line.rstrip()
     out_put_str = ""
-    cluster_line = line.rstrip("\n").split("\t")
+    if "\t" in line:
+        cluster_line = line.rstrip("\n").split("\t")
+    else:
+        cluster_line = line.rstrip("\n").split()
     # are the database Phy singletons? - then we wont be interested
-    current_read_count = 0
-    for memeber in cluster_line:
+    number_of_reads_hitting_species = 0
+    for member in cluster_line:
         number_of_reads_hitting_species = count_reads(member,
-                                                      current_read_count)
-        
-    number_of_reads_hitting_species = len(cluster_line)
-    #set up some blank variables
+                                                      number_of_reads_hitting_species)     
+    number_of_unique_seq_in_line = len(cluster_line)
+    # set up some blank variables
     species = ""
-
-    #database phy counter
+    # database counter
     db_species = 0
     return cluster_line, number_of_reads_hitting_species,\
            species, db_species
 
+
 def make_blastdb(infile):
     """function to make a nucl blastdb"""
     cmd = 'makeblastdb -in %s -dbtype nucl' % (infile)
-    #print("Running %s" % cmd)
+    # print("Running %s" % cmd)
     return_code = os.system(cmd)
     assert return_code == 0, """blast makedb says NO!! -
             something went wrong. Is your fa file correct?"""
-    
+
+ 
 def run_blastn(infile, cluster_count):
     """function to run blastn using"""
     cmd = 'blastn -db %s -query %s -outfmt 6 -out %s.tab' % (infile,
                                   infile, infile.split(".fasta")[0])
-    #print("Running %s" % cmd)
+    # print("Running %s" % cmd)
     return_code = os.system(cmd)
     assert return_code == 0, """blastn says NO!! -
     something went wrong. Is your fa file correct?"""
     cmds = 'rm %s.n*' % (infile)
-    #print("Running %s" % cmds)
+    # print("Running %s" % cmds)
     return_code = os.system(cmds)
+
 
 def align_cluster(infile):
     """function to muscle align a cluster"""
@@ -124,7 +138,7 @@ def align_cluster(infile):
     cmd_wait = 'wait'
     print("Running %s" % cmd_wait)
     return_code = os.system(cmd_wait)
-    #refine take longer but is the most accurate
+    # refine take longer but is the most accurate
     cmd2 = 'muscle -in %s_TEMP -out %s_aligned.fasta -refine' % (infile,
                                               infile.split(".fasta")[0])
     print("Running %s" % cmd2)
@@ -151,8 +165,64 @@ def get_names_from_Seq_db(seq_db):
         names.append(seq_record.id)
     return names
 
+def coded_name_to_read_dicti(old_to_new):
+    """functiong takes the already generated tab separated
+    database of coded name to species file. Returns a dic
+    of coded_name to species"""
+    with open(old_to_new) as file:
+        data = file.read().split("\n")
+    coded_name_to_read_dict = dict()
+    for line in data:
+        if not line.strip():
+            continue  # if the last line is blank
+        if line.startswith("#"):
+            continue 
+        # print line
+        read_name, coded_name = line.split("\t")
+        # print coded_name, species
+        coded_name_to_read_dict[coded_name.rstrip()] = read_name.\
+                                                       rstrip()
+    return coded_name_to_read_dict
+
+
+def write_out_cluster_as_fa(member, all_sequences, names,
+                            coded_name_to_read_dict,
+                            cluster_fasta):
+    """function to write out the cluster as
+    a fasta file"""         
+    member = member.rstrip()
+    db_name = member.split("_")[0]
+    abundance = member.split("_")[1]
+    if member in names:
+        # this is db entry
+        seq_record = all_sequences[member]
+    else:    
+        try:
+            seq_record = all_sequences[member]
+            read_name = coded_name_to_read_dict[db_name]
+            seq_record.description = ""
+            seq_record.id = read_name + "_abunance=" + abundance
+        except:
+            coded_name = coded_name_to_read_dict[member]
+            try:
+                seq_record = all_sequences[coded_name]
+                seq_record.description = ""
+            except:
+                ValueError
+                # break the program here
+                stop_err ("""missing sequence %s. This should not be seen.
+                             Have you passed me the correct
+                             fasta file?\n\n""" % coded_name)
+    try:
+        SeqIO.write(seq_record, cluster_fasta, "fasta")
+    except:
+        ValueError
+    return True
+
+
 def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
-                                in_file,min_novel_cluster_threshold,
+                                in_file, old_to_new,
+                                min_novel_cluster_threshold,
                                 show_me_the_reads,
                                 right_total_reads,
                                 working_directory, v, blast,
@@ -165,73 +235,67 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
     else:
         names = []
 
-    #index the all_seq fasta.
+    # index the all_seq fasta.
     all_sequences =  SeqIO.index(all_fasta, "fasta")
-    #call the function to get fasta stats
+    # call function to get old to new name:
+    coded_name_to_read_dict = coded_name_to_read_dicti(old_to_new)
+    # call the function to get fasta stats
     min_contig, max_contig, avg_contig, \
                 num_contig = get_fasta_stats(fasta)
     cluster_file = open (in_file, "r")
     summary_out_file = open(out_file, "w")
 
     ITS_hitting_db_species = 0
-    #title for the results file
-    title = "#cluster_number\tspecies\t" +\
-            "number_of_reads_hitting_species\t" +\
-            "reads_that_hit_species\n"
+    # title for the results file
+    title = "# cluster_number\tspecies\t" +\
+            "number_of_reads_hitting_species\n"
     summary_out_file.write(title)
     cluster_number = 0
     for line in cluster_file:
         cluster_number +=1
-        #call function to parse line
+        # call function to parse line
         if not parse_line(line):
             continue
         reads_of_interest = ""
         cluster_line, number_of_reads_hitting_species, \
                       species, db_species = parse_line(line)
+        #print ("cluster_number = ", cluster_number,
+               #"number_of_reads_hitting_species = ",
+               #number_of_reads_hitting_species)
         # basically not a singleton cluster
         if len(cluster_line) >1:        
             #open a file to put seq into
-            out_name = "%s/clusters_d%d/" + \
-                       "cluster%d_len%d.fasta" %(working_directory,
-                                                 v, cluster_number,
+            out_name = "%s/clusters_d%s/cluster%d_len%d.fasta" %(working_directory,
+                                                 str(v), cluster_number,
                                                  len(cluster_line))
             cluster_fasta = open(out_name, "w")
-
         for member in cluster_line:
-            member = member.rstrip()
-            try:
-                seq_record = all_sequences[member]
-                seq_record.description = ""           
-            except:
-                ValueError
-                stop_err ("""missing sequence %s. This should not be seen.
-                             Have you passed me the correct
-                             fasta file?\n\n""" % member)# break the program here
-            try:
-                SeqIO.write(seq_record, cluster_fasta, "fasta")
-            except:
-                ValueError
-            #is a memeber of the database in this cluster?
+            # write out the cluster members to a fasta file            
+            write_out_cluster_as_fa(member, all_sequences, names,
+                                    coded_name_to_read_dict,
+                                    cluster_fasta)
+
+            # is a memeber of the database in this cluster?
             if member in names:
                 # yes we are interested in this cluster
                 db_species = db_species+1
-                #print member
                 species = species+member+" "
-                #remove all the memebr which are database memebers
+                # remove all the memebr which are database memebers
                 number_of_reads_hitting_species = number_of_reads_hitting_species - 1
-        #####################################################################################################
-        # this is MMMEEEESSSSYYYY!!!!!
+
         # another loop
         if number_of_reads_hitting_species >= 1 and db_species > 0:
-            #after the line, are there more memeber that are not database members?
+            # after the line, are there more memeber that are
+            # not database members?
             for member in cluster_line:
                 if member in names:
                     continue
                 # we do not add the reads that hit the database
                 reads_of_interest = reads_of_interest + member + " "
   
-            ITS_hitting_db_species = ITS_hitting_db_species + number_of_reads_hitting_species
-            #format the data
+            ITS_hitting_db_species = ITS_hitting_db_species + \
+                                     number_of_reads_hitting_species
+            # format the data
             if show_me_the_reads:
                 data_output = "%d\t%s\t%d\t%s\n" %(cluster_number, species.rstrip(), \
                                                    number_of_reads_hitting_species,\
@@ -240,60 +304,60 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                 data_output = "%d\t%s\t%d\n" %(cluster_number, species.rstrip(), \
                                                number_of_reads_hitting_species)
                 
-            #write out the data
+            # write out the data
             summary_out_file.write(data_output)
             db_reads_perc = (float(ITS_hitting_db_species)/ num_contig)*100
         else:
             if len(cluster_line) > min_novel_cluster_threshold:
-                #print "cluster len", len(cluster_line), "threshold", min_novel_cluster_threshold, cluster_line
-                #print ("novel cluster cluster %d" %(cluster_number))
-                #open a file to put seq into
-                out_novel = "%s/novel_d%d/novel%d_len%d.fasta" %(working_directory, v,
-                                                                 cluster_number,
-                                                                 en(cluster_line))
-                novel_fasta = open(out_novel, "w")
-                for member in cluster_line:
-                    member = member.rstrip()
-                    seq_record = all_sequences[member]
-                    seq_record.description = ""           
-                    SeqIO.write(seq_record, novel_fasta, "fasta")
+                # open a file to put seq into
+                if db_species < 1:
+                    out_novel = "%s/novel_d%d/novel%d_len%d.fasta" %(working_directory, v,
+                                                                     cluster_number,
+                                                                     len(cluster_line))
+                    novel_fasta = open(out_novel, "w")
+
+
+                    for member in cluster_line:
+                        write_out_cluster_as_fa(member, all_sequences, names,
+                                                coded_name_to_read_dict,
+                                                novel_fasta)
                     
-        #close the open files, makeblastdb run blastn on individual clusters to get % identify
+        # close the open files, makeblastdb run blastn on individual
+        # clusters to get % identify
         try:
             cluster_fasta.close()
-            #call functions to run blast on the cluster
+            # call functions to run blast on the cluster
             if blast:
                 make_blastdb(out_name)
-                #run blast and remove db files
+                # run blast and remove db files
                 run_blastn(out_name, cluster_number)
             if align:
-                #align the cluster
-                #print ("I am about to align the cluster: %s" % out_name)
+                # align the cluster
+                # print ("I am about to align the cluster: %s" % out_name)
                 align_cluster(out_name)
- 
         except:
-            ValueError #singleton cluster - no file generated
+            ValueError # singleton cluster - no file generated
         try:
             novel_fasta.close()
-            #call functions to run blast on the cluster
+            # call functions to run blast on the cluster
             if blast:
                 make_blastdb(out_novel)
-                #run blast and remove db files
+                # run blast and remove db files
                 run_blastn(out_novel, cluster_number)
             if align:
-                #align the cluster
-                #print ("I am about to align the cluster: %s" % out_novel)
+                # align the cluster
+                # print ("I am about to align the cluster: %s" % out_novel)
                 align_cluster(out_novel)
             
         except:
-            ValueError #no novel files to close
+            ValueError # no novel files to close
 
-    fasta_file_summary = """    #Fasta file assembly summary:
-    #min_contig = %d max_contig = %d avg_contig = %d
-    #Total number of assemblerd sequences = %d
-    #number of reads clustering with Phy = %d
-    #number of starting reads = %d
-    #percent of reads clustering with Phyto = %.2f""" %(min_contig, 
+    fasta_file_summary = """    # Fasta file assembly summary:
+    # min_contig = %d max_contig = %d avg_contig = %d
+    # Total number of assemblerd sequences = %d
+    # number of reads clustering with Phy = %d
+    # number of starting reads = %d
+    # percent of reads clustering with Phyto = %.2f""" %(min_contig, 
                                                     max_contig, avg_contig,
                                                     num_contig,
                                                     ITS_hitting_db_species,
@@ -305,8 +369,7 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
     return True
 
 #############################################################################
-
-#to run the script       
+# to run the script       
 
 usage = """usage :
 
@@ -364,6 +427,10 @@ parser.add_option("-r", "--right", dest="right", default="temp_not_trimmedr2.fq"
                   help="right reads unzipped fq file. needed to get count of reads. ",
                   metavar="FILE")
 
+parser.add_option("--old_to_new", dest="old_to_new", default=None,
+                  help="file with the old and new names tab separated.",
+                  metavar="FILE")
+
 parser.add_option("-s", "--show_me_the_reads", dest="show_me_the_reads", default=False,
                   help="show_me_the_reads in the output file for those that hit the Phy species."
                   " by default this is off, as the file could get very large. -s True if you want ...",
@@ -386,13 +453,13 @@ parser.add_option("-o", "--out_prefix", dest="out_file", default="summarise_clus
 
 
 (options, args) = parser.parse_args()
-#-f
+# -f
 fasta = options.fasta
 # --all_fasta
 all_fasta = options.all_fasta
 # --seq_db
 seq_db = options.seq_db
-#-i
+# -i
 in_file = options.in_file
 # -l
 left = options.left
@@ -410,6 +477,8 @@ out_file = options.out_file
 blast = options.blast
 # --align
 align = options.align
+# -- old_to_new
+old_to_new = options.old_to_new
 # -v
 v = options.v
 # --Name_of_project
@@ -417,15 +486,17 @@ Name_of_project = options.Name_of_project
 
 
 ###################################################################
-#start of program
+# start of program
 
-#call the function to count the trimmed reads 
-right_total_reads = count_reads(right)
-left_total_reads = count_reads(left)
+# call the function to count the trimmed reads 
+right_total_reads = count_fq_reads(right)
+left_total_reads = count_fq_reads(left)
 
-#sanity test.
-assert right_total_reads == left_total_reads, """ \n\nthe total number of reads in the
-left and right file do not match. Something has gone wrong before here! These should
+# sanity test.
+assert right_total_reads == left_total_reads, """ \n\nthe total
+number of reads in the
+left and right file do not match.
+Something has gone wrong before here! These should
 be the same. Are you giving me the the correct files?\n\n"""
 
 fasta, seq_db, all_fasta,#make sure this is an int
@@ -433,23 +504,26 @@ min_novel_cluster_threshold = int(min_novel_cluster_threshold)
 v = int(v)
 
 ###################################################################
-#make folders to put the cluster fasta files. 
+# make folders to put the cluster fasta files. 
 file_name = 'test.txt'
 make_folder_list = ["clusters", "novel"]
 working_dir = os.getcwd()
 for name in make_folder_list:
     name = name+"_d%d" % (v)
-    working_directory = os.path.join(working_dir, Name_of_project+"_results")    
-    dest_dir = os.path.join(working_dir, Name_of_project+"_results", name)
+    working_directory = os.path.join(working_dir,
+                                     Name_of_project+"_results")    
+    dest_dir = os.path.join(working_dir,
+                            Name_of_project+"_results", name)
     try:
         os.makedirs(dest_dir)
     except OSError:
         print ("folder already exists, I will write over what is in there!!")
 
 ###################################################################
-#run the program
+# run the program
 parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
-                            in_file,min_novel_cluster_threshold,
+                            in_file, old_to_new,
+                            min_novel_cluster_threshold,
                             show_me_the_reads,
                             right_total_reads,
                             working_directory, v, blast,
