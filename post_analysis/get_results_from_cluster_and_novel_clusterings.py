@@ -141,6 +141,7 @@ def align_cluster(infile):
     # refine take longer but is the most accurate
     cmd2 = 'muscle -in %s_TEMP -out %s_aligned.fasta -refine' % (infile,
                                               infile.split(".fasta")[0])
+    aligned_file_name = "%s_aligned.fasta" % (infile.split(".fasta")[0])
     print("Running %s" % cmd2)
     return_code = os.system(cmd2)
     assert return_code == 0, """muscle -refine says NO!! -
@@ -155,6 +156,40 @@ def align_cluster(infile):
     return_code = os.system(cmd3)
     assert return_code == 0, """something went wrond deleting
                                 the temp alignment file!"""
+    # passing the aligned file name back for seq_identity func
+    return aligned_file_name
+
+
+def perc_iden_matrix(aligned_file_name):
+    """function to return a percentage identity matrix for
+    each cluster. This requires R and seqinr package, which
+    is hard to install """
+    cmd = 'R'
+    print("Running %s" % cmd)
+    return_code = os.system(cmd)
+    assert return_code == 0, """R says NO!! -
+                             is R in your PATH?"""
+    cmd = 'library(seqinr)'
+    print("Running %s" % cmd)
+    return_code = os.system(cmd)
+    assert return_code == 0, """seqinr says NO!! -
+                             is seqinr installed?"""
+    cmd = 'myseqs <- read.alignment("%s", format = "fasta")' % (aligned_file_name)
+    print("Running %s" % cmd)
+    return_code = os.system(cmd)
+    assert return_code == 0, """read.alignmnet says NO!! -
+                             is R and seqinr ?"""
+    cmd = 'mat <- dist.alignment(myseqs, matrix = "identity")'
+    print("Running %s" % cmd)
+    return_code = os.system(cmd)
+    assert return_code == 0, """matrix says NO!! -
+                             is R and seqinr ?"""
+    cmd = 'write(mat, file = "%s_dist_matrix.out", ncolumns = 1, append = FALSE, sep = " ")' % (aligned_file_name)
+    print("Running %s" % cmd)
+    return_code = os.system(cmd)
+    assert return_code == 0, """matrix says NO!! -
+                             is R and seqinr ?"""
+
 
 def get_names_from_Seq_db(seq_db):
     """function to get a list of name in the seq db"""
@@ -226,7 +261,7 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                                 show_me_the_reads,
                                 right_total_reads,
                                 working_directory, v, blast,
-                                align, out_file):
+                                align, perc_matrix, out_file):
     """script to open up a tab separeted clustering output
     and identify the species in the clustering"""
 
@@ -334,7 +369,11 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             if align:
                 # align the cluster
                 # print ("I am about to align the cluster: %s" % out_name)
-                align_cluster(out_name)
+                aligned_file_name = align_cluster(out_name)
+            if perc_matrix:
+                # return a percentage identity matrix file for the cluster
+                # print ("I am about to analyse the cluster: %s" % out_novel)
+                perc_iden_matrix(aligned_file_name)
         except:
             ValueError # singleton cluster - no file generated
         try:
@@ -347,7 +386,12 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             if align:
                 # align the cluster
                 # print ("I am about to align the cluster: %s" % out_novel)
-                align_cluster(out_novel)
+                aligned_file_name = align_cluster(out_novel)
+            if perc_matrix:
+                # return a percentage identity matrix file for the cluster
+                # print ("I am about to analyse the cluster: %s" % out_novel)
+                perc_iden_matrix(aligned_file_name)
+                
             
         except:
             ValueError # no novel files to close
@@ -393,13 +437,16 @@ requires Biopython
 
 parser = OptionParser(usage=usage)
 
-parser.add_option("-f","--fasta", dest="fasta", default=None,
+parser.add_option("-f","--fasta", dest="fasta",
+                  default=None,
                   help="assembled fasta file to get stats on",
                   metavar="FILE")
 
-parser.add_option("-a","--all_fasta", dest="all_fasta", default=None,
+parser.add_option("-a","--all_fasta", dest="all_fasta",
+                  default=None,
                   help="both the assembled fasta and databse fasta."
-                  " this is to get the sequences from from for the clusters folder",
+                  " this is to get the sequences from from for "
+                  " the clusters folder",
                   metavar="FILE")
 
 parser.add_option("--seq_db", dest="seq_db", default=False,
@@ -407,14 +454,18 @@ parser.add_option("--seq_db", dest="seq_db", default=False,
 
 parser.add_option("-n","--min_novel_cluster_threshold",
                   dest="min_novel_cluster_threshold", default=4,
-                  help="min_novel_cluster_threshold to determine is this is a"
+                  help="min_novel_cluster_threshold to "
+                  " determine is this is a "
                   " novel clusters to output. Default = 4 ")
 
-parser.add_option("-l", "--left", dest="left", default="temp_not_trimmedr1.fq",
-                  help="left reads unzipped fq file. needed to get count of reads. ",
+parser.add_option("-l", "--left", dest="left",
+                  default="temp_not_trimmedr1.fq",
+                  help="left reads unzipped fq file. needed to "
+                  " get count of reads. ",
                   metavar="FILE")
 
-parser.add_option("--Name_of_project", dest="Name_of_project", default=None,
+parser.add_option("--Name_of_project", dest="Name_of_project",
+                  default="RESULTS.out",
                   help="name of project to make folders. ")
 
 parser.add_option("-i","--in", dest="in_file", default=None,
@@ -423,17 +474,22 @@ parser.add_option("-i","--in", dest="in_file", default=None,
 parser.add_option("-v","--difference", dest="v", default=None,
                   help="current swarm v value")
 
-parser.add_option("-r", "--right", dest="right", default="temp_not_trimmedr2.fq",
-                  help="right reads unzipped fq file. needed to get count of reads. ",
+parser.add_option("-r", "--right", dest="right",
+                  default="temp_not_trimmedr2.fq",
+                  help="right reads unzipped fq file. needed to "
+                  " get count of reads. ",
                   metavar="FILE")
 
 parser.add_option("--old_to_new", dest="old_to_new", default=None,
                   help="file with the old and new names tab separated.",
                   metavar="FILE")
 
-parser.add_option("-s", "--show_me_the_reads", dest="show_me_the_reads", default=False,
-                  help="show_me_the_reads in the output file for those that hit the Phy species."
-                  " by default this is off, as the file could get very large. -s True if you want ...",
+parser.add_option("-s", "--show_me_the_reads",
+                  dest="show_me_the_reads", default=False,
+                  help="show_me_the_reads in the output file for "
+                  " those that hit the Phy species. "
+                  " by default this is off, as the file could get very "
+                  " large. -s True if you want ...",
                   metavar="FILE")
 
 parser.add_option("-t", "--threads", dest="threads", default="4",
@@ -441,14 +497,32 @@ parser.add_option("-t", "--threads", dest="threads", default="4",
                   metavar="FILE")
 
 parser.add_option("--blast", dest="blast", default=False,
-                  help="this option performs BLAST on itself. Turn off for faster results."
-                  " To turn of --blast False ")
+                  help="this option performs BLAST on itself. default off "
+                  " for faster results."
+                  " To turn on --blast True "
+                  " BLASTn must be in your PATH")
 
-parser.add_option("--align", dest="align", default=False,
-                  help="this option performs alignment on a cluster. Turn off for faster results."
-                  " To turn off --align False")
+parser.add_option("--align", dest="align",
+                  default=False,
+                  help="this option performs alignment on a cluster. "
+                  " Turn off for faster results."
+                  " To turn off --align False"
+                  " muscle must be in your PATH called muscle")
 
-parser.add_option("-o", "--out_prefix", dest="out_file", default="summarise_clusters.out",
+parser.add_option("--perc_matrix", dest="perc_matrix",
+                  default=False,
+                  help="this option performs percentage identity "
+                  " matrix on the members of the cluster. default off "
+                  " for faster results."
+                  " To turn on --perc_matrix True , must be used with"
+                  " --align True "
+                  " This invokes R, therefore R is required with "
+                  " package seqinr.  To install; "
+                  " R ; install.packages('ade4') ; "
+                  " install.packages('seqinr') ; ) ")
+
+parser.add_option("-o", "--out_prefix", dest="out_file",
+                  default="summarise_clusters.out",
                   help="prefix to the output filenames")
 
 
@@ -477,6 +551,8 @@ out_file = options.out_file
 blast = options.blast
 # --align
 align = options.align
+# --perc_matrix
+perc_matrix = options.perc_matrix                 
 # -- old_to_new
 old_to_new = options.old_to_new
 # -v
@@ -527,5 +603,5 @@ parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                             show_me_the_reads,
                             right_total_reads,
                             working_directory, v, blast,
-                            align, out_file)
+                            align, perc_matrix, out_file)
 
