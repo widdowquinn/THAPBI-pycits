@@ -261,16 +261,19 @@ def parse_tab_file_get_clusters(filename1, out_file):
             #this could be a blank line or starts with #
             continue
         
-        # call the function to get the number of elements and spceis. 
+        # call the function to get the number of
+        # elements and species. 
         members_count, \
         species_count = count_element_in_cluster(cluster_line_split)
         try:
-            #if we have seen this count before, then just add one to it.
+            # if we have seen this count before,
+            # then just add one to it.
             member_in_cluster_to_count_dict[members_count] +=1
         except:
             KeyError
             #print ("not seen this before")
-            #not seen this before, set up a new dic element and make the equal 1
+            #not seen this before, set up a new dic element
+            # and make the equal 1
             member_in_cluster_to_count_dict[members_count] = 1
         try:
             #if we have seen this count of species before,
@@ -281,9 +284,11 @@ def parse_tab_file_get_clusters(filename1, out_file):
             species_in_cluster_count_dict[species_count] = 1
 
 
-    #call the function to convert dic to list
-    #print "species_in_cluster_count_dict: ", species_in_cluster_count_dict
-    species_in_cluster_list, species_number_of_keys, species_max_val, \
+    # call the function to convert dic to list
+    # print ("species_in_cluster_count_dict: ",
+            # species_in_cluster_count_dict)
+    species_in_cluster_list, species_number_of_keys, \
+                             species_max_val, \
                              species_vals_for_bar_chart = covert_dict_to_list_of_value(species_in_cluster_count_dict)
 
     #print "member_in_cluster_to_count_dict: ", member_in_cluster_to_count_dict

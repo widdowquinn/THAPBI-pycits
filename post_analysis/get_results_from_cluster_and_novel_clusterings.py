@@ -200,6 +200,7 @@ def get_names_from_Seq_db(seq_db):
         names.append(seq_record.id)
     return names
 
+
 def coded_name_to_read_dicti(old_to_new):
     """functiong takes the already generated tab separated
     database of coded name to species file. Returns a dic
@@ -245,7 +246,8 @@ def write_out_cluster_as_fa(member, all_sequences, names,
             except:
                 ValueError
                 # break the program here
-                stop_err ("""missing sequence %s. This should not be seen.
+                stop_err ("""missing sequence %s.
+                             This should not be seen.
                              Have you passed me the correct
                              fasta file?\n\n""" % coded_name)
     try:
@@ -396,18 +398,28 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
         except:
             ValueError # no novel files to close
 
-    fasta_file_summary = """    # Fasta file assembly summary:
+    fasta_file_summary = """    # Fasta file assembled seq summary:
     # min_contig = %d max_contig = %d avg_contig = %d
-    # Total number of assemblerd sequences = %d
-    # number of reads clustering with Phy = %d
+    # Total number of assembled sequences = %d
+    # number of assembled-reads clustering with database = %d
     # number of starting reads = %d
-    # percent of reads clustering with Phyto = %.2f""" %(min_contig, 
+    # percent of assembled-reads clustering with database = %.2f\n""" %(min_contig, 
                                                     max_contig, avg_contig,
                                                     num_contig,
                                                     ITS_hitting_db_species,
                                                     right_total_reads,
                                                     db_reads_perc)
     summary_out_file.write(fasta_file_summary)
+
+    dbmin_contig, dbmax_contig, dbavg_contig, \
+                dbnum_contig = get_fasta_stats(seq_db)
+    db_fa_summary = """    # db_fa_summary:
+    # dbmin_contig = %d dbmax_contig = %d dbavg_contig = %d
+    # number of db_seq = %d
+    """ %(dbmin_contig, dbmax_contig, dbavg_contig,
+          dbnum_contig)
+    summary_out_file.write(db_fa_summary)
+
     cluster_file.close()
     summary_out_file.close()
     return True
