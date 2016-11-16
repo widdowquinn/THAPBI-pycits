@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tests of wrapper code in pycits. Trimmomatic"""
+"""Tests pycits wrapper for pear."""
 
 import os
 import shutil
@@ -10,42 +10,35 @@ from pycits.tools import NotExecutableError
 
 from nose.tools import nottest, assert_equal
 
+# INPUT DATA
 INDIR = os.path.join("tests", "test_data")
 OUTDIR = os.path.join("tests", "test_out_pear")
+READS1 = os.path.join(INDIR, "DNAMIX_S95_L001_R1_001.fastq.gz")
+READS2 = os.path.join(INDIR, "DNAMIX_S95_L001_R2_001.fastq.gz")
+PREFIX = os.path.split(READS1)[-1].split("_R")[0]
 
-# this will depend on the binarie name of pear
-# WE will need to change this!!
+# TARGET OUTPUT DATA
+TARGET = os.path.join("tests", "test_targets", "pear_test.assembled.fastq")
+
 
 def test_pear():
     """pear instantiates with cmd-line if pear is in $PATH"""
-    assemble = pear.Pear("pear")
+    pear.Pear("pear")
 
 
 def test_pear_cmd():
-    """pear instantiates and returns correct form of cmd-line"""
-    assembl = pear.Pear("pear")
-    prefix = "DNAMIX_S95_L001"
-    outdirname = os.path.join("tests/test_out_pear", "%s_PEAR"
-                              % (prefix))
-    command = ["pear",
-               "-f",
-               "tests/test_data/DNAMIX_S95_L001_R1_001.fastq.gz",
-               "-r",
-               "tests/test_data/DNAMIX_S95_L001_R2_001.fastq.gz",
-               "--threads",
-               "4",
-               "-o",
-               outdirname]
-    target = ' '.join(command)
-    assert_equal(assembl.run("tests/test_data/DNAMIX_S95_L001_R1_001.fastq.gz",
-                             "tests/test_data/DNAMIX_S95_L001_R2_001.fastq.gz",
-                             4, "tests/test_out_pear"), target)
+    """pear instantiates, runs and returns correct form of cmd-line"""
+    obj = pear.Pear("pear")
+    target = ' '.join(["pear", "-f", READS1, "-r", READS2,
+                       "--threads", "4", "-o", os.path.join(OUTDIR, PREFIX)])
+    assert_equal(obj.run(READS1, READS2, 4, OUTDIR, PREFIX, dry_run=True),
+                 target)
 
 
 def test_pear_exec_notexist():
     """Error thrown if pear executable does not exist"""
     try:
-        assemble = pear.Pear(os.path.join(".", "pear"))
+        obj = pear.Pear(os.path.join(".", "pear"))
     except NotExecutableError:
         return True
     else:
@@ -55,37 +48,22 @@ def test_pear_exec_notexist():
 def test_pear_notexec():
     """Error thrown if pear exe not executable"""
     try:
-        assemble = pear.Pear("LICENSE")
+        obj = pear.Pear("LICENSE")
     except NotExecutableError:
         return True
     else:
         return False
 
 
-def build_diff_cmd(infname1, infname2):
-    """Build a command-line for diff"""
-    cmd = ["diff",
-           infname1,
-           infname2]
-    build_diff_cmd = ' '.join(cmd)
-    return build_diff_cmd
-
-@nottest
 def test_pear_exec():
-    """Run pear on test data"""
-    assemble = pear.Pear("pear")
+    """Run pear on test data and compare output to precomputed target"""
+    obj = pear.Pear("pear")
     try:
         shutil.rmtree(OUTDIR)
     except FileNotFoundError:
         pass
     os.makedirs(OUTDIR, exist_ok=True)
-    assemble.run("tests/test_data/DNAMIX_S95_L001_R1_001.fastq.gz",
-                 "tests/test_data/DNAMIX_S95_L001_R2_001.fastq.gz",
-                 4, "tests/test_out_pear/")
-    target = os.path.join("tests", "test_targets",
-                          "pear_test.assembled.fastq")
-    result = os.path.join("tests", "test_out_pear",
-                          "DNAMIX_S95_L001_PEAR.assembled.fastq")
-    with open(target, "r") as target_fh:
-        with open(result, "r") as test_fh:
+    result = obj.run(READS1, READS2, 4, OUTDIR, PREFIX)
+    with open(TARGET, "r") as target_fh:
+        with open(result[0][0], "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
