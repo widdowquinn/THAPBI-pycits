@@ -21,16 +21,24 @@ from pycits import tools, trimmomatic, pear, error_correction,\
     rename_clusters_new_to_old, chop_seq
 
 # setting up some test variables
-threads = "4"
-left_reads = "./data/reads/DNAMIX_S95_L001_R1_001.fastq"
-right_reads = "./data/reads/DNAMIX_S95_L001_R2_001.fastq"
+# LP NOTE: globals should be capitalised
+THREADS = "4"  # threads to use
 
-read_prefix = left_reads.split("_R")[0]
-read_prefix = read_prefix.split("/")[-1]
+# test read set
+LEFT_READS = "./data/reads/DNAMIX_S95_L001_R1_001.fastq"
+RIGHT_READS = "./data/reads/DNAMIX_S95_L001_R2_001.fastq"
+READ_PREFIX = os.path.split(LEFT_READS)[-1].split("_R")[0]
+assert(READ_PREFIX == os.path.split(RIGHT_READS)[-1].split("_R")[0])
 
 # left_trim 53 - this should be default??
-left_trim = 53
-right_trim = 0
+LEFT_TRIM = 53
+RIGHT_TRIM = 0
+
+# Third-party applications
+SPADES_EXE = "/home/pt40963/scratch/Downloads/SPAdes-3.9.0-Linux/bin/spades.py"
+TRIMMO_JAR = "/home/pt40963/scratch/Downloads/Trimmomatic-0.36/" +\
+             "trimmomatic-0.36.jar"
+PEAR_EXE = "pear"
 
 
 # Report last exception as string
@@ -68,51 +76,42 @@ if __name__ == '__main__':
     logger.info("Starting testing: %s" % time.asctime())
 
     # trimmomatic testing.
-    trimmo_prog = "/home/pt40963/scratch/Downloads/Trimmomatic-0.36/" +\
-                  "trimmomatic-0.36.jar"
-
     logger.info("starting trimmomatic testing")
-    trim = trimmomatic.Trimmomatic(trimmo_prog, logger)
+    trim = trimmomatic.Trimmomatic(TRIMMO_JAR, logger)
 
     logger.info("Trim reads by quality")
-    trim.run(trimmo_prog, left_reads, right_reads,
-             threads, "trimmed_reads", 0, logger)
+    trim.run(TRIMMO_JAR, LEFT_READS, RIGHT_READS,
+             THREADS, "trimmed_reads", 0, logger)
 
     # error correction testing
-    ByHam = "/home/pt40963/scratch/Downloads/SPAdes-3.9.0-Linux/bin/spades.py"
-    error_correct = error_correction.Error_correction(ByHam,
-                                                      logger)
-    Left_trimmed = os.path.join("trimmed_reads",
-                                read_prefix +
+    error_correct = error_correction.Error_correction(SPADES_EXE, logger)
+    left_trimmed = os.path.join("trimmed_reads",
+                                READ_PREFIX +
                                 "_paired_R1.fq.gz")
-    Right_trimmed = os.path.join("trimmed_reads",
-                                 read_prefix +
+    right_trimmed = os.path.join("trimmed_reads",
+                                 READ_PREFIX +
                                  "_paired_R2.fq.gz")
     logger.info("error correction using Bayes hammer")
-    error_correct.run(ByHam, Left_trimmed, Right_trimmed,
-                      "error_correction", threads, logger)
-    L_E_C = os.path.join("error_correction", "corrected",
-                         read_prefix + "_paired_R1.fq" +
-                         ".00.0_0.cor.fastq.gz")
+    error_correct.run(SPADES_EXE, left_trimmed, right_trimmed,
+                      "error_correction", THREADS, logger)
+    left_corrected = os.path.join("error_correction", "corrected",
+                                  READ_PREFIX + "_paired_R1.fq" +
+                                  ".00.0_0.cor.fastq.gz")
 
-    R_E_C = os.path.join("error_correction", "corrected",
-                         read_prefix + "_paired_R2.fq" +
-                         ".00.0_0.cor.fastq.gz")
+    right_corrected = os.path.join("error_correction", "corrected",
+                                   READ_PREFIX + "_paired_R2.fq" +
+                                   ".00.0_0.cor.fastq.gz")
 
     # PEAR testing - assemble
-    assemble = pear.Pear("pear", logger)
-    Left_trimmed = os.path.join("trimmed_reads",
-                                read_prefix + "_paired_R1.fq.gz")
-    Right_trimmed = os.path.join("trimmed_reads",
-                                 read_prefix + "_paired_R2.fq.gz")
+    assemble = pear.Pear(PEAR_EXE, logger)
     logger.info("assembly using PEAR")
-    assemble.run(Left_trimmed, Right_trimmed,
-                 threads, "PEAR_assembled", logger)
+    assemble.run(left_trimmed, right_trimmed,
+                 THREADS, "PEAR_assembled", logger)
 
     # Pear testing with EC reads
     logger.info("assembly using PEAR with error corrected reads")
-    assemble.run(L_E_C, R_E_C,
-                 threads, "PEAR_assembled_EC", logger)
+    assemble.run(left_corrected, right_corrected,
+                 THREADS, "PEAR_assembled_EC", logger)
 
     # cleaning up unwanted files
     logger.info("testing the removal of unwanted file")
@@ -128,7 +127,7 @@ if __name__ == '__main__':
     format_change = seq_crumbs.Convert_Format("convert_format",
                                               logger)
     assembled_reads = os.path.join("PEAR_assembled",
-                                   read_prefix +
+                                   READ_PREFIX +
                                    "_paired_PEAR.assembled.fastq")
 
     format_change.run(assembled_reads, "fasta_converted",
@@ -151,8 +150,6 @@ if __name__ == '__main__':
 
     # need to trim the left and right assembled seq so they
     # cluster with the database.
-    left_trim = 53
-    right_trim = 0
     chop_prog = os.path.join("pycits", "trim_fasta_file.py")
 
     fasta_file = os.path.join("fasta_converted", "temp.fasta")
@@ -165,8 +162,8 @@ if __name__ == '__main__':
     chopper = chop_seq.Chop_seq(chop_prog, logger)
     #        run(exe_path, fasta, database, left, right,
             #fasta_out, barcode="0", logger=False)
-    chopper.run(chop_prog, fasta_file, ITS_database, left_trim,
-                right_trim, fasta_out, logger)
+    chopper.run(chop_prog, fasta_file, ITS_database, LEFT_TRIM,
+                RIGHT_TRIM, fasta_out, logger)
 
     # SWARM testing - assemble
     cluster = swarm.Swarm("swarm", logger)
@@ -175,9 +172,9 @@ if __name__ == '__main__':
 
     logger.info("clustering with Swarm")
     cluster.run(assembled_fa_reads,
-                threads, 1, "Swarm_cluster_assembled_reads_only", logger)
+                THREADS, 1, "Swarm_cluster_assembled_reads_only", logger)
     cluster.run(fasta_out,
-                threads, 1, "Swarm_cluster", logger)
+                THREADS, 1, "Swarm_cluster", logger)
 
     # recode cluster output
     #python pycits/parse_clusters_new_to_old_name.py -i
