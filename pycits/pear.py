@@ -12,7 +12,6 @@
 # WARNING: this module is not yet tested AT ALL.
 
 import os
-import sys
 
 import subprocess
 from .tools import is_exe
@@ -31,7 +30,7 @@ class Pear(object):
         """Instantiate with location of executable"""
         if not is_exe(exe_path):
             msg = "{0} is not an executable".format(exe_path)
-            raise NotExecutableError(msg)
+            raise PearError(msg)
         self._exe_path = exe_path
 
     def run(self, lreads, rreads, threads, outdir, prefix, dry_run=False):
