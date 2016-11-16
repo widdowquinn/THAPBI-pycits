@@ -20,7 +20,7 @@ TARGET = os.path.join("tests", "test_targets",
 
 
 def test_blastclust():
-    """Blastclust instantiates with cmd-line if blastclust is in $PATH"""
+    """Blastclust instantiates with cmd-line and blastclust is in $PATH"""
     blast.Blastclust("blastclust")
 
 
@@ -29,7 +29,7 @@ def test_blastclust_cmd():
     bc = blast.Blastclust("blastclust")
     target = ' '.join(["blastclust -L 0.90 -S 99 -a 4 -p F",
                        "-i trimmed.fasta",
-                       "-o ",
+                       "-o",
                        os.path.join("test_out",
                                     "trimmed.fasta.blastclust99.lst")])
     assert_equal(bc.run("trimmed.fasta", "test_out", 4, dry_run=True),
