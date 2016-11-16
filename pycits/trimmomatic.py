@@ -51,11 +51,10 @@ class Trimmomatic(object):
             return self._cmd
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
+                              stderr=subprocess.PIPE)
         if pipe.returncode != 0:
             msg = "Trimmomatic returned non-zero: {0}".format(pipe.returncode)
-            raise TrimmomaticError(msg)
+            raise TrimmomaticError('\n'.join(msg, pipe.stdout, pipe.stderr))
         return (self._outfnames, pipe.stdout.decode('utf-8'))
 
     def __build_cmd(self, lreads, rreads, threads, outdir, prefix, adapters):
