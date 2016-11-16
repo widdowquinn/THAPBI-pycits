@@ -14,7 +14,7 @@ install:
 # Use --nocapture with nosetests to get extra verbose output for debugging
 # on Travis
 script:
-  - nosetests -v --with-coverage --cover-package=pycits --nocapture tests/test_wrapper_pear.py tests/test_wrapper_blastclust.py
+  - nosetests -v --with-coverage --cover-package=pycits --nocapture
 
 # application dependencies:
 #   - build legacy BLAST (blastclust) from source
@@ -34,6 +34,7 @@ sudo: false
 #addons:
 #  apt:
 #    packages:
+#     - trimmomatic
 #    - csh
 #    - ncbi-blast+
 #    - mummer

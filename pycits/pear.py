@@ -52,7 +52,6 @@ class Pear(object):
         self.__build_cmd(lreads, rreads, threads, outdir, prefix)
         if dry_run:
             return(self._cmd)
-        print(self._cmd)
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,

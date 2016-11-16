@@ -33,17 +33,16 @@ class Blastclust(object):
         - infnames - input filenames for clustering
         - outdir   - output directory for clustered output
         - threads  - number of threads for blastclust to use
-        - logger   - stream to write messages
         - dry_run  - if True, returns cmd-line but does not run
         """
         self.__build_cmd(infnames, outdir, threads)
         if dry_run:
-            return(self._cmd)
+            return self._cmd
         pipe = Popen(self._cmd, shell=True, stdout=PIPE)
         if pipe.wait() != 0:
             msg = "blastclust generated some errors"
             raise BlastclustError(msg)
-        return(self._outfname, pipe.stdout.readlines())
+        return (self._outfname, pipe.stdout.readlines())
 
     def __build_cmd(self, infname, outdir, threads):
         """Build a command-line for blastclust"""

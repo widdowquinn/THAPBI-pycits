@@ -4,6 +4,7 @@
 #
 # trimmomatic:
 # http://www.bioinformatics.babraham.ac.uk/projects/trimmomatic/
+#
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard and Peter Thorpe
 
@@ -12,94 +13,60 @@ import os
 import sys
 
 import subprocess
-from .tools import is_exe
+from .tools import is_exe, NotExecutableError
+
+
+class TrimmomaticError(Exception):
+    """Exception raised when Trimmomatic fails"""
+    def __init__(self, message):
+        self.message = message
 
 
 class Trimmomatic(object):
     """Class for working with trimmomatic"""
-    def __init__(self, exe_path, logger=False):
+    def __init__(self, exe_path):
         """Instantiate with location of executable"""
-        if logger:
-            self._logger = logger
-        self._no_run = False
-        if not os.path.isfile(exe_path):
-            # TO DO: return this error message when it fails
-            msg = ''.join(["trimmomatic is not valid trimming of "
-                            "reads will not be run...           \n",
-                            " SOLUTION: put trimmomatic in PATH   ",
-                            " and this is still failing you may   ",
-                            "need to rename/ copy your trimmomatic ",
-                            "binary to a file called timmomatic. ",
-                            " please make ensure file is executable ",
-                            " and in your PATH  you can download ",
-                            " the binaries from http://www.usadellab",
-                            ".org/cms/?page=trimmomatic"])
-            if logger:
-                self._logger.warning(msg)
-            self._no_run = True
+        if not is_exe(exe_path):
+            msg = "{0} is not an executable".format(exe_path)
+            raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def __build_cmd(self, trimmo_prog, L_reads, R_reads, threads,
-                    outdir, HEADCROP=0, logger=False):
-        """Build a command-line for trimmomatic"""
-        if logger:
-            if int(HEADCROP) > 0:
-                self._logger.info("left crop reads at %d bases" %
-                                  int(HEADCROP))
-        # trimmo can trim the start of reads. Default this will be 0
-        # but this can be defined by the user. 
-        HEADCROP = "HEADCROP:%s" %(str(HEADCROP))
-        prefix = L_reads.split("_R")[0]
-        prefix = prefix.split("/")[-1]
-        self._outdirname = os.path.join(outdir)
-        self._Left_outfile = os.path.join(outdir,
-                                          prefix + "_paired_R1.fq.gz")
-        self._Right_outfile = os.path.join(outdir,
-                                           prefix + "_paired_R2.fq.gz")
+    def run(self, lreads, rreads, threads, outdir, prefix, adapters,
+            dry_run=False):
+        """Run trimmomatic to trim reads in the passed files, on quality
 
-        cmd = ["java", "-jar",
-               trimmo_prog,
-               "PE",
-               "-threads", str(threads),
-               "-phred33",
-               L_reads, R_reads,
-               self._Left_outfile,
-               "unpaired_R1.fq.gz",
-               self._Right_outfile,
-               "unpaired_R2.fq.gz",
-               "ILLUMINACLIP:TruSeq3-PE.fa:2:30:10", "LEADING:3",
-               HEADCROP,
-               "TRAILING:3", "SLIDINGWINDOW:4:25", "MINLEN:70"]
-        self._cmd = ' '.join(cmd)
+        - lreads    - forward reads
+        - rreads    - reverse reads
+        - threads   - number of threads for Trimmomatic to use
+        - outdir    - directory to write trimmed output
+        - prefix    - prefix string for output files
+        - adapters  - path to adapters to be used with ILLUMINACLIP
+        - dry_run   - returns only the command to be run, if True
 
-
-    def run(self, trimmo_prog, L_reads, R_reads, threads,
-            outdir, HEADCROP="0", logger=None):
-        """Run trimmomatic on the passed read files"""
-        assert L_reads != R_reads, """Oh no,
-        I am trying to perform trimming on two files that are the same!
-        Something has gone wrong in determining the left and right
-        read files."""
-        self.__build_cmd(trimmo_prog, L_reads, R_reads, threads,
-                         outdir, HEADCROP)
-        if not os.path.exists(self._outdirname):
-            if logger:
-                self._logger.info("Creating output directory: %s" %
-                                  self._outdirname)
-            os.makedirs(self._outdirname)
-        msg = ["Running...", "\t%s" % self._cmd]
-        # for m in msg:
-        #    self._logger.info(m)
+        TODO: accept arbitrary options provided by the user
+        """
+        assert(lreads != rreads)
+        self.__build_cmd(lreads, rreads, threads, outdir, prefix, adapters)
+        if dry_run:
+            return self._cmd
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
-                              check=True)            
+                              check=True)
         if pipe.returncode != 0:
-            if logger:
-                self._logger.error("trimmomatic generated some errors")
-            sys.exit(1)
-        if pipe.returncode == 0:
-            if logger:
-                self._logger.info(pipe)
-        print ("pipe.args = ", pipe.args)
-        return (self._outdirname, pipe.args)
+            msg = "Trimmomatic returned non-zero: {0}".format(pipe.returncode)
+            raise TrimmomaticError(msg)
+        return (self._outfnames, pipe.stdout.decode('utf-8'))
+
+    def __build_cmd(self, lreads, rreads, threads, outdir, prefix, adapters):
+        """Build a command-line for trimmomatic"""
+        self._outfnames = [os.path.join(outdir, prefix + suffix) for suffix in
+                           ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
+                            "_paired_R2.fq.gz", "_unpaired_R2.fq.gz")]
+        cmd = ["trimmomatic", "PE", "-threads {0}".format(threads),
+               "-phred33", lreads, rreads,
+               *self._outfnames,
+               "ILLUMINACLIP:{0}:2:30:10".format(adapters),
+               "LEADING:3", "HEADCROP:40", "TRAILING:3",
+               "SLIDINGWINDOW:4:25", "MINLEN:70"]
+        self._cmd = ' '.join(cmd)

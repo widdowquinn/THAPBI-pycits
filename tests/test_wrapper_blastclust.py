@@ -25,7 +25,7 @@ def test_blastclust():
 
 
 def test_blastclust_cmd():
-    """Blastclust instantiates, runs and returns correct form of cmd-line"""
+    """Blastclust instantiates and returns correct form of cmd-line"""
     bc = blast.Blastclust("blastclust")
     target = ' '.join(["blastclust -L 0.90 -S 99 -a 4 -p F",
                        "-i trimmed.fasta",
