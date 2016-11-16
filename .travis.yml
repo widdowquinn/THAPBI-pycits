@@ -19,6 +19,8 @@ script:
 # application dependencies:
 #   - build legacy BLAST (blastclust) from source
 #   - download PEAR 64-bit binary
+#   - download Trimmomatic .jar file and create wrapper script
+#              (until whitelisted at Travis-CI)
 before_install:
   - cd $HOME
   - wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
@@ -28,16 +30,19 @@ before_install:
   - tar -zxvf pear-0.9.10-bin-64.tar.gz
   - cp pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
   - export PATH=$HOME/pear-0.9.10-bin-64/:$PATH
+  - cd $HOME
+  - wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.36.zip
+  - unzip Trimmomatic-0.36.zip
+  - printf "#\!/bin/bash\nexec java -jar trimmomatic-0.36.jar \"\$@\"" > Trimmomatic-0.36/trimmomatic
+  - chmod 755 Trimmomatic-0.36/trimmomatic
+  - export PATH=$HOME/Trimmomatic-0.36:$PATH
   - cd $TRAVIS_BUILD_DIR
 
 sudo: false
 #addons:
 #  apt:
 #    packages:
-#     - trimmomatic
-#    - csh
-#    - ncbi-blast+
-#    - mummer
+#    - trimmomatic
 
 # Use codecov for code coverage
 after_success:
