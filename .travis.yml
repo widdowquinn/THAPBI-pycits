@@ -33,7 +33,7 @@ before_install:
   - cd $HOME
   - wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.36.zip
   - unzip Trimmomatic-0.36.zip
-  - printf "#\!/bin/bash\nexec java -jar trimmomatic-0.36.jar \"\$@\"" > Trimmomatic-0.36/trimmomatic
+  - printf "#\!/bin/bash\nexec java -jar $HOME/Trimmomatic-0.36/trimmomatic-0.36.jar \"\$@\"" > Trimmomatic-0.36/trimmomatic
   - chmod 755 Trimmomatic-0.36/trimmomatic
   - export PATH=$HOME/Trimmomatic-0.36:$PATH
   - cd $TRAVIS_BUILD_DIR

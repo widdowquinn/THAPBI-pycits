@@ -54,7 +54,9 @@ class Trimmomatic(object):
                               stderr=subprocess.PIPE)
         if pipe.returncode != 0:
             msg = "Trimmomatic returned non-zero: {0}".format(pipe.returncode)
-            raise TrimmomaticError('\n'.join(msg, pipe.stdout, pipe.stderr))
+            raise TrimmomaticError('\n'.join([msg,
+                                              pipe.stdout.decode('utf-8'),
+                                              pipe.stderr.decode('utf-8')]))
         return (self._outfnames, pipe.stdout.decode('utf-8'))
 
     def __build_cmd(self, lreads, rreads, threads, outdir, prefix, adapters):
