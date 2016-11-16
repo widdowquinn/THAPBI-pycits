@@ -14,7 +14,7 @@ install:
 # Use --nocapture with nosetests to get extra verbose output for debugging
 # on Travis
 script:
-  - nosetests -v --with-coverage --cover-package=pycits tests/test_wrapper_pear.py
+  - nosetests -v --with-coverage --cover-package=pycits 
 
 # application dependencies:
 #   - build legacy BLAST (blastclust) from source
@@ -27,7 +27,7 @@ before_install:
   - wget http://sco.h-its.org/exelixis/web/software/pear/files/pear-0.9.10-bin-64.tar.gz
   - tar -zxvf pear-0.9.10-bin-64.tar.gz
   - ln -s pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
-  - export PATH=$HOME/pear-0.9.10-bin-64/
+  - export PATH=$HOME/pear-0.9.10-bin-64/:$PATH
   - cd $TRAVIS_BUILD_DIR
 
 sudo: false
