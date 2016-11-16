@@ -16,7 +16,6 @@ OUTDIR = os.path.join("tests", "test_out_pear")
 # this will depend on the binarie name of pear
 # WE will need to change this!!
 
-
 def test_pear():
     """pear instantiates with cmd-line if pear is in $PATH"""
     assemble = pear.Pear("pear")
@@ -71,7 +70,7 @@ def build_diff_cmd(infname1, infname2):
     build_diff_cmd = ' '.join(cmd)
     return build_diff_cmd
 
-
+@nottest
 def test_pear_exec():
     """Run pear on test data"""
     assemble = pear.Pear("pear")

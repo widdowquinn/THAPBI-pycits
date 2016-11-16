@@ -20,5 +20,6 @@ venv-THAPBI-pycits/
 test_out/
 test_out.log
 tests/test_out_blastclust
+tests/test_out_pear
 error.log
 
