@@ -19,6 +19,7 @@ OUTFILE = os.path.join(OUTDIR, "swarm.out")
 # TARGET OUTPUT
 TARGET = os.path.join("tests", "test_targets", "swarm", "swarm.out")
 
+
 def test_swarm():
     """swarm instantiates with cmd-line if swarm is in $PATH"""
     cluster = swarm.Swarm("swarm")
@@ -55,7 +56,12 @@ def test_swarm_notexec():
 
 
 def test_swarm_exec():
-    """Run swarm on test data"""
+    """Run swarm on test data
+
+    TODO: We need a Swarm parser. Members of a group may be reported in any
+          order, so we cannot rely on output files being identical on all
+          systems, or after all runs.
+    """
     cluster = swarm.Swarm("swarm")
     try:
         shutil.rmtree(OUTDIR)
