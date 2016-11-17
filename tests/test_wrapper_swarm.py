@@ -12,9 +12,12 @@ from nose.tools import nottest, assert_equal
 
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "swarm")
-OUTDIR = os.path.join("tests", "test_out", "swarm")
+OUTDIR = os.path.join("tests", "test_out_swarm")
 INFILE = os.path.join(INDIR, "swarm_coded_with_abundance.fasta")
 OUTFILE = os.path.join(OUTDIR, "swarm.out")
+
+# TARGET OUTPUT
+TARGET = os.path.join("tests", "test_targets", "swarm", "swarm.out")
 
 def test_swarm():
     """swarm instantiates with cmd-line if swarm is in $PATH"""
@@ -27,12 +30,12 @@ def test_swarm_cmd():
     target = ' '.join(["swarm -t 1 -d 1",
                        "-o {0}".format(OUTFILE),
                        INFILE])
+    print(target)
     assert_equal(cluster.run(INFILE, OUTDIR, 1, 1, dry_run=True), target)
 
 
-@nottest
-def test_dedup_exec_notexist():
-    """Error thrown if dedup executable does not exist"""
+def test_swarm_exec_notexist():
+    """Error thrown if swarm executable does not exist"""
     try:
         cluster = swarm.Swarm(os.path.join(".", "swarm"))
     except NotExecutableError:
@@ -41,9 +44,8 @@ def test_dedup_exec_notexist():
         return False
 
 
-@nottest
-def test_dedup_notexec():
-    """Error thrown if swarm dedup not executable"""
+def test_swarm_notexec():
+    """Error thrown if swarm not executable"""
     try:
         cluster = swarm.Swarm("LICENSE")
     except NotExecutableError:
@@ -52,40 +54,15 @@ def test_dedup_notexec():
         return False
 
 
-def build_diff_cmd(infname1, infname2):
-    """Build a command-line for diff"""
-    cmd = ["diff",
-           infname1,
-           infname2]
-    build_diff_cmd = ' '.join(cmd)
-    return build_diff_cmd
-
-
-@nottest
 def test_swarm_exec():
-    """Run dedup on test data"""
+    """Run swarm on test data"""
     cluster = swarm.Swarm("swarm")
     try:
         shutil.rmtree(OUTDIR)
     except FileNotFoundError:
         pass
     os.makedirs(OUTDIR, exist_ok=True)
-
-    test_fasta = os.path.join("tests", "test_data",
-                              "swarm_coded_with_abundance.fasta")
-    outdirname = os.path.join("tests", "test_out_swarm")
-    # set up the class
-    clustering_threshold = 1
-    clustering_threshold = str(clustering_threshold)
-    out_file = os.path.join(outdirname,
-                            "swarm_clustering_d%s" %
-                            (clustering_threshold))
-
-    target = os.path.join("tests", "test_targets",
-                          "swarm_test_d1.out")
-    result = os.path.join("tests", "test_out_swarm",
-                          "swarm_clustering_d1", "swarm_clustering_d1")
-    cluster.run(test_fasta, "1", 1, outdirname)
-    with open(target, "r") as target_fh:
-        with open(result, "r") as test_fh:
+    result = cluster.run(INFILE, OUTDIR, 1, 1)
+    with open(TARGET, "r") as target_fh:
+        with open(result[0], "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
