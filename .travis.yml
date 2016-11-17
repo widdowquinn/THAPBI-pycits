@@ -21,6 +21,7 @@ script:
 #   - download PEAR 64-bit binary
 #   - download Trimmomatic .jar file and create wrapper script
 #              (until whitelisted at Travis-CI)
+#   - clone swarm from GitHub repo and make in situ
 before_install:
   - cd $HOME
   - wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
@@ -36,6 +37,11 @@ before_install:
   - printf "#\!/bin/bash\nexec java -jar $HOME/Trimmomatic-0.36/trimmomatic-0.36.jar \"\$@\"" > Trimmomatic-0.36/trimmomatic
   - chmod 755 Trimmomatic-0.36/trimmomatic
   - export PATH=$HOME/Trimmomatic-0.36:$PATH
+  - cd $HOME
+  - git clone https://github.com/torognes/swarm.git
+  - cd swarm/src
+  - make
+  - export PATH=$HOME/swarm/bin:$PATH
   - cd $TRAVIS_BUILD_DIR
 
 sudo: false
