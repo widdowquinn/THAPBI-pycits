@@ -69,6 +69,9 @@ def test_swarm_exec():
         pass
     os.makedirs(OUTDIR, exist_ok=True)
     result = cluster.run(INFILE, OUTDIR, 1, 1)
-    with open(TARGET, "r") as target_fh:
-        with open(result[0], "r") as test_fh:
-            assert_equal(target_fh.read(), test_fh.read())
+    parser = swarm.SwarmParser()
+    target = parser.read(TARGET)
+    swarms = parser.read(result[0])
+    print('\n'.join([', '.join(c.amplicons) for c in target.swarms]))
+    print('\n'.join([', '.join(c.amplicons) for c in swarms.swarms]))
+    print(target == swarms)

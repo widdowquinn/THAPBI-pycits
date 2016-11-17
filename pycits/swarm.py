@@ -7,8 +7,6 @@
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard and Peter Thorpe
 
-# WARNING: this module is not yet tested AT ALL.
-
 import os
 import sys
 
@@ -62,3 +60,57 @@ class Swarm(object):
         self._cmd = ' '.join(cmd)
 
 
+class SwarmCluster(object):
+    """Describes a single Swarm cluster"""
+    def __init__(self, amplicons, parent=None):
+        self._amplicons = tuple(sorted(amplicons))
+        if parent:
+            self._parent = parent
+
+    @property
+    def amplicons(self):
+        """The amplicons in a swarm cluster"""
+        return self._amplicons
+
+
+class SwarmResult(object):
+    """Describes the contents of a Swarm output file"""
+    def __init__(self, name):
+        self._name = name
+        self._clusters = list()
+
+    def add_swarm(self, amplicons):
+        """Adds a list of amplicon IDs as a SwarmCluster"""
+        self._clusters.append(SwarmCluster(amplicons, self))
+
+    def __eq__(self, other):
+        """Returns True if all swarms match all swarms in passed result"""
+        # this test relies on the amplicons being ordered tuples
+        these_amplicons = {c.amplicons for c in self._clusters}
+        other_amplicons = {c.amplicons for c in other._clusters}
+        return these_amplicons == other_amplicons
+
+    @property
+    def swarms(self):
+        """The clusters produced by a swarm run"""
+        return self._clusters[:]
+
+    @property
+    def name(self):
+        """The swarm result filename"""
+        return self._name
+
+
+class SwarmParser(object):
+    """Parser for Swarm cluster output"""
+    def __init__(self):
+        pass
+
+    def read(self, fname):
+        """Parses the passed Swarm output file into a SwarmResult"""
+        result = SwarmResult(fname)
+        with open(fname, "rU") as swarms:
+            idx = 0
+            for swarm in swarms:
+                result.add_swarm(swarm.strip().split())
+        return result
