@@ -10,54 +10,24 @@ from pycits.tools import NotExecutableError
 
 from nose.tools import nottest, assert_equal
 
-INDIR = os.path.join("tests", "test_data")
-OUTDIR = os.path.join("tests", "test_out_swarm")
+# INPUT DATA LOCATION
+INDIR = os.path.join("tests", "test_data", "swarm")
+OUTDIR = os.path.join("tests", "test_out", "swarm")
+INFILE = os.path.join(INDIR, "swarm_coded_with_abundance.fasta")
+OUTFILE = os.path.join(OUTDIR, "swarm.out")
 
-if not os.path.exists(OUTDIR):
-    os.makedirs(OUTDIR, exist_ok=True)
-
-
-@nottest
-def test_dedup():
-    """swarm instantiates with cmd-line if swarm
-    is in $PATH"""
+def test_swarm():
+    """swarm instantiates with cmd-line if swarm is in $PATH"""
     cluster = swarm.Swarm("swarm")
 
 
-@nottest
-def test_dedup_cmd():
+def test_swarm_cmd():
     """swarm instantiates and returns correct form of cmd-line"""
-    test_fasta = os.path.join("tests", "test_data",
-                              "swarm_coded_with_abundance.fasta")
-    outdirname = os.path.join("tests", "test_out_swarm")
-    # set up the class
     cluster = swarm.Swarm("swarm")
-    clustering_threshold = 1
-    clustering_threshold = str(clustering_threshold)
-    out_file = os.path.join(outdirname,
-                            "swarm_clustering_d%s" %
-                            (clustering_threshold),
-                            "swarm_clustering_d%s" %
-                            (clustering_threshold))
-    out = os.path.join(outdirname,
-                       "swarm_clustering_d%s" %
-                       (clustering_threshold))
-    command = ["swarm",
-               "-t",
-               "1",
-               "-d",
-               "1",
-               "-o",
-               out_file,
-               test_fasta]
-    target = ' '.join(command)
-    print("\n\ntarget = ", target)
-    class_dir, class_command = cluster.run(test_fasta, "1", 1, outdirname)
-    print("\n\nclass_command = ", class_command)
-    assert_equal(class_command, target)
-    cluster.run(test_fasta, "1", 1, outdirname)
-
-# test_dedup_cmd()
+    target = ' '.join(["swarm -t 1 -d 1",
+                       "-o {0}".format(OUTFILE),
+                       INFILE])
+    assert_equal(cluster.run(INFILE, OUTDIR, 1, 1, dry_run=True), target)
 
 
 @nottest
