@@ -8,10 +8,15 @@
 # Author: Leighton Pritchard and Peter Thorpe
 
 import os
+import subprocess
 import sys
 
-import subprocess
+from collections import namedtuple
+
 from .tools import is_exe, NotExecutableError
+
+
+Results = namedtuple("Results", "command filename stdout stderr")
 
 
 class SwarmError(Exception):
@@ -46,7 +51,8 @@ class Swarm(object):
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True) 
-        return (self._outfname, pipe.stdout.decode('utf-8'))
+        results = Results(self._cmd, self._outfname, pipe.stdout, pipe.stderr)
+        return results
 
 
     def __build_cmd(self, infname, threads, threshold, outdir):

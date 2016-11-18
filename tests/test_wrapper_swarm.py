@@ -71,7 +71,7 @@ def test_swarm_exec():
     result = cluster.run(INFILE, OUTDIR, 1, 1)
     parser = swarm.SwarmParser()
     target = parser.read(TARGET)
-    swarms = parser.read(result[0])
+    swarms = parser.read(result.filename)
     print('\n'.join([', '.join(c.amplicons) for c in target.swarms]))
     print('\n'.join([', '.join(c.amplicons) for c in swarms.swarms]))
     print(target == swarms)
