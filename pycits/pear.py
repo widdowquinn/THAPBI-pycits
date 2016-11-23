@@ -12,9 +12,17 @@
 # WARNING: this module is not yet tested AT ALL.
 
 import os
-
 import subprocess
-from .tools import is_exe
+
+from collections import namedtuple
+
+from .tools import is_exe, NotExecutableError
+
+
+# factory class for Pear class returned values
+Results = namedtuple("Results", "command outfileassembled outfilediscarded " +
+                     "outfileunassmbledfwd outfileunassembledrev " +
+                     "stdout stderr")
 
 
 class PearError(Exception):
@@ -30,7 +38,7 @@ class Pear(object):
         """Instantiate with location of executable"""
         if not is_exe(exe_path):
             msg = "{0} is not an executable".format(exe_path)
-            raise PearError(msg)
+            raise NotExecutableError(msg)
         self._exe_path = exe_path
 
     def run(self, lreads, rreads, threads, outdir, prefix, dry_run=False):
@@ -55,10 +63,9 @@ class Pear(object):
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
-        if pipe.returncode != 0:
-            raise PearError("pear terminated by signal: " +
-                            "{0}".format(pipe.returncode))
-        return(self._outfnames, pipe.stdout.decode('utf-8'))
+        results = Results(self._cmd, *self._outfnames, pipe.stdout,
+                          pipe.stderr)
+        return results
 
     def __build_cmd(self, lreads, rreads, threads, outdir, prefix):
         """Build a command-line for pear.

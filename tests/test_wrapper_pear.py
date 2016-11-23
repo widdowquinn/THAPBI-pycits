@@ -18,7 +18,8 @@ READS2 = os.path.join(INDIR, "DNAMIX_S95_L001_R2_001.fastq.gz")
 PREFIX = os.path.split(READS1)[-1].split("_R")[0]
 
 # TARGET OUTPUT DATA
-TARGET = os.path.join("tests", "test_targets", "pear_test.assembled.fastq")
+TARGET = os.path.join("tests", "test_targets", "pear",
+                      "pear_test.assembled.fastq")
 
 
 def test_pear():
@@ -65,5 +66,5 @@ def test_pear_exec():
     os.makedirs(OUTDIR, exist_ok=True)
     result = obj.run(READS1, READS2, 4, OUTDIR, PREFIX)
     with open(TARGET, "r") as target_fh:
-        with open(result[0][0], "r") as test_fh:
+        with open(result.outfileassembled, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
