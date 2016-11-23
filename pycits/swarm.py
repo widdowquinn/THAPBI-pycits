@@ -16,7 +16,8 @@ from collections import namedtuple
 from .tools import is_exe, NotExecutableError
 
 
-Results = namedtuple("Results", "command filename stdout stderr")
+# factory class for Swarm class returned values
+Results = namedtuple("Results", "command outfilename stdout stderr")
 
 
 class SwarmError(Exception):
@@ -34,7 +35,6 @@ class Swarm(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-
     def run(self, infname, outdir, threads, threshold, dry_run=False):
         """Run swarm to cluster sequences in the passed file
 
@@ -43,6 +43,9 @@ class Swarm(object):
         - threads    - number of threads for swarm to use
         - threshold  - clustering threshold for swarm (-d option)
         - dry_run    - if True returns cmd-line but does not run
+
+        Returns namedtuple with form:
+          "command outfilename stdout stderr"
         """
         self.__build_cmd(infname, threads, threshold, outdir)
         if dry_run:
@@ -50,10 +53,9 @@ class Swarm(object):
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
-                              check=True) 
+                              check=True)
         results = Results(self._cmd, self._outfname, pipe.stdout, pipe.stderr)
         return results
-
 
     def __build_cmd(self, infname, threads, threshold, outdir):
         """Build a command-line for swarm"""
@@ -62,7 +64,7 @@ class Swarm(object):
                "-t", str(threads),
                "-d", str(threshold),
                "-o", self._outfname,
-               infname] 
+               infname]
         self._cmd = ' '.join(cmd)
 
 

@@ -10,10 +10,19 @@
 
 
 import os
+import subprocess
 import sys
 
-import subprocess
+from collections import namedtuple
+
 from .tools import is_exe, NotExecutableError
+
+
+# factory class for Trimmomatic class returned values
+Results = namedtuple("Results", "command " +
+                     "outfileR1paired outfileR1unpaired " +
+                     "outfileR2paired outfileR2unpaired " +
+                     "stdout stderr")
 
 
 class TrimmomaticError(Exception):
@@ -43,6 +52,10 @@ class Trimmomatic(object):
         - adapters  - path to adapters to be used with ILLUMINACLIP
         - dry_run   - returns only the command to be run, if True
 
+        Returns namedtuple with form
+          "command outfileR1paired outfileR1unpaired outfileR2paired
+           outfileR2unpaired stdout stderr"
+
         TODO: accept arbitrary options provided by the user
         """
         assert(lreads != rreads)
@@ -57,6 +70,8 @@ class Trimmomatic(object):
             raise TrimmomaticError('\n'.join([msg,
                                               pipe.stdout.decode('utf-8'),
                                               pipe.stderr.decode('utf-8')]))
+        results = Results(self._cmd, *self._outfnames,
+                          pipe.stdout, pipe.stderr)
         return (self._outfnames, pipe.stdout.decode('utf-8'))
 
     def __build_cmd(self, lreads, rreads, threads, outdir, prefix, adapters):
