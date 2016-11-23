@@ -15,7 +15,7 @@ INDIR = os.path.join("tests", "test_data")
 OUTDIR = os.path.join("tests", "test_out_blastclust")
 
 # TARGET OUTPUT
-TARGET = os.path.join("tests", "test_targets",
+TARGET = os.path.join("tests", "test_targets", "blastclust",
                       "target_trimmed.fasta.blastclust99.lst")
 
 
@@ -66,5 +66,5 @@ def test_blastclust_exec():
     os.makedirs(OUTDIR, exist_ok=True)
     result = bc.run(os.path.join(INDIR, "trimmed.fasta"), OUTDIR, 4)
     with open(TARGET, "r") as target_fh:
-        with open(result[0], "r") as test_fh:
+        with open(result.outfilename, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())

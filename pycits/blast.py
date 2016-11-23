@@ -6,9 +6,15 @@
 # Author: Leighton Pritchard
 
 import os
+import subprocess
 
-from subprocess import Popen, PIPE
+from collections import namedtuple
+
 from .tools import is_exe, NotExecutableError
+
+
+# factory class for Blastclust class returned values
+Results_bc = namedtuple("Results", "command outfilename stdout stderr")
 
 
 class BlastclustError(Exception):
@@ -37,11 +43,13 @@ class Blastclust(object):
         self.__build_cmd(infnames, outdir, threads)
         if dry_run:
             return self._cmd
-        pipe = Popen(self._cmd, shell=True, stdout=PIPE)
-        if pipe.wait() != 0:
-            msg = "blastclust generated some errors"
-            raise BlastclustError(msg)
-        return (self._outfname, pipe.stdout.readlines())
+        pipe = subprocess.run(self._cmd, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+        results = Results_bc(self._cmd, self._outfname, pipe.stdout,
+                             pipe.stderr)
+        return results
 
     def __build_cmd(self, infname, outdir, threads):
         """Build a command-line for blastclust"""
