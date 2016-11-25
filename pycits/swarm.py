@@ -19,6 +19,10 @@ from .tools import is_exe, NotExecutableError
 # factory class for Swarm class returned values
 Results = namedtuple("Results", "command outfilename stdout stderr")
 
+# factory class for Swarm parameter values
+Parameters = namedtuple("Parameters", "t d")
+Parameters.__new__.__defaults__ = (1, 1)
+
 
 class SwarmError(Exception):
     """Exception raised when swarm fails"""
@@ -35,19 +39,18 @@ class Swarm(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, infname, outdir, threads, threshold, dry_run=False):
+    def run(self, infname, outdir, parameters, dry_run=False):
         """Run swarm to cluster sequences in the passed file
 
         - infname    - path to sequences for clustering
         - outdir     - output directory for clustered output
-        - threads    - number of threads for swarm to use
-        - threshold  - clustering threshold for swarm (-d option)
+        - parameters - named tuple of Swarm parameters
         - dry_run    - if True returns cmd-line but does not run
 
         Returns namedtuple with form:
           "command outfilename stdout stderr"
         """
-        self.__build_cmd(infname, threads, threshold, outdir)
+        self.__build_cmd(infname, outdir, parameters)
         if dry_run:
             return(self._cmd)
         pipe = subprocess.run(self._cmd, shell=True,
@@ -57,14 +60,12 @@ class Swarm(object):
         results = Results(self._cmd, self._outfname, pipe.stdout, pipe.stderr)
         return results
 
-    def __build_cmd(self, infname, threads, threshold, outdir):
+    def __build_cmd(self, infname, outdir, parameters):
         """Build a command-line for swarm"""
         self._outfname = os.path.join(outdir, "swarm.out")
-        cmd = ["swarm",
-               "-t", str(threads),
-               "-d", str(threshold),
-               "-o", self._outfname,
-               infname]
+        params = ["-{0} {1}".format(k, v) for k, v in
+                  parameters._asdict().items() if v is not None]
+        cmd = ["swarm", *params, "-o", self._outfname, infname]
         self._cmd = ' '.join(cmd)
 
 

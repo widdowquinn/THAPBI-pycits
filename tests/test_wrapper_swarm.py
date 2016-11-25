@@ -31,8 +31,8 @@ def test_swarm_cmd():
     target = ' '.join(["swarm -t 1 -d 1",
                        "-o {0}".format(OUTFILE),
                        INFILE])
-    print(target)
-    assert_equal(cluster.run(INFILE, OUTDIR, 1, 1, dry_run=True), target)
+    parameters = swarm.Parameters(t=1, d=1)
+    assert_equal(cluster.run(INFILE, OUTDIR, parameters, dry_run=True), target)
 
 
 def test_swarm_exec_notexist():
@@ -68,7 +68,10 @@ def test_swarm_exec():
     except FileNotFoundError:
         pass
     os.makedirs(OUTDIR, exist_ok=True)
-    result = cluster.run(INFILE, OUTDIR, 1, 1)
+
+    parameters = swarm.Parameters(t=1, d=1)
+    result = cluster.run(INFILE, OUTDIR, parameters)
+
     parser = swarm.SwarmParser()
     target = parser.read(TARGET)
     swarms = parser.read(result.outfilename)
