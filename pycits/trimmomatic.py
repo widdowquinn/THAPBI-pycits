@@ -24,6 +24,15 @@ Results = namedtuple("Results", "command " +
                      "outfileR2paired outfileR2unpaired " +
                      "stdout stderr")
 
+# factory class for Trimmomatic parameters
+Parameters = namedtuple("Parameters", "threads")
+Parameters.__new__.__defaults__ = (1,)
+
+# factory class for Trimmomatic trimming steps
+Steps = namedtuple("Steps", "ILLUMINACLIP LEADING HEADCROP TRAILING MINLEN " +
+                   "SLIDINGWINDOW")
+Steps.__new__.__defaults__ = (None, 3, 0, 3, 70, "4:25")
+
 
 class TrimmomaticError(Exception):
     """Exception raised when Trimmomatic fails"""
@@ -40,17 +49,18 @@ class Trimmomatic(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, lreads, rreads, threads, outdir, prefix, adapters,
+    def run(self, lreads, rreads, outdir, prefix, phred, parameters, steps,
             dry_run=False):
         """Run trimmomatic to trim reads in the passed files, on quality
 
-        - lreads    - forward reads
-        - rreads    - reverse reads
-        - threads   - number of threads for Trimmomatic to use
-        - outdir    - directory to write trimmed output
-        - prefix    - prefix string for output files
-        - adapters  - path to adapters to be used with ILLUMINACLIP
-        - dry_run   - returns only the command to be run, if True
+        - lreads      - forward reads
+        - rreads      - reverse reads
+        - outdir      - directory to write trimmed output
+        - prefix      - prefix string for output files
+        - phred       - phred33|phred64
+        - parameters  - namedtuple for Trimmomatic parameters
+        - steps       - namedtuple for Trimmomatic steps
+        - dry_run     - returns only the command to be run, if True
 
         Returns namedtuple with form
           "command outfileR1paired outfileR1unpaired outfileR2paired
@@ -59,7 +69,8 @@ class Trimmomatic(object):
         TODO: accept arbitrary options provided by the user
         """
         assert(lreads != rreads)
-        self.__build_cmd(lreads, rreads, threads, outdir, prefix, adapters)
+        self.__build_cmd(lreads, rreads, outdir, prefix, phred,
+                         parameters, steps)
         if dry_run:
             return self._cmd
         pipe = subprocess.run(self._cmd, shell=True,
@@ -70,15 +81,26 @@ class Trimmomatic(object):
                           pipe.stdout, pipe.stderr)
         return results
 
-    def __build_cmd(self, lreads, rreads, threads, outdir, prefix, adapters):
-        """Build a command-line for trimmomatic"""
+    def __build_cmd(self, lreads, rreads, outdir, prefix, phred,
+                    parameters, steps):
+        """Build a command-line for trimmomatic
+
+        - lreads      - forward reads
+        - rreads      - reverse reads
+        - outdir      - directory to write trimmed output
+        - prefix      - prefix string for output files
+        - phred       - phred33|phred64
+        - parameters  - namedtuple for Trimmomatic parameters
+        - steps       - namedtuple for Trimmomatic steps
+        - dry_run     - returns only the command to be run, if True
+        """
         self._outfnames = [os.path.join(outdir, prefix + suffix) for suffix in
                            ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
                             "_paired_R2.fq.gz", "_unpaired_R2.fq.gz")]
-        cmd = ["trimmomatic", "PE", "-threads {0}".format(threads),
-               "-phred33", lreads, rreads,
-               *self._outfnames,
-               "ILLUMINACLIP:{0}:2:30:10".format(adapters),
-               "LEADING:3", "HEADCROP:40", "TRAILING:3",
-               "SLIDINGWINDOW:4:25", "MINLEN:70"]
+        params = ["-{0} {1}".format(k, v) for (k, v) in
+                  parameters._asdict().items() if v is not None]
+        steps = ["{0}:{1}".format(k, v) for (k, v) in
+                 steps._asdict().items() if v is not None]
+        cmd = ["trimmomatic", "PE", "-{0}".format(phred), *params,
+               lreads, rreads, *self._outfnames, *steps]
         self._cmd = ' '.join(cmd)

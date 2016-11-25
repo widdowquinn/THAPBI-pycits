@@ -19,6 +19,7 @@ OUTDIR = os.path.join("tests", "test_out_trimmomatic")
 READS1 = os.path.join(INDIR, "DNAMIX_S95_L001_R1_001.fastq.gz")
 READS2 = os.path.join(INDIR, "DNAMIX_S95_L001_R2_001.fastq.gz")
 PREFIX = os.path.split(READS1)[-1].split("_R")[0]
+PHREDSCORE = "phred33"
 ADAPTERS = os.path.join(INDIR, "adapters", "TruSeq3-PE.fa")
 OUTFILES = [os.path.join(OUTDIR, PREFIX + suffix) for suffix in
             ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
@@ -47,14 +48,16 @@ def test_trimmomatic_cmd():
     """Trimmomatic instantiates and returns correct form of cmd-line"""
     trim = trimmomatic.Trimmomatic("trimmomatic")
 
-    target = ' '.join(["trimmomatic", "PE", "-threads 4",
-                       "-phred33", READS1, READS2,
-                       *OUTFILES,
+    parameters = trimmomatic.Parameters(threads=4)
+    steps = trimmomatic.Steps(ILLUMINACLIP="{0}:2:30:10".format(ADAPTERS))
+    target = ' '.join(["trimmomatic", "PE", "-phred33", "-threads 4",
+                       READS1, READS2, *OUTFILES,
                        "ILLUMINACLIP:{0}:2:30:10".format(ADAPTERS),
-                       "LEADING:3", "HEADCROP:40", "TRAILING:3",
-                       "SLIDINGWINDOW:4:25", "MINLEN:70"])
-    assert_equal(trim.run(READS1, READS2, 4, OUTDIR, PREFIX, ADAPTERS,
-                          dry_run=True),
+                       "LEADING:3", "HEADCROP:0", "TRAILING:3",
+                       "MINLEN:70", "SLIDINGWINDOW:4:25"])
+
+    assert_equal(trim.run(READS1, READS2, OUTDIR, PREFIX, PHREDSCORE,
+                          parameters, steps, dry_run=True),
                  target)
 
 
@@ -67,7 +70,10 @@ def test_trimmomatic_exec():
         pass
     os.makedirs(OUTDIR, exist_ok=True)
 
-    results = trim.run(READS1, READS2, 4, OUTDIR, PREFIX, ADAPTERS)
+    parameters = trimmomatic.Parameters(threads=4)
+    steps = trimmomatic.Steps(ILLUMINACLIP="{0}:2:30:10".format(ADAPTERS))
+    results = trim.run(READS1, READS2, OUTDIR, PREFIX, PHREDSCORE,
+                       parameters, steps)
 
     for outfname, targetfname in zip((results.outfileR1paired,
                                       results.outfileR1unpaired,
