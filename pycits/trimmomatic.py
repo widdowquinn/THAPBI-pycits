@@ -5,6 +5,27 @@
 # trimmomatic:
 # http://www.bioinformatics.babraham.ac.uk/projects/trimmomatic/
 #
+#
+# To create an instance of Trimmomatic, to run with default settings:
+#
+# trim = trimmomatic.Trimmomatic("MyName")  # instantiate
+# parameters = trimmomatic.Parameters()     # define run parameters
+# steps = trimmomatic.Steps()               # define trimming steps
+# results = trim.run(fwd_reads, rev_reads, output_dir, file_prefix,
+#                    "phred33", parameters, steps)  # run Trimmomatic
+#
+# To run several parameter/trimming step options:
+#
+# trim = trimmomatic.Trimmomatic("MyName")  # instantiate
+# parameters1 = trimmomatic.Parameters(threads=1)
+# parameters2 = trimmomatic.Parameters(threads=2)
+# steps1 = trimmomatic.Steps(HEADCROP=0)
+# steps2 = trimmomatic.Steps(HEADCROP=30, SLIDINGWINDOW="2:30")
+# results1 = trim.run(fwd_reads, rev_reads, output_dir1, file_prefix,
+#                     "phred33", parameters1, steps1)
+# results2 = trim.run(fwd_reads, rev_reads, output_dir2, file_prefix,
+#                     "phred33", parameters2, steps2)
+# 
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard and Peter Thorpe
 
