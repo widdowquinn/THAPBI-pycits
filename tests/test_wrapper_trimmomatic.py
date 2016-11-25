@@ -69,7 +69,10 @@ def test_trimmomatic_exec():
 
     results = trim.run(READS1, READS2, 4, OUTDIR, PREFIX, ADAPTERS)
 
-    for outfname, targetfname in zip(OUTFILES, TARGETS):
+    for outfname, targetfname in zip((results.outfileR1paired,
+                                      results.outfileR1unpaired,
+                                      results.outfileR2paired,
+                                      results.outfileR2unpaired), TARGETS):
         with open(outfname, 'rb') as ofh:
             with open(targetfname, 'rb') as tfh:
                 ohash = hashlib.md5(ofh.read()).digest()

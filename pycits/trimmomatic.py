@@ -72,7 +72,7 @@ class Trimmomatic(object):
                                               pipe.stderr.decode('utf-8')]))
         results = Results(self._cmd, *self._outfnames,
                           pipe.stdout, pipe.stderr)
-        return (self._outfnames, pipe.stdout.decode('utf-8'))
+        return results
 
     def __build_cmd(self, lreads, rreads, threads, outdir, prefix, adapters):
         """Build a command-line for trimmomatic"""
