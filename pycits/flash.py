@@ -26,7 +26,7 @@ from .tools import is_exe, NotExecutableError
 # outfilehistogram - ascii histogram
 # outfilenotcombined_1 - left reads not used
 # outfilenotcombined_2 - right reads not used
-# stdout 
+# stdout
 # stderr
 Results = namedtuple("Results", "command outfileextended outfilehist " +
                      "outfilehistogram outfilenotcombined_1 " +
@@ -39,6 +39,7 @@ class FlashError(Exception):
     """Exception raised when flash fails"""
     def __init__(self, message):
         self.message = message
+
 
 class Flash(object):
     """class for working with paired end read assembly tool Flash"""
@@ -98,9 +99,9 @@ class Flash(object):
 
         """
         self._outfnames = [os.path.join(outdir, prefix) + suffix for suffix in
-                          ('.extendedFrags.fastq', '.hist', '.histogram',
-                           '.notCombined_1.fastq',
-                           '.notCombined_2.fastq')]
+                           ('.extendedFrags.fastq', '.hist', '.histogram',
+                            '.notCombined_1.fastq',
+                            '.notCombined_2.fastq')]
 
         self._outdirname = os.path.join(outdir, "%s_flash" % (prefix))
         cmd = ["flash",
