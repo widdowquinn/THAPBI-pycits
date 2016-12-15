@@ -19,7 +19,14 @@ script:
 #   - download Trimmomatic .jar file and create wrapper script
 #              (until whitelisted at Travis-CI)
 #   - clone swarm from GitHub repo and make in situ
+#   - download and build FLASH
 before_install:
+  - cd $HOME
+  - wget https://sourceforge.net/projects/flashpage/files/FLASH-1.2.11.tar.gz
+  - tar -zxvf FLASH-1.2.11.tar.gz
+  - cd FLASH-1.2.11
+  - make
+  - export PATH=$HOME/FLASH-1.2.11/:$PATH
   - cd $HOME
   - wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
   - tar -zxvf blast-2.2.26-x64-linux.tar.gz
