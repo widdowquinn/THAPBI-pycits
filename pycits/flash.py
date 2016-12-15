@@ -19,9 +19,19 @@ from collections import namedtuple
 from .tools import is_exe, NotExecutableError
 
 # factory class for Flash class returned values
-Results = namedtuple("Results", "command outfileassembled outfilediscarded " +
-                     "outfileunassmbledfwd outfileunassembledrev " +
-                     "stdout stderr")
+# the order of the outfiles is defined in the build_command self._outfnames
+
+# outfileextended - this is the assembled reads
+# outfilehist - two column data for assesmbled lengths
+# outfilehistogram - ascii histogram
+# outfilenotcombined_1 - left reads not used
+# outfilenotcombined_2 - right reads not used
+# stdout 
+# stderr
+Results = namedtuple("Results", "command outfileextended outfilehist " +
+                     "outfilehistogram outfilenotcombined_1 " +
+                     "outfilenotcombined_2 stdout stderr")
+
 
 # To Do pass optional argument to the program.
 
