@@ -18,11 +18,12 @@ from collections import namedtuple
 
 from .tools import is_exe, NotExecutableError
 
-# factory class for Pear class returned values
+# factory class for Flash class returned values
 Results = namedtuple("Results", "command outfileassembled outfilediscarded " +
                      "outfileunassmbledfwd outfileunassembledrev " +
                      "stdout stderr")
 
+# To Do pass optional argument to the program.
 
 class FlashError(Exception):
     """Exception raised when flash fails"""
@@ -43,7 +44,7 @@ class Flash(object):
 
         - lreads    - forward reads
         - rreads    - reverse reads
-        - threads   - number of threads for pear to use
+        - threads   - number of threads for flash to use
         - outdir    - output directory for merged output
         - prefix    - file prefix for flash output
         - logger    - stream to write messages
@@ -58,9 +59,6 @@ class Flash(object):
             return(self._cmd)
         # checking and making the output folder is staying in for now
         if not os.path.exists(self._outdirname):
-            if logger:
-                self._logger.info("Creating output directory: %s" %
-                                  self._outdirname)
             os.makedirs(self._outdirname)
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
@@ -98,7 +96,6 @@ class Flash(object):
         cmd = ["flash",
                "--max-overlap", "250",
                "--threads {0}".format(threads),
-               "-o", os.path.join(outdir, prefix)],
-               L_reads,
-               R_reads]
+               "-o", os.path.join(outdir, prefix),
+               lreads, rreads]
         self._cmd = ' '.join(cmd)
