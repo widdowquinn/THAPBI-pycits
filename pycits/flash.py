@@ -53,43 +53,52 @@ class Flash(object):
         flash run.
         """
         assert(lreads != rreads)  # We don't want to merge the same file
-        self.__build_cmd(L_reads, R_reads, str(threads), outdir)
+        self.__build_cmd(lreads, rreads, threads, outdir, prefix)
+        if dry_run:
+            return(self._cmd)
+        # checking and making the output folder is staying in for now
         if not os.path.exists(self._outdirname):
             if logger:
                 self._logger.info("Creating output directory: %s" %
                                   self._outdirname)
             os.makedirs(self._outdirname)
-        msg = ["Running...", "\t%s" % self._cmd]
-        for m in msg:
-            if logger:
-                self._logger.info(m)
-
         pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
-        if pipe.returncode != 0:
-            if logger:
-                self._logger.error("flash terminated by " +
-                                   "signal %s" % pipe.returncode)
-            sys.exit(1)
-        else:
-            if logger:
-                self._logger.info("flash.py returned %s"
-                                  % pipe.returncode)
-        # print ("\n\npipe.args = ", pipe.args, "\n\n")
-        return pipe.args
+        results = Results(self._cmd, *self._outfnames, pipe.stdout,
+                          pipe.stderr)
+        return results
 
-    def __build_cmd(self, L_reads, R_reads, threads, outdir):
-        """Build a command-line for flash to assemble the
-        overlapping paired end reads. """
-        prefix = L_reads.split("_R")[0]
-        prefix = prefix.split("/")[-1]
+    def __build_cmd(self, lreads, rreads, threads, outdir, prefix):
+        """Build a command-line for flash.
+
+        flash takes a path to an output directory PLUS the prefix
+        (e.g. temp) of the
+        files to write, such that
+
+        -o a/b/temp
+
+        writes files
+
+        a/b/temp.
+            temp.extendedFrags.fastq
+            temp.hist
+            temp.histogram
+            temp.notCombined_1.fastq
+            temp.notCombined_2.fastq
+
+        """
+        self._outfnames = [os.path.join(outdir, prefix) + suffix for suffix in
+                          ('.extendedFrags.fastq', '.hist', '.histogram',
+                           '.notCombined_1.fastq',
+                           '.notCombined_2.fastq')]
+
         self._outdirname = os.path.join(outdir, "%s_flash" % (prefix))
         cmd = ["flash",
                "--max-overlap", "250",
-               "--threads", str(threads),
-               "-o", self._outdirname,
+               "--threads {0}".format(threads),
+               "-o", os.path.join(outdir, prefix)],
                L_reads,
                R_reads]
         self._cmd = ' '.join(cmd)
