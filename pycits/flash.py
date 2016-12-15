@@ -5,45 +5,54 @@
 # follow this link to get the binaries.
 # https://sourceforge.net/projects/flashpage/
 # ?source=typ_redirect
+# This has been tested with FLASH-1.2.11
 
 #
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard and Peter Thorpe
 
 import os
-import sys
-
 import subprocess
-from .tools import is_exe
 
+from collections import namedtuple
+
+from .tools import is_exe, NotExecutableError
+
+# factory class for Pear class returned values
+Results = namedtuple("Results", "command outfileassembled outfilediscarded " +
+                     "outfileunassmbledfwd outfileunassembledrev " +
+                     "stdout stderr")
+
+
+class FlashError(Exception):
+    """Exception raised when flash fails"""
+    def __init__(self, message):
+        self.message = message
 
 class Flash(object):
-    """Class for working with flash"""
-
-    def __init__(self, exe_path, logger=False):
+    """class for working with paired end read assembly tool Flash"""
+    def __init__(self, exe_path):
         """Instantiate with location of executable"""
-        self._logger = logger
-        self._no_run = False
         if not is_exe(exe_path):
-            if logger:
-                self._logger.error("""No flash program in PATH (exiting)
-         Download, decompress, type make. Add current directory to you PATH
-         . This will create a copy of
-        flash in that name. Make sure the PATH to this bin directory is in
-        your PATH.
-        This has been tested with FLASH-1.2.11
-
-        """)
-            sys.exit(1)
+            msg = "{0} is not an executable".format(exe_path)
+            raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, L_reads, R_reads, threads, outdir,
-            logger=False):
-        """Run flash on the read files"""
-        assert L_reads != R_reads, """Oh no,
-        I am trying to assemble two files that are the same!
-        Something has gone wrong in determining the left and right
-        read files."""
+    def run(self, lreads, rreads, threads, outdir, prefix, dry_run=False):
+        """Run Flash to merge passed read files
+
+        - lreads    - forward reads
+        - rreads    - reverse reads
+        - threads   - number of threads for pear to use
+        - outdir    - output directory for merged output
+        - prefix    - file prefix for flash output
+        - logger    - stream to write messages
+        - dry_run   - if True, returns cmd-line but does not run
+
+        Returns a tuple of output filenames, and the STOUT returned by the
+        flash run.
+        """
+        assert(lreads != rreads)  # We don't want to merge the same file
         self.__build_cmd(L_reads, R_reads, str(threads), outdir)
         if not os.path.exists(self._outdirname):
             if logger:
