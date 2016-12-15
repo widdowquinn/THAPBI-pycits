@@ -7,7 +7,27 @@
 # README.py - `THAPBI-pycits`
 This repository is for development of ITS1-based diagnostic/profiling tools for the THAPBI Phyto-Threats project, funded by BBSRC.
 
-## Using a virtual environment
+# DEVELOPER NOTES
+
+## Python style conventions
+
+In this repository, we're trying to keep to the Python [PEP8 style convention](https://www.python.org/dev/peps/pep-0008/), the [PEP257 docstring conventions](https://www.python.org/dev/peps/pep-0257/), and the [Zen of Python](https://www.python.org/dev/peps/pep-0020/). To help in this, a pre-commit hook script is provided in the `git_hooks` subdirectory that, if deployed in the `Git` repository, checks Python code for PEP8 correctness before permitting a `git commit` command to go to completion.
+
+If the `pep8` module is not already present, it can be installed using `pip install pep8`
+
+Whether you choose to use this or not, the `THAPBI-pycits` repository is registered with `landscape.io`, and the "health" of the code is assessed and reported for every repository push.
+
+* [`landscape.io` page](https://landscape.io/github/widdowquinn/THAPBI-pycits)
+
+### Installing the `git hook`
+
+To install the pre-commit hook:
+
+1. clone the repository with `git clone https://github.com/widdowquinn/THAPBI` (you may already have done this)
+2. change directory to the root of the repository with `cd THAPBI-pycits`
+3. copy the pre-commit script to the `.git/hooks` directory with `cp git_hooks/pre-commit .git/hooks/`
+
+## Using a virtual environment with the repository
 
 In the root directory of the repository:
 
@@ -18,107 +38,70 @@ $ source venv-THAPBI-pycits/bin/activate
 $ deactivate
 ```
 
-## Dependencies
+# INSTALLATION
 
-### Python packages
+## Dependencies: Python modules
 
-* `biom-format`: available through `PyPI` at [https://pypi.python.org/pypi/biom-format](https://pypi.python.org/pypi/biom-format) (tested with v2.1.5)
-
-### Third-party tools
-
-Required for both the Python and `Makefile` conversions.
-
-These tools should either be in the `${PATH}`, or their executables should be specified in the script options.
-
-* `FastQC`: tested with v0.11.3
-* `seq_crumbs`: tested with v0.1.9 [https://github.com/JoseBlanca/seq_crumbs](https://github.com/JoseBlanca/seq_crumbs)
-* `BLAST+`: tested with v2.2.31+
-* `QIIME`: tested with v1.9.1
-* `MUSCLE`: tested with v3.8.31
-
-
-## Python conversion
-
-The initial Python pipeline is a `Python` transliteration of Santi's script, with supporting modules that wrap the packages to be called by the pipeline, and provide helper functions. The script and modules can be installed to the system with:
+All Python module dependencies are described in `requirements.txt` and can be installed using
 
 ```
-$ python setup.py install
+pip install -r requirements.txt
 ```
 
-which makes the script available at the command-line:
+There may be issues with `biom-format` and `biopython` installations due to ordering of module installation. If this is the case for you, then it might be solved by installing `numpy` at the command-line first, with:
 
 ```
-$ thapbi_santi_otus.py -h
-usage: thapbi_santi_otus.py [-h] [-p PREFIX] [-i INDIRNAME] [-o OUTDIRNAME]
-                            [-r REFERENCE_FASTA] [-v] [-l LOGFILE]
-                            [-t THREADS] [--fastqc FASTQC]
-                            [--trim_quality TRIM_QUALITY]
-                            [--join_paired_ends JOIN_PAIRED_ENDS]
-                            [--convert_format CONVERT_FORMAT]
-                            [--blastclust BLASTCLUST] [--muscle MUSCLE]
-                            [--pick_otus PICK_OTUS]
-                            [--pick_closed_reference_otus PICK_CLOSED_REFERENCE_OTUS]
-optional arguments:
-  -h, --help            show this help message and exit
-  -p PREFIX, --prefix PREFIX
-                        Paired readfiles prefix
-  -i INDIRNAME, --indir INDIRNAME
-                        Path to directory containing input reads
-  -o OUTDIRNAME, --outdir OUTDIRNAME
-                        Path to directory to write output
-  -r REFERENCE_FASTA, --reference REFERENCE_FASTA
-                        Path to reference sequence FASTA file
-  -v, --verbose         Report verbose output
-  -l LOGFILE, --logfile LOGFILE
-                        Logfile location
-  -t THREADS, --threads THREADS
-                        Number of threads to use (default: all)
-  --fastqc FASTQC       Path to FastQC executable
-  --trim_quality TRIM_QUALITY
-                        Path to seq_crumbs trim_quality script
-  --join_paired_ends JOIN_PAIRED_ENDS
-                        Path to ea-utils join_paired_ends.py script
-  --convert_format CONVERT_FORMAT
-                        Path to seq_crumbs convert_format script
-  --blastclust BLASTCLUST
-                        Path to blastclust
-  --muscle MUSCLE       Path to MUSCLE
-  --pick_otus PICK_OTUS
-                        Path to QIIME pick_otus.py script
-  --pick_closed_reference_otus PICK_CLOSED_REFERENCE_OTUS
-                        Path to QIIME pick_closed_reference_otus.py script
+pip install numpy
+pip install -r requirements.txt
 ```
 
-Modules are found under the `thapbi_santi` directory:
+## Dependencies: Third-party applications
+
+
+### `pear`
+
+* [home page](http://sco.h-its.org/exelixis/web/software/pear/)
+
+`pear` is a paired-end read merger, used by the pipeline to merge ITS paired-end reads into a single ITS sequence. It is available from the [`pear` home page](http://sco.h-its.org/exelixis/web/software/pear/) as a precompiled executable that can be placed in your `$PATH`, and it can be installed on the Mac with [Homebrew](http://brew.sh/) and [homebrew-science](https://github.com/Homebrew/homebrew-science), using:
 
 ```
-$ tree thapbi_santi
-thapbi_santi
-├── __init__.py
-├── blast.py
-├── ea_utils.py
-├── fastqc.py
-├── muscle.py
-├── qiime.py
-├── seq_crumbs.py
-└── tools.py
+brew install pear
 ```
 
-The advantages of the Python script are that it can be installed once on the system, and is available everywhere; a comprehensive logfile is produced, which facilitates reproducibility of all commands that were run; input file prefix and location, and output directory can be specified directly, facilitating distribution of the script across several nodes; and output from each package is segregated into its own directory.
 
-## Python style conventions
+### `Trimmomatic`
 
-In this project, we're trying to keep to the Python [PEP8 style convention](https://www.python.org/dev/peps/pep-0008/), the [PEP257 docstring conventions](https://www.python.org/dev/peps/pep-0257/), and the [Zen of Python](https://www.python.org/dev/peps/pep-0020/). To help in this, a pre-commit hook script is provided in the `git_hooks` subdirectory that, if deployed in the `Git` repository, checks Python code for PEP8 correctness before permitting a `git commit` command to go to completion.
+* [home page](http://www.usadellab.org/cms/?page=trimmomatic)
 
-If the `pep8` module is not already present, it can be installed using `pip install pep8`
+`Trimmomatic` is used to trim and quality-control the input reads. `pycits` expects `Trimmomatic` to be available at the command-line as `trimmomatic`. You can check if the tool is installed this way with the command:
 
-### Installing the `git hook`
+```
+which trimmomatic
+```
 
-To install the pre-commit hook:
+To obtain `Trimmomatic` with this installation type on Linux systems, you can use:
 
-1. clone the repository with `git clone https://github.com/widdowquinn/THAPBI` (you may already have done this)
-2. change directory to the root of the repository with `cd THAPBI-pycits`
-3. copy the pre-commit script to the `.git/hooks` directory with `cp git_hooks/pre-commit .git/hooks/`
+```
+apt-get install trimmomatic
+```
+
+and on the Mac (with [Homebrew](http://brew.sh/) and [homebrew-science](https://github.com/Homebrew/homebrew-science)):
+
+```
+brew install trimmomatic
+```
+
+If you have downloaded the Java `.jar.` file from [`trimmomatic`'s home page](http://www.usadellab.org/cms/?page=trimmomatic), you can wrap the `.jar` file with a Bash script called `trimmomatic` in your `$PATH`, such as
+
+```
+#!/bin/bash
+exec java -jar $TRIMMOMATIC "$@"
+```
+
+where `$TRIMMOMATIC` is the path to your `trimmomatic .jar` file.
+
+
+
 
 ### More information
 
