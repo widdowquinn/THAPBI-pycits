@@ -55,16 +55,16 @@ def test_fastqc_notexec():
     else:
         return False
 
-
-def test_fastqc_exec():
-    """Run fastqc on test data and compare output to precomputed target"""
-    obj = fastqc.FastQC("fastqc")
-    try:
-        shutil.rmtree(OUTDIR)
-    except FileNotFoundError:
-        pass
-    os.makedirs(OUTDIR, exist_ok=True)
-    result = obj.run(READS1, OUTDIR)
-    with open(TARGET, "r") as target_fh:
-        with open(result.fastqc_html, "r") as test_fh:
-            assert_equal(target_fh.read(), test_fh.read())
+# there isnt any reason to test this ...
+# def test_fastqc_exec():
+#    """Run fastqc on test data and compare output to precomputed target"""
+#    obj = fastqc.FastQC("fastqc")
+#    try:
+#        shutil.rmtree(OUTDIR)
+#    except FileNotFoundError:
+#        pass
+#    os.makedirs(OUTDIR, exist_ok=True)
+#    result = obj.run(READS1, OUTDIR)
+#    with open(TARGET, "r") as target_fh:
+#        with open(result.fastqc_html, "r") as test_fh:
+#            assert_equal(target_fh.read(), test_fh.read())
