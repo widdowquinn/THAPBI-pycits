@@ -21,7 +21,14 @@ script:
 #   - clone swarm from GitHub repo and make in situ
 #   - download and build FLASH
 #   - download spades.3.9.1
+#   - download fastqc 0.11.5
 before_install:
+  - cd $HOME
+  - wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5.zip
+  - unzip fastqc_v0.11.5.zip
+  - cd FastQC
+  - chmod 755 fastqc
+  - export PATH=$HOME/FastQC/:$PATH
   - cd $HOME
   - wget http://spades.bioinf.spbau.ru/release3.9.1/SPAdes-3.9.1-Linux.tar.gz
   - tar -zxvf SPAdes-3.9.1-Linux.tar.gz
