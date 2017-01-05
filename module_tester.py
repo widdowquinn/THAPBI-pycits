@@ -17,7 +17,7 @@ import subprocess
 
 from argparse import ArgumentParser
 
-from pycits import tools, trimmomatic, pear, error_correction,\
+from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
     flash, clean_up, swarm, seq_crumbs#, deduplicate, \
     #rename_clusters_new_to_old, chop_seq
 
@@ -42,9 +42,13 @@ assert(READ_PREFIX == os.path.split(RIGHT_READS)[-1].split("_R")[0])
 
 #####################################################################
 # make a folder_for_all_the_out_files
-folder_list = ["trimmed_reads", "PEAR_assembled", "PEAR_assembled_EC",
-   	       "Swarm_cluster_assembled_reads_only", "Swarm_cluster",
-               "flash_assembled", "flash_assembled_EC"]
+folder_list = ["fastqc", "trimmed_reads",
+               "PEAR_assembled",
+               "PEAR_assembled_EC",
+   	       "Swarm_cluster_assembled_reads_only",
+               "Swarm_cluster",
+               "flash_assembled",
+               "flash_assembled_EC"]
 file_name = 'test.txt'
 working_dir = os.getcwd()
 for i in folder_list:
@@ -94,6 +98,18 @@ if __name__ == '__main__':
     # Report input arguments
     logger.info("Command-line: %s" % ' '.join(sys.argv))
     logger.info("Starting testing: %s" % time.asctime())
+    
+########################################################################
+    # fastqc.
+    logger.info("starting fastqc")
+    qc = fastqc.FastQC("fastqc")
+    qc_results = qc.run(LEFT_READS, "fastqc")
+
+    logger.info("fastqc output: %s" % qc_results.command)
+    logger.info("fastqc stderr: %s" % qc_results.stderr)
+    
+    
+    
 ########################################################################
     # trimmomatic testing.
     logger.info("starting trimmomatic testing")

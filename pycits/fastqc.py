@@ -7,43 +7,57 @@
 import os
 import sys
 
-from subprocess import Popen, PIPE
-from .tools import is_exe
+import subprocess
+from collections import namedtuple
+
+from .tools import is_exe, NotExecutableError
+
+# factory class for Flash class returned values
+# the order of the outfiles is defined in the build_command self._outfnames
+
+# fastqc_html - this is the html file
+# fastqc_zip -  this is the output zip folder.
+# stderr
+Results = namedtuple("Results", "command fastqc_html fastqc_zip " +
+                     "stdout stderr")
+
+
+class FastQCError(Exception):
+    """Exception raised when flash fails"""
+    def __init__(self, message):
+        self.message = message
 
 
 class FastQC(object):
     """Class for working with FastQC"""
-    def __init__(self, exe_path, logger):
+    def __init__(self, exe_path):
         """Instantiate with location of executable"""
-        self._logger = logger
-        self._no_run = False
         if not is_exe(exe_path):
-            msg = ["FastQC executable not valid",
-                   "QC of reads will not be run"]
-            for m in msg:
-                self._logger.warning(m)
-            self._no_run = True
+            msg = "{0} is not an executable".format(exe_path)
+            raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, infnames, outdir):
+    def run(self, infnames, outdir, dry_run=False):
         """Run fastqc on the passed file"""
         self.__build_cmd(infnames, outdir)
         if not os.path.exists(self._outdirname):
-            self._logger.info("Creating output directory: %s" %
-                              self._outdirname)
             os.makedirs(self._outdirname)
-        msg = ["Running...", "\t%s" % self._cmd]
-        for m in msg:
-            self._logger.info(m)
-        pipe = Popen(self._cmd, shell=True, stdout=PIPE)
-        if pipe.wait() != 0:
-            self._logger.error("fastqc generated some errors")
-            sys.exit(1)
-        return (self._outdirname, pipe.stdout.readlines())
+        pipe = subprocess.run(self._cmd, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+        results = Results(self._cmd, *self._outfnames, pipe.stdout,
+                          pipe.stderr)
+        return results
 
     def __build_cmd(self, infname, outdir):
-        """Build a command-line for fastqc"""
-        self._outdirname = os.path.join(outdir, "FastQC_output")
+        """Build a command-line for fastqc
+        fastqc returns a html and a .zip folder after the given read name
+        """
+        prefix = os.path.split(infname)[-1].split(".fa")[0]
+        self._outfnames = [os.path.join(outdir, prefix) + suffix for suffix in
+                           ('_fastqc.html', '_fastqc.zip')]
+        self._outdirname = os.path.join(outdir)
         cmd = ["fastqc",
                infname,
                "-o", self._outdirname]
