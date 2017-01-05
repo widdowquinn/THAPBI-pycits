@@ -15,7 +15,7 @@ from collections import namedtuple
 
 from .tools import is_exe, NotExecutableError
 
-# factory class for Flash class returned values
+# factory class for EC class returned values
 # the order of the outfiles is defined in the build_command self._outfnames
 
 # Left_read_correct - left corrected reads
@@ -27,10 +27,12 @@ from .tools import is_exe, NotExecutableError
 Results = namedtuple("Results", "command Left_read_correct " +
                      "right_read_correct unpaired stdout stderr")
 
+
 class Error_CorrectionError(Exception):
     """Exception raised when flash fails"""
     def __init__(self, message):
         self.message = message
+
 
 class Error_Correction(object):
     """Class for working with Bayes hammer"""
@@ -71,13 +73,19 @@ class Error_Correction(object):
          -r right_reads
          -threads
          -o out directory.
+
+         the output files name will be names as such: e.g.
+         in:  DNAMIX_S95_L001_R1_001.fastq.gz
+         out: DNAMIX_S95_L001_R1_001.fastq.00.0_0.cor.fastq.gz
+                                     -------------------------
+
          """
         prefix = os.path.split(lreads)[-1].split("_R")[0]
-        L_prefix = os.path.split(lreads)[-1].split(".f")[0]
-        R_prefix = os.path.split(rreads)[-1].split(".f")[0]
+        L_prefix = os.path.split(lreads)[-1].split(".gz")[0]
+        R_prefix = os.path.split(rreads)[-1].split(".gz")[0]
         self._outdirname = os.path.join(outdir)
-        self._outfnames = [os.path.join(outdir, "corrected/")
-                           + suffix for suffix in
+        self._outfnames = [os.path.join(outdir, "corrected/") +
+                           suffix for suffix in
                            (L_prefix + '.00.0_0.cor.fastq.gz',
                            R_prefix + '.00.0_0.cor.fastq.gz',
                            prefix + 'R_unpaired' + '.00.0_0.cor.fastq.gz')]
