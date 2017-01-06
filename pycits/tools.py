@@ -6,11 +6,12 @@
 # scripts/functions, and other miscellaneous functions
 #
 # (c) The James Hutton Institute 2016
-# Author: Leighton Pritchard
+# Author: Leighton Pritchard and Peter Thorpe
 
 import os
 
 from Bio import SeqIO
+import gzip
 from subprocess import check_output, CalledProcessError
 
 
@@ -45,6 +46,21 @@ def trim_seq(infname, outfname, lclip=21, rclip=20, minlen=100):
         s_trimmed = (s[lclip:-rclip] for s in SeqIO.parse(fh, 'fasta'))
         return SeqIO.write((s for s in s_trimmed if len(s) >= minlen),
                            outfname, 'fasta')
+
+
+def convert_fq_to_fa(in_file, out_file):
+    """ Function to convert fq to fa
+    -i the fastq file to be converted
+    -o the desired out fasta file name
+    the function will auto detect if the file is .gz
+    requires biopython
+    """
+    # if the file is .gz we need to deal with it
+    if in_file.endswith(".gz"):
+        in_file = gzip.open(in_file, mode='rt', compresslevel=9,
+                            encoding=None, errors=None,
+                            newline=None)
+    SeqIO.convert(in_file, "fastq", out_file, "fasta")
 
 
 # Function replacing Santi's blastclust_lst2fasta.py script
