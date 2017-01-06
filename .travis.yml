@@ -22,7 +22,13 @@ script:
 #   - download and build FLASH
 #   - download spades.3.9.1
 #   - download fastqc 0.11.5
+#	- download muscle 3.8.31
 before_install:
+  - cd $HOME
+  - wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux32.tar.gz
+  - tar -zxvf muscle3.8.31_i86linux32.tar.gz
+  - cp muscle3.8.31_i86linux32 muscle
+  - export PATH=$HOME/:$PATH
   - cd $HOME
   - wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5.zip
   - unzip fastqc_v0.11.5.zip
