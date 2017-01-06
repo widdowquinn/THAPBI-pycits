@@ -12,7 +12,8 @@ from nose.tools import nottest, assert_equal
 
 # INPUT DATA
 INDIR = os.path.join("tests", "test_data")
-OUTDIR = os.path.join("tests", "test_out_muscle")
+OUTFOLDER = os.path.join("tests", "test_out_muscle")
+OUTFILE = "muscle_test_run.fasta"
 FASTA = os.path.join(INDIR, "dedup_test.fasta")
 
 # TARGET OUTPUT DATA
@@ -20,16 +21,23 @@ TARGET = os.path.join("tests", "test_targets", "muscle",
                       "muscle_tests.fasta")
 
 
+def test_folder_exists():
+    """tests to see if the folder exists for the output folder"""
+    if not os.path.exists(OUTFOLDER):
+        os.makedirs(OUTFOLDER)
+
+
 def test_muscle():
     """muscle instantiates with cmd-line if muscle is in $PATH"""
-    muscle.muscle("muscle")
+    muscle.Muscle("muscle")
 
 
 def test_muscle_cmd():
     """muscle instantiates, runs and returns correct form of cmd-line"""
     obj = muscle.Muscle("muscle")
-    target = ' '.join(["muscle", FASTA, "-o", OUTDIR])
-    qc = obj.run(FASTA, OUTDIR)
+    target = ' '.join(["muscle", "-in", FASTA, "-out",
+                       (os.path.join(OUTFOLDER, OUTFILE))])
+    qc = obj.run(FASTA, OUTFILE, OUTFOLDER)
     assert_equal(qc.command,
                  target)
 
@@ -54,16 +62,15 @@ def test_muscle_notexec():
         return False
 
 
-# there isnt any reason to test this ...
 def test_muscle_exec():
     """Run muscle on test data and compare output to precomputed target"""
     obj = muscle.Muscle("muscle")
     try:
-        shutil.rmtree(OUTDIR)
+        shutil.rmtree(OUTFILE)
     except FileNotFoundError:
         pass
-    os.makedirs(OUTDIR, exist_ok=True)
-    result = obj.run(READS1, OUTDIR)
+    os.makedirs(OUTFILE, exist_ok=True)
+    result = obj.run(FASTA, OUTFILE, OUTFOLDER)
     with open(TARGET, "r") as target_fh:
-        with open(result.muscle_html, "r") as test_fh:
+        with open(result.muscle_outfile, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
