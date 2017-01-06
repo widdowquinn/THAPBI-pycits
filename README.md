@@ -63,11 +63,16 @@ pip install -r requirements.txt
 * [home page](http://sco.h-its.org/exelixis/web/software/pear/)
 
 `pear` is a paired-end read merger, used by the pipeline to merge ITS paired-end reads into a single ITS sequence. It is available from the [`pear` home page](http://sco.h-its.org/exelixis/web/software/pear/) as a precompiled executable that can be placed in your `$PATH`, and it can be installed on the Mac with [Homebrew](http://brew.sh/) and [homebrew-science](https://github.com/Homebrew/homebrew-science), using:
-
+If you are having trouble on some Linux system due to bzip+zlib issues, a precompiled version is availble: https://github.com/xflouris/PEAR/blob/master/bin/pear-0.9.5-bin-64
 ```
 brew install pear
 ```
-
+please rename the binary to pear:
+```
+wget http://sco.h-its.org/exelixis/web/software/pear/files/pear-0.9.10-bin-64.tar.gz
+tar -zxvf pear-0.9.10-bin-64.tar.gz
+cp pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
+```
 
 ### `Trimmomatic`
 
@@ -101,6 +106,83 @@ exec java -jar $TRIMMOMATIC "$@"
 where `$TRIMMOMATIC` is the path to your `trimmomatic .jar` file.
 
 
+### `muscle`
+
+* [home page](http://www.drive5.com/muscle/muscle.html)
+
+`muscle` MUSCLE is a program for creating multiple alignments of amino acid or nucleotide sequences [`muscle` download page]http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux32.tar.gz as a precompiled executable that can be placed in your `$PATH` when decompressed. Please rename to muscle
+
+```
+wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux32.tar.gz
+tar -zxvf muscle3.8.31_i86linux32.tar.gz
+cp muscle3.8.31_i86linux32 muscle
+put this in your PATH
+```
+
+
+### `fastqc`
+
+* [home page](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+
+`fastqc` fastqc A quality control tool for high throughput sequence data. [`fastqc` download page]http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux32.tar.gz as a precompiled executable that can be placed in your `$PATH` when decompressed.
+
+```
+wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.5.zip
+unzip fastqc_v0.11.5.zip
+cd FastQC
+chmod 755 fastqc
+put this in your PATH
+```
+
+### `spades`
+
+* [home page](http://bioinf.spbau.ru/spades)
+
+`spades` spades is an assembly program which we use for error correction. [`spades` download page]http://spades.bioinf.spbau.ru/release3.9.1/SPAdes-3.9.1-Linux.tar.gz as a precompiled executable that can be placed in your `$PATH` when decompressed.
+
+```
+wget http://spades.bioinf.spbau.ru/release3.9.1/SPAdes-3.9.1-Linux.tar.gz
+tar -zxvf SPAdes-3.9.1-Linux.tar.gz
+cd ./SPAdes-3.9.1-Linux/bin/
+put this in your PATH
+```
+
+### `flash`
+
+* [home page](https://ccb.jhu.edu/software/FLASH/)
+
+`flash` flash is a pair end read assembly program. [`flash` download page]https://sourceforge.net/projects/flashpage/files/FLASH-1.2.11.tar.gz as a precompiled executable that can be placed in your `$PATH` when decompressed.
+
+```
+wget https://sourceforge.net/projects/flashpage/files/FLASH-1.2.11.tar.gz
+tar -zxvf FLASH-1.2.11.tar.gz
+cd FLASH-1.2.11
+put this in your PATH
+```
+
+### `swarm`
+
+* [home page](https://ccb.jhu.edu/software/FLASH/)
+
+`swarm` swarm is a clustering program. [`swarm` download page]https://github.com/torognes/swarm 
+
+```
+git clone https://github.com/torognes/swarm.git
+cd swarm/src
+make
+put PATH_TO/swarm/bin in your PATH
+```
+
+### `blastclust`
+
+* [home page](https://ccb.jhu.edu/software/FLASH/)
+
+`blastclust` blastclust is a clustering program. This is not essential to download. [`blastclust` download page]ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz as a precompiled executable that can be placed in your `$PATH` when decompressed.
+
+```
+wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
+tar -zxvf blast-2.2.26-x64-linux.tar.gz
+put this in your PATH
 
 
 ### More information
