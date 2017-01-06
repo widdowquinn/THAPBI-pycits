@@ -13,18 +13,21 @@ from collections import namedtuple
 
 from .tools import is_exe, NotExecutableError
 
-# factory class for Flash class returned values
+# factory class for Muscle class returned values
 # the order of the outfiles is defined in the build_command self._outfnames
 
 # outfile - this is the out file
 # stderr
-Results = namedtuple("Results", "command outfile " +
+Results = namedtuple("Results", "command muscle_outfile " +
                      "stdout stderr")
 
+
+# TO DO extra options for muscle
 class MuscleError(Exception):
     """Exception raised when Muscle fails"""
     def __init__(self, message):
         self.message = message
+
 
 class Muscle(object):
     """Class for working with MUSCLE"""
@@ -35,29 +38,38 @@ class Muscle(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
+    def run(self, infile, outfile, outfolder, dry_run=False):
+        """Run MUSCLE on the single passed file
+        take the infile as a fasta, the given outfile name and the
+        given outfolder name.
 
-    def run(self, seqdir, dry_run=False):
-        """Run MUSCLE on the passed folder"""
-        self._outdirname = os.path.join(seqdir, "MUSCLE-aligned_OTUs")
-        if not os.path.exists(self._outdirname):
-            os.makedirs(self._outdirname)
-        infiles = [f for f in os.listdir(seqdir) if
-                   os.path.splitext(f)[-1] == '.fasta']
-        for fname in infiles:
-            self.__build_cmd(seqdir, fname)
-            pipe = subprocess.run(self._cmd, shell=True,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE,
-                                  check=True)
-        results = Results(self._cmd, *self._outfnames, pipe.stdout,
+        -in infile
+        -out outfile
+        Returns a tuple of output file, and the STOUT returned by the
+        muscle run.
+        """
+        self._outfolder = os.path.join(outfolder)
+        if not os.path.exists(self._outfolder):
+            os.makedirs(self._outfolder)
+
+        # ensure the file format is correct - has something weird happened?
+        assert (infile.endswith(".fa") or infile.endswith(".fasta"))
+        self.__build_cmd(infile, outfile, outfolder)
+        if dry_run:
+            return(self._cmd)
+        pipe = subprocess.run(self._cmd, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+        results = Results(self._cmd, self._outfilename, pipe.stdout,
                           pipe.stderr)
         return results
 
-    def __build_cmd(self, seqdir, fname):
+    def __build_cmd(self, infile, outfile, outfolder):
         """Build a command-line for MUSCLE"""
-        self._outfnames = os.path.join(self._outdirname, fname)
+        self._outfilename = os.path.join(self._outfolder, outfile)
+
         cmd = ["muscle",
-               "-in", os.path.join(seqdir, fname),
-               "-out", os.path.join(self._outdirname, fname)]
+               "-in", infile,
+               "-out", self._outfilename]
         self._cmd = ' '.join(cmd)
-        
