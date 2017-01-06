@@ -3,6 +3,9 @@
 # Tools for working with FastQC
 #
 # FastQC: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+#
+# (c) The James Hutton Institute 2016
+# Author: Leighton Pritchard and Peter Thorpe
 
 import os
 import sys
@@ -23,7 +26,7 @@ Results = namedtuple("Results", "command fastqc_html fastqc_zip " +
 
 
 class FastQCError(Exception):
-    """Exception raised when flash fails"""
+    """Exception raised when fastqc fails"""
     def __init__(self, message):
         self.message = message
 
