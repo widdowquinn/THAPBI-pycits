@@ -27,7 +27,7 @@ TARGET = os.path.join("tests", "test_targets", "trim_seq",
 
 
 def test_convert_exec():
-    """Run convert_fq_to_fa.py on test data and compare output to
+    """Run trim_seq on test data and compare output to
     precomputed target left 53 right 0 - default values
     """
     result_file = os.path.join(OUTDIR, TEST_OUT)
@@ -46,7 +46,7 @@ TARGET_L15 = os.path.join("tests", "test_targets", "trim_seq",
 
 
 def test_convert_exec():
-    """Run convert_fq_to_fa.py on test data and compare output to
+    """Run convert_trim_seq on test data and compare output to
     precomputed target left 15 right 10
     """
     result_file = os.path.join(OUTDIR, TEST_OUT_L15)
