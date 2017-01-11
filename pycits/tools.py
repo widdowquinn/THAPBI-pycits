@@ -10,9 +10,16 @@
 
 import os
 
-from Bio import SeqIO
 import gzip
 from subprocess import check_output, CalledProcessError
+import hashlib
+import sys
+
+from collections import defaultdict
+from optparse import OptionParser
+
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 
 class NotExecutableError(Exception):
@@ -70,6 +77,62 @@ def convert_fq_to_fa(in_file, out_file):
                             encoding=None, errors=None,
                             newline=None)
     SeqIO.convert(in_file, "fastq", out_file, "fasta")
+
+
+def deduplicate_and_rename(seqlist):
+    """Removes duplicates from the passed SeqRecords, and replaces sequence
+    IDs with the md5 hash of the sequence, suffixed with the number of
+    sequences that were replaced. Returns a tuple (sequences, names_old_to_new)
+    where names_old_to_new is a list of tuples of (old_name, hash) pairs.
+
+    - sequences   Iterable of Bio.SeqRecord objects
+    """
+    names_old_to_new = list()
+    abundance = defaultdict(int)
+    hash_to_seq = defaultdict(str)
+    hash_to_name = defaultdict(str)
+    # compile hashed sequence data - the loop is necessary because we need
+    # to run through completely once to obtain abundance info. If memory
+    # to store this becomes an issue, we might want to try an alternative
+    # approach
+    for seq in seqlist:
+        seqhash = hashlib.md5(str(seq.seq).encode()).hexdigest()
+        abundance[seqhash] += 1
+        hash_to_seq[seqhash] = seq.seq
+        hash_to_name[seqhash] = seq.id
+        database_output = ("{0}\t{1}\n".format(seq.id, seqhash))
+        names_old_to_new.append(database_output)
+    # generate list of sequences, named for the hash, including abundance data,
+    # and return with ID:hash lookup
+    seqlist = list()
+    for name, abundance_val in abundance.items():
+        seqname = "{0}_{1}".format(name, abundance_val)
+        seqlist.append(SeqRecord(id=seqname, description="",
+                                 seq=hash_to_seq[name]))
+    return(seqlist, names_old_to_new, hash_to_seq)
+
+
+def dereplicate_name(fasta, database_out, out):
+    """function to dereplicate the seq. Thus generating an
+    abundance of that seq. Rename the seq to something
+    swarm will work with.
+    - fasta     - fasta file of assembled seq
+    - database_out   - ouput old name to new file.
+    -out        - outfile
+    """
+    # open files to write to
+    fasta_out = open(out, 'w')
+    name_out = open(database_out, "w")
+    # convert the file to a list of Seqrecord objects
+    seqlist = list(SeqIO.parse(fasta, 'fasta'))
+    seqlist, names_old_to_new, hash_to_seq = deduplicate_and_rename(seqlist)
+    for i in (names_old_to_new):
+        name_out.write(i)
+    for seq_record in (seqlist):
+        SeqIO.write(seq_record, fasta_out, "fasta")
+    # close the open files
+    fasta_out.close()
+    name_out.close()
 
 
 # Function replacing Santi's blastclust_lst2fasta.py script
