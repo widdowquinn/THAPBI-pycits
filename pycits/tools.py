@@ -135,6 +135,30 @@ def dereplicate_name(fasta, database_out, out):
     name_out.close()
 
 
+def check_OTU_db_abundance_val(OTUfasta):
+    """this is a function to check that the OTU database has _1
+    at the end of the title, this is required for swamr clustering
+    takes in a fasta and if required, writes out a new one"""
+    # we will iterate through first to see if we need to rewrite it.
+    bad_count = 0
+    for seq_record in SeqIO.parse(OTUfasta, "fasta"):
+        if not seq_record.id.endswith("_1"):
+            # print ("OTU db %s missing abundance value" % seq_record.id)
+            bad_count = bad_count + 1
+    if bad_count > 0:
+        # only if we need to write to a new file, we will.
+        outfile = OTUfasta.split(".fa")[0] + "abundance.fasta"
+        f_out = open(outfile, 'w')
+        for seq_record in SeqIO.parse(OTUfasta, "fasta"):
+            seq_record.id = seq_record.id + "_1"
+            seq_record.description = ""
+            SeqIO.write(seq_record, f_out, "fasta")
+        f_out.close()
+        return outfile
+    else:
+        return OTUfasta
+
+
 # Function replacing Santi's blastclust_lst2fasta.py script
 def blastclust_to_fasta(infname, seqfname, outdir):
     """Converts input BLASTCLUST output list to a subdirectory of FASTA files,
