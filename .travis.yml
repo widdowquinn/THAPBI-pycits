@@ -23,7 +23,13 @@ script:
 #   - download spades.3.9.1
 #   - download fastqc 0.11.5
 #	- download muscle 3.8.31
+#	- dowload cdhit version 4.6
 before_install:
+  - cd $HOME
+  - git clone git@github.com:weizhongli/cdhit.git
+  - cd cdhit
+  - make
+  - export PATH=$HOME/cdhit:$PATH
   - cd $HOME
   - wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux32.tar.gz
   - tar -zxvf muscle3.8.31_i86linux32.tar.gz
