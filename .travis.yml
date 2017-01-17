@@ -26,7 +26,7 @@ script:
 #	- dowload cdhit version 4.6
 before_install:
   - cd $HOME
-  - git clone git@github.com:weizhongli/cdhit.git
+  - git clone https://github.com/weizhongli/cdhit.git
   - cd cdhit
   - make
   - export PATH=$HOME/cdhit:$PATH
