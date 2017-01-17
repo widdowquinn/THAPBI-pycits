@@ -72,6 +72,7 @@ please rename the binary to pear:
 wget http://sco.h-its.org/exelixis/web/software/pear/files/pear-0.9.10-bin-64.tar.gz
 tar -zxvf pear-0.9.10-bin-64.tar.gz
 cp pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
+put this in your PATH
 ```
 
 ### `Trimmomatic`
@@ -183,6 +184,20 @@ put PATH_TO/swarm/bin in your PATH
 wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
 tar -zxvf blast-2.2.26-x64-linux.tar.gz
 put this in your PATH
+```
+  
+### `cd-hit`
+
+* [home page](https://github.com/weizhongli/cdhit)
+
+`cd-hit` cd-hit is a clustering program. [`cd-hit` download page]https://github.com/weizhongli/cdhit
+
+```
+git clone git@github.com:weizhongli/cdhit.git
+cd cdhit
+make
+put PATH_TO/cdhit in your PATH
+```
 
 
 ### More information
