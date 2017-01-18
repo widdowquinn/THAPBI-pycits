@@ -30,7 +30,7 @@ def test_cd_hit():
 def test_cd_hit_cmd():
     """cd_hit instantiates and returns correct form of cmd-line"""
     cluster = cd_hit.Cd_hit("cd-hit-est")
-    target = ' '.join(["cd_hit_est",
+    target = ' '.join(["cd-hit-est",
                        "-i", INFILE,
                        "-o", os.path.join(OUTDIR, PREFIX),
                        "-T", "4",
