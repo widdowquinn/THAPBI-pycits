@@ -20,7 +20,7 @@ from .tools import is_exe, NotExecutableError
 
 # factory class for cd_hit class returned values
 Results = namedtuple("Results", "command fastaout clusters " +
-                     "stdout stderr")
+                     "backcluster stdout stderr")
 
 
 class Cd_hit_Error(Exception):
@@ -88,7 +88,7 @@ class Cd_hit(object):
         """
         # outfiles are name WhatEver.out + .bak.clstr and + .clstr
         self._outfnames = [os.path.join(outdir, prefix) + suffix for suffix in
-                           ('', '.clstr')]
+                           ('', '.clstr', '.bak.clstr')]
         cmd = ["cd_hit_est",
                "-i", fasta_in,
                "-o", os.path.join(outdir, prefix),

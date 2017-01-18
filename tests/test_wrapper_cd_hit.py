@@ -23,7 +23,7 @@ TARGET = os.path.join("tests", "test_targets", "cd_hit",
 
 
 def test_cd_hit():
-    """cd_hit instantiates with cmd-line if swarm is in $PATH"""
+    """cd_hit instantiates with cmd-line if cd-hit is in $PATH"""
     cluster = cd_hit.Cd_hit("cd-hit-est")
 
 
