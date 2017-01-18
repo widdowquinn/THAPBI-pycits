@@ -39,8 +39,7 @@ class Cd_hit(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, fasta_in, threads, threshold, outdir,
-            prefix, dry_run=False):
+    def run(self, fasta_in, threads, threshold, outdir, prefix, dry_run=False):
         """Run cd_hit to cluster passed fasta files
 
         - fasta_in    - fasta file to be clustered
@@ -64,8 +63,7 @@ class Cd_hit(object):
                           pipe.stderr)
         return results
 
-    def __build_cmd(self, fasta_in, threads, threshold, outdir,
-                    prefix):
+    def __build_cmd(self, fasta_in, threads, threshold, outdir, prefix):
         """Build a command-line for cd_hit_est.
 
         cd_hit takes a path to an output directory PLUS the prefix of the
