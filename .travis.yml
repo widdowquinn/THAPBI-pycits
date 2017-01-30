@@ -42,9 +42,9 @@ before_install:
   - chmod 755 fastqc
   - export PATH=$HOME/FastQC/:$PATH
   - cd $HOME
-  - wget http://spades.bioinf.spbau.ru/release3.9.1/SPAdes-3.9.1-Linux.tar.gz
-  - tar -zxvf SPAdes-3.9.1-Linux.tar.gz
-  - export PATH=$HOME/SPAdes-3.9.1-Linux/bin/:$PATH
+  - wget http://cab.spbu.ru/files/release3.10.0/SPAdes-3.10.0-Linux.tar.gz
+  - tar -zxvf SPAdes-3.10.0-Linux.tar.gz
+  - export PATH=$HOME/SPAdes-3.10.0-Linux/bin/:$PATH
   - cd $HOME
   - wget https://sourceforge.net/projects/flashpage/files/FLASH-1.2.11.tar.gz
   - tar -zxvf FLASH-1.2.11.tar.gz
