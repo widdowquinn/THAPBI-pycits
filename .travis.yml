@@ -24,7 +24,18 @@ script:
 #   - download fastqc 0.11.5
 #	- download muscle 3.8.31
 #	- dowload cdhit version 4.6
+#	- download bowtie2-2.3.0
+#	- download snap version 1.0beta.23.
 before_install:
+  - cd $HOME
+  - git clone https://github.com/BenLangmead/bowtie2.git
+  - cd bowtie2
+  - make
+  - export PATH=$HOME/bowtie2-2.3.0:$PATH
+  - cd $HOME
+  - git clone https://github.com/amplab/snap.git
+  - make
+  - export PATH=$HOME/snap:$PATH
   - cd $HOME
   - git clone https://github.com/weizhongli/cdhit.git
   - cd cdhit
@@ -42,9 +53,9 @@ before_install:
   - chmod 755 fastqc
   - export PATH=$HOME/FastQC/:$PATH
   - cd $HOME
-  - wget http://spades.bioinf.spbau.ru/release3.9.1/SPAdes-3.9.1-Linux.tar.gz
-  - tar -zxvf SPAdes-3.9.1-Linux.tar.gz
-  - export PATH=$HOME/SPAdes-3.9.1-Linux/bin/:$PATH
+  - wget http://cab.spbu.ru/files/release3.10.0/SPAdes-3.10.0-Linux.tar.gz
+  - tar -zxvf SPAdes-3.10.0-Linux.tar.gz
+  - export PATH=$HOME/SPAdes-3.10.0-Linux/bin/:$PATH
   - cd $HOME
   - wget https://sourceforge.net/projects/flashpage/files/FLASH-1.2.11.tar.gz
   - tar -zxvf FLASH-1.2.11.tar.gz
