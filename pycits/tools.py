@@ -87,10 +87,10 @@ def deduplicate_and_rename(seqlist):
 
     - sequences   Iterable of Bio.SeqRecord objects
     """
-    names_old_to_new = list()
     abundance = defaultdict(int)
     hash_to_seq = defaultdict(str)
     hash_to_name = defaultdict(str)
+    new_to_old = defaultdict(list)
     # compile hashed sequence data - the loop is necessary because we need
     # to run through completely once to obtain abundance info. If memory
     # to store this becomes an issue, we might want to try an alternative
@@ -100,8 +100,7 @@ def deduplicate_and_rename(seqlist):
         abundance[seqhash] += 1
         hash_to_seq[seqhash] = seq.seq
         hash_to_name[seqhash] = seq.id
-        database_output = ("{0}\t{1}\n".format(seq.id, seqhash))
-        names_old_to_new.append(database_output)
+        new_to_old[seqhash].append(seq.id)
     # generate list of sequences, named for the hash, including abundance data,
     # and return with ID:hash lookup
     seqlist = list()
@@ -109,7 +108,7 @@ def deduplicate_and_rename(seqlist):
         seqname = "{0}_{1}".format(name, abundance_val)
         seqlist.append(SeqRecord(id=seqname, description="",
                                  seq=hash_to_seq[name]))
-    return(seqlist, names_old_to_new, hash_to_seq)
+    return(seqlist, new_to_old, hash_to_seq)
 
 
 def dereplicate_name(fasta, database_out, out):
@@ -125,9 +124,10 @@ def dereplicate_name(fasta, database_out, out):
     name_out = open(database_out, "w")
     # convert the file to a list of Seqrecord objects
     seqlist = list(SeqIO.parse(fasta, 'fasta'))
-    seqlist, names_old_to_new, hash_to_seq = deduplicate_and_rename(seqlist)
-    for i in (names_old_to_new):
-        name_out.write(i)
+    seqlist, new_to_old, hash_to_seq = deduplicate_and_rename(seqlist)
+    for key, vals in new_to_old.items():
+        out_data = "%s\t%s\n" % (key, "\t".join(vals))
+        name_out.write(out_data)
     for seq_record in (seqlist):
         SeqIO.write(seq_record, fasta_out, "fasta")
     # close the open files
