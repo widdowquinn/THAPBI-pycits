@@ -230,7 +230,6 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
                 # _abundance value
                 split_name = member.split("_")[:-1]
                 species = ("_").join(split_name)
-                print (species)
                 abundance = member.split("_")[-1]
                 # print (abundance)
             except:
