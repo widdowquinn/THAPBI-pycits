@@ -179,3 +179,72 @@ def blastclust_to_fasta(infname, seqfname, outdir):
             SeqIO.write((seqdict[key] for key in line.split()),
                         outfname, 'fasta')
     return outdirname
+
+
+# the following three function are to rename the clusters back to their
+# original names
+def coded_name_to_species(database_file):
+    """functiong takes the already generated tab separated
+    database of coded name to species file. Returns a dic
+    of coded_name to species"""
+    with open(database_file) as file:
+        data = file.read().split("\n")
+    coded_name_to_species_dict = dict()
+    for line in data:
+        if not line.strip():
+            continue  # if the last line is blank
+        if line.startswith("#"):
+            continue
+        coded_name, species = line.split("\t")
+        coded_name_to_species_dict[coded_name.rstrip()] = species.rstrip()
+    return coded_name_to_species_dict
+
+
+def parse_tab_file_get_clusters(filename1, database, out_file):
+    """function to open up a tab or space separeted clustering
+    output and rename according to the name in the database file.
+    Abundance is also appended to the name"""
+    # call the function to get the dictionary
+    # populated with the database
+    coded_name_to_species_dict = coded_name_to_species(database)
+    cluster_file = open(filename1, "r")
+    summary_out_file = open(out_file, "w")
+
+    count = int(0)
+    # iterate through the cluster file. One line per cluster
+    for line in cluster_file:
+        if not line.strip():
+            continue  # if the last line is blank
+        if line.startswith("#"):  # dont want comment lines
+            continue
+        output_str = ""
+        if "\t" in line:
+            cluster_line = line.rstrip("\n").split("\t")
+        else:
+            # different clustering program?
+            cluster_line = line.rstrip("\n").split()
+        count += 1
+        for member in cluster_line:
+            try:
+                # data would be: 2f1454d16278fda2d44f26ebf7a0ed05_310
+                # _abundance value
+                split_name = member.split("_")[:-1]
+                species = ("_").join(split_name)
+                print (species)
+                abundance = member.split("_")[-1]
+                # print (abundance)
+            except:
+                KeyError
+                errmsg = """something went wrong with decoding the names maybe
+                your names were not separated in your database? If so, the
+                block of code above this staement need adjusting accordingly.
+                """
+                sys.exit(os.system(errmsg))
+            # add the info to a str, we will write at the
+            # end of the cluster line
+            cluster_summary = "%s_abundance=%s\t" % (species, abundance)
+            output_str = output_str + cluster_summary
+        summary_out_file.write(output_str+"\n")
+    # close the files
+    cluster_file.close()
+    summary_out_file.close()
