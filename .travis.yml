@@ -24,18 +24,7 @@ script:
 #   - download fastqc 0.11.5
 #	- download muscle 3.8.31
 #	- dowload cdhit version 4.6
-#	- download bowtie2-2.3.0
-#	- download snap version 1.0beta.23.
 before_install:
-  - cd $HOME
-  - git clone https://github.com/BenLangmead/bowtie2.git
-  - cd bowtie2
-  - make
-  - export PATH=$HOME/bowtie2-2.3.0:$PATH
-  - cd $HOME
-  - git clone https://github.com/amplab/snap.git
-  - make
-  - export PATH=$HOME/snap:$PATH
   - cd $HOME
   - git clone https://github.com/weizhongli/cdhit.git
   - cd cdhit
