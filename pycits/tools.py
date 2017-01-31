@@ -87,10 +87,10 @@ def deduplicate_and_rename(seqlist):
 
     - sequences   Iterable of Bio.SeqRecord objects
     """
-    names_old_to_new = list()
     abundance = defaultdict(int)
     hash_to_seq = defaultdict(str)
     hash_to_name = defaultdict(str)
+    new_to_old = defaultdict(list)
     # compile hashed sequence data - the loop is necessary because we need
     # to run through completely once to obtain abundance info. If memory
     # to store this becomes an issue, we might want to try an alternative
@@ -100,8 +100,7 @@ def deduplicate_and_rename(seqlist):
         abundance[seqhash] += 1
         hash_to_seq[seqhash] = seq.seq
         hash_to_name[seqhash] = seq.id
-        database_output = ("{0}\t{1}\n".format(seq.id, seqhash))
-        names_old_to_new.append(database_output)
+        new_to_old[seqhash].append(seq.id)
     # generate list of sequences, named for the hash, including abundance data,
     # and return with ID:hash lookup
     seqlist = list()
@@ -109,7 +108,7 @@ def deduplicate_and_rename(seqlist):
         seqname = "{0}_{1}".format(name, abundance_val)
         seqlist.append(SeqRecord(id=seqname, description="",
                                  seq=hash_to_seq[name]))
-    return(seqlist, names_old_to_new, hash_to_seq)
+    return(seqlist, new_to_old, hash_to_seq)
 
 
 def dereplicate_name(fasta, database_out, out):
@@ -125,9 +124,10 @@ def dereplicate_name(fasta, database_out, out):
     name_out = open(database_out, "w")
     # convert the file to a list of Seqrecord objects
     seqlist = list(SeqIO.parse(fasta, 'fasta'))
-    seqlist, names_old_to_new, hash_to_seq = deduplicate_and_rename(seqlist)
-    for i in (names_old_to_new):
-        name_out.write(i)
+    seqlist, new_to_old, hash_to_seq = deduplicate_and_rename(seqlist)
+    for key, vals in new_to_old.items():
+        out_data = "%s\t%s\n" % (key, "\t".join(vals))
+        name_out.write(out_data)
     for seq_record in (seqlist):
         SeqIO.write(seq_record, fasta_out, "fasta")
     # close the open files
@@ -181,8 +181,21 @@ def blastclust_to_fasta(infname, seqfname, outdir):
     return outdirname
 
 
-# the following three function are to rename the clusters back to their
+# the following four function are to rename the clusters back to their
 # original names
+def get_names_from_Seq_db(seq_db):
+    """function to get a list of name in the seq db"""
+    names = []
+    names_abudance_removed = []
+    for seq_record in SeqIO.parse(seq_db, "fasta"):
+        if seq_record.id.endswith("_1"):
+            names.append(seq_record.id)
+        else:
+            names_abudance_removed.append(seq_record.id)
+            names.append(seq_record.id + "_1")
+    return names, names_abudance_removed
+
+
 def coded_name_to_species(database_file):
     """functiong takes the already generated tab separated
     database of coded name to species file. Returns a dic
@@ -195,53 +208,78 @@ def coded_name_to_species(database_file):
             continue  # if the last line is blank
         if line.startswith("#"):
             continue
-        coded_name, species = line.split("\t")
-        coded_name_to_species_dict[coded_name.rstrip()] = species.rstrip()
+        data = line.split("\t")
+        coded_name = data[0]
+        species = data[1:]
+        coded_name_to_species_dict[coded_name.rstrip()] = species
     return coded_name_to_species_dict
 
 
-def parse_tab_file_get_clusters(filename1, database, out_file):
-    """function to open up a tab or space separeted clustering
+def return_real_line(line):
+    """function to return only true lines,
+    no comments, or blank lines."""
+    if not line.strip():
+        return False  # if the last line is blank
+    if line.startswith("#"):  # dont want comment lines
+        return False
+    if "\t" in line:
+        cluster_line = line.rstrip("\n").split("\t")
+    else:
+        # different clustering program?
+        cluster_line = line.rstrip("\n").split()
+    return cluster_line
+
+
+def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
+    """script to open up a tab or space separeted clustering
     output and rename according to the name in the database file.
     Abundance is also appended to the name"""
     # call the function to get the dictionary
     # populated with the database
+    names, names_abudance_removed = get_names_from_Seq_db(seq_db)
     coded_name_to_species_dict = coded_name_to_species(database)
-    cluster_file = open(filename1, "r")
+    cluster_file = open(in_file, "r")
     summary_out_file = open(out_file, "w")
-
     count = int(0)
-    # iterate through the cluster file. One line per cluster
     for line in cluster_file:
-        if not line.strip():
-            continue  # if the last line is blank
-        if line.startswith("#"):  # dont want comment lines
-            continue
         output_str = ""
-        if "\t" in line:
-            cluster_line = line.rstrip("\n").split("\t")
-        else:
-            # different clustering program?
-            cluster_line = line.rstrip("\n").split()
         count += 1
+        # get func to return real line only
+        cluster_line = return_real_line(line)
+        if not cluster_line:
+            continue
         for member in cluster_line:
+            if member in names or member in names_abudance_removed:
+                if member.endswith("_1"):
+                    member = ("_").join(member.split("_")[:-1])
+                cluster_summary = "%s_abundance=1\t" % (member)
+                output_str = output_str + cluster_summary
+                continue
             try:
                 # data would be: 2f1454d16278fda2d44f26ebf7a0ed05_310
                 # _abundance value
                 split_name = member.split("_")[:-1]
-                species = ("_").join(split_name)
-                abundance = member.split("_")[-1]
+                coded_name = ("_").join(split_name)
+                if coded_name in names:
+                    species = coded_name
+                    abundance = "1"
+                else:
+                    species = coded_name_to_species_dict[coded_name]
+                    abundance = member.split("_")[-1]
+                    species = "\t".join("%s_abundance=%s"
+                                        % (i, abundance) for i in species)
                 # print (abundance)
             except:
                 KeyError
-                errmsg = """something went wrong with decoding the names maybe
+                print ("we have an error at %s " % member)
+                print ("""something went wrong with decoding the names maybe
                 your names were not separated in your database? If so, the
                 block of code above this staement need adjusting accordingly.
-                """
-                sys.exit(os.system(errmsg))
+                """)
+                sys.exit()
             # add the info to a str, we will write at the
             # end of the cluster line
-            cluster_summary = "%s_abundance=%s\t" % (species, abundance)
+            cluster_summary = "%s\t" % (species)
             output_str = output_str + cluster_summary
         summary_out_file.write(output_str+"\n")
     # close the files
