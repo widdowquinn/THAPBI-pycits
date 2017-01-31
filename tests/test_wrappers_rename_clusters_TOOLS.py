@@ -18,6 +18,8 @@ OUTDIR = os.path.join("tests", "test_out_deduplicate_hash")
 TEST_FILE = "swarm.out"
 TEST_DB = "db_old_to_new_names.txt"
 TEST_OUT = "swarm_test_nemaed.out"
+OTU_DATABASE = "./data/ITS_db_NOT_conf_correct_last14bp_removd.fasta"
+
 
 # folder checking
 if not os.path.exists(OUTDIR):
@@ -37,7 +39,27 @@ def test_convert_exec():
     db = os.path.join(INDIR, TEST_DB)
     # parse_tab_file_get_clusters(filename, database, out_file)
     parse_tab_file_get_clusters((os.path.join(INDIR, TEST_FILE)),
-                                db, result_file)
+                                OTU_DATABASE, db, result_file)
+    # compare the precomputaed results versus these results.
+    with open(TARGET, "rt") as target_fh:
+        with open(result_file, "r") as test_fh:
+            assert_equal(target_fh.read(), test_fh.read())
+
+
+OTU_DATABASE = "./data/ITS_db_NOT_confirmed_for_swarm.fasta"
+# run this again with another formatted db with abundance values.
+
+
+def test_convert_exec():
+    """Run parse_tab_file_get_clusters function from tool on test
+    data and compare output to precomputed target - with abundance values"""
+    # a cluster filen and  database of old name to new name already generated
+    # need to compare renamed cluster file only.
+    result_file = os.path.join(OUTDIR, TEST_OUT)
+    db = os.path.join(INDIR, TEST_DB)
+    # parse_tab_file_get_clusters(filename, database, out_file)
+    parse_tab_file_get_clusters((os.path.join(INDIR, TEST_FILE)),
+                                OTU_DATABASE, db, result_file)
     # compare the precomputaed results versus these results.
     with open(TARGET, "rt") as target_fh:
         with open(result_file, "r") as test_fh:
