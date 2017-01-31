@@ -183,6 +183,18 @@ def blastclust_to_fasta(infname, seqfname, outdir):
 
 # the following three function are to rename the clusters back to their
 # original names
+def get_names_from_Seq_db(seq_db):
+    """function to get a list of name in the seq db"""
+    names = []
+    names_abudance_removed = []
+    for seq_record in SeqIO.parse(seq_db, "fasta"):
+        if seq_record.id.endswith("_1"):
+            names.append(seq_record.id)
+        else:
+            names_abudance_removed.append(seq_record.id)
+    return names, names_abudance_removed
+
+
 def coded_name_to_species(database_file):
     """functiong takes the already generated tab separated
     database of coded name to species file. Returns a dic
@@ -195,29 +207,31 @@ def coded_name_to_species(database_file):
             continue  # if the last line is blank
         if line.startswith("#"):
             continue
-        coded_name, species = line.split("\t")
-        coded_name_to_species_dict[coded_name.rstrip()] = species.rstrip()
+        data = line.split("\t")
+        coded_name = data[0]
+        species = data[1:]
+        coded_name_to_species_dict[coded_name.rstrip()] = species
     return coded_name_to_species_dict
 
 
-def parse_tab_file_get_clusters(filename1, database, out_file):
-    """function to open up a tab or space separeted clustering
+def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
+    """script to open up a tab or space separeted clustering
     output and rename according to the name in the database file.
     Abundance is also appended to the name"""
     # call the function to get the dictionary
     # populated with the database
+    names, names_abudance_removed = get_names_from_Seq_db(seq_db)
     coded_name_to_species_dict = coded_name_to_species(database)
-    cluster_file = open(filename1, "r")
+    cluster_file = open(in_file, "r")
     summary_out_file = open(out_file, "w")
 
     count = int(0)
-    # iterate through the cluster file. One line per cluster
     for line in cluster_file:
+        output_str = ""
         if not line.strip():
             continue  # if the last line is blank
         if line.startswith("#"):  # dont want comment lines
             continue
-        output_str = ""
         if "\t" in line:
             cluster_line = line.rstrip("\n").split("\t")
         else:
@@ -225,23 +239,37 @@ def parse_tab_file_get_clusters(filename1, database, out_file):
             cluster_line = line.rstrip("\n").split()
         count += 1
         for member in cluster_line:
+            if member in names or member in names_abudance_removed:
+                if member.endswith("_1"):
+                    member = ("_").join(member.split("_")[:-1])
+                cluster_summary = "%s_abundance=1\t" % (member)
+                output_str = output_str + cluster_summary
+                continue
             try:
                 # data would be: 2f1454d16278fda2d44f26ebf7a0ed05_310
                 # _abundance value
                 split_name = member.split("_")[:-1]
-                species = ("_").join(split_name)
-                abundance = member.split("_")[-1]
+                coded_name = ("_").join(split_name)
+                if coded_name in names:
+                    species = coded_name
+                    abundance = "1"
+                else:
+                    species = coded_name_to_species_dict[coded_name]
+                    abundance = member.split("_")[-1]
+                    species = "\t".join("%s_abundance=%s"
+                                        % (i, abundance) for i in species)
                 # print (abundance)
             except:
                 KeyError
-                errmsg = """something went wrong with decoding the names maybe
+                print ("we have an error at %s " % member)
+                print ("""something went wrong with decoding the names maybe
                 your names were not separated in your database? If so, the
                 block of code above this staement need adjusting accordingly.
-                """
-                sys.exit(os.system(errmsg))
+                """)
+                sys.exit()
             # add the info to a str, we will write at the
             # end of the cluster line
-            cluster_summary = "%s_abundance=%s\t" % (species, abundance)
+            cluster_summary = "%s\t" % (species)
             output_str = output_str + cluster_summary
         summary_out_file.write(output_str+"\n")
     # close the files
