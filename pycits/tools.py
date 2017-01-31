@@ -181,7 +181,7 @@ def blastclust_to_fasta(infname, seqfname, outdir):
     return outdirname
 
 
-# the following three function are to rename the clusters back to their
+# the following four function are to rename the clusters back to their
 # original names
 def get_names_from_Seq_db(seq_db):
     """function to get a list of name in the seq db"""
@@ -192,6 +192,7 @@ def get_names_from_Seq_db(seq_db):
             names.append(seq_record.id)
         else:
             names_abudance_removed.append(seq_record.id)
+            names.append(seq_record.id + "_1")
     return names, names_abudance_removed
 
 
@@ -214,6 +215,21 @@ def coded_name_to_species(database_file):
     return coded_name_to_species_dict
 
 
+def return_real_line(line):
+    """function to return only true lines,
+    no comments, or blank lines."""
+    if not line.strip():
+        return False  # if the last line is blank
+    if line.startswith("#"):  # dont want comment lines
+        return False
+    if "\t" in line:
+        cluster_line = line.rstrip("\n").split("\t")
+    else:
+        # different clustering program?
+        cluster_line = line.rstrip("\n").split()
+    return cluster_line
+
+
 def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
     """script to open up a tab or space separeted clustering
     output and rename according to the name in the database file.
@@ -224,20 +240,14 @@ def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
     coded_name_to_species_dict = coded_name_to_species(database)
     cluster_file = open(in_file, "r")
     summary_out_file = open(out_file, "w")
-
     count = int(0)
     for line in cluster_file:
         output_str = ""
-        if not line.strip():
-            continue  # if the last line is blank
-        if line.startswith("#"):  # dont want comment lines
-            continue
-        if "\t" in line:
-            cluster_line = line.rstrip("\n").split("\t")
-        else:
-            # different clustering program?
-            cluster_line = line.rstrip("\n").split()
         count += 1
+        # get func to return real line only
+        cluster_line = return_real_line(line)
+        if not cluster_line:
+            continue
         for member in cluster_line:
             if member in names or member in names_abudance_removed:
                 if member.endswith("_1"):
