@@ -25,7 +25,25 @@ script:
 #	- download muscle 3.8.31
 #	- download cdhit version 4.6
 #	- download binary for samtools 1.2
+#	- download bowtie_2.2.5 - binary
+#	- download bwa-0.7.10 - binary
+#	- STAR RNAseq aligner
 before_install:
+  - cd $HOME
+  - mkdir bowtie_2.2.5
+  - cd bowtie_2.2.5
+  - wget https://depot.galaxyproject.org/package/linux/x86_64/bowtie2/bowtie2-2.2.5-Linux-x86_64.tar.gz
+  - tar -zxvf bowtie2-2.2.5-Linux-x86_64.tar.gz
+  - export PATH=$HOME/bowtie_2.2.5/bin/:$PATH
+  - cd $HOME
+  - mkdir bwa
+  - cd bwa
+  - wget https://depot.galaxyproject.org/package/linux/x86_64/bwa/bwa-0.7.10.039ea20639.tar.gz
+  - tar -zxvf bwa-0.7.10.039ea20639.tar.gz
+  - export PATH=$HOME/bwa/bwa-0.7.10.039ea20639/:$PATH
+  - git clone https://github.com/alexdobin/STAR.git
+  - cd STAR
+  - export PATH=$HOME/STAR/bin/Linux_x86_64_static:$PATH
   - cd $HOME
   - mkdir samtools_1.2
   - cd samtools_1.2
