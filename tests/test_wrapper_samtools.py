@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """Tests pycits wrapper for samtools_index.
-and IDXSTATS
+sort, and IDXSTATS
 
 NOTE TO DO:
 
@@ -11,22 +11,23 @@ http://pysam.readthedocs.io/en/latest/"""
 
 import os
 import shutil
-import gzip
 
 from pycits import samtools_index
 from pycits import samtools_idxstats
-
+from pycits import samtools_sort
 from pycits.tools import NotExecutableError
-
 from nose.tools import nottest, assert_equal
+
+THREADS = "1"
 
 # INPUT DATA
 INDIR = os.path.join("tests", "test_data", "samtools")
 BAM_FILE = os.path.join(INDIR, "Aligned.sortedByCoord.out.bam")
 
-OUTDIR = os.path.join("tests", "test_out_smatools_idxstats")
-
+# OUTPUT DATA
+OUTDIR = os.path.join("tests", "test_out_smatools")
 OUTFILE = os.path.join(OUTDIR, "idxstats")
+SORTED_OUTFILE = os.path.join(OUTDIR, "sorted")
 
 # TARGET OUTPUT DATA
 TARGET = os.path.join("tests", "test_targets", "samtools",
@@ -141,3 +142,28 @@ def test_samtools_idxstats_exec():
     with open(TARGET, "r") as target_fh:
         with open(result.cov, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
+
+
+def test_samtools_sort_cmd():
+    """samtools_sort instantiates, runs and returns
+    correct form of cmd-line"""
+    obj = samtools_sort.Samtools_Sort("samtools")
+    target = ' '.join(["samtools",
+                       "sort",
+                       "-@",
+                       THREADS,
+                       BAM_FILE,
+                       SORTED_OUTFILE])
+    results = obj.run(BAM_FILE, SORTED_OUTFILE, THREADS)
+    assert_equal(results.command,
+                 target)
+
+
+def test_samtools_index_exec():
+    """Run samtools_index on test data and compare output
+    to precomputed target"""
+    obj = samtools_sort.Samtools_Sort("samtools")
+    result = obj.run(BAM_FILE, SORTED_OUTFILE, THREADS)
+    # test to see if it has produced the bai file.
+    if not os.path.isfile(result.sorted_bam):
+        return False
