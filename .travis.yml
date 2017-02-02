@@ -24,16 +24,14 @@ script:
 #   - download fastqc 0.11.5
 #	- download muscle 3.8.31
 #	- download cdhit version 4.6
-#	- dwonload samtools - use conda
+#	- download binary for samtools 1.2
 before_install:
   - cd $HOME
-  - pip install auxlib
-  - pip install conda
-  - conda config --add channels bioconda
-  - conda config --add channels conda-forge
-  - conda config --add channels defaults
-  - conda config --add channels r
-  - conda install -c bioconda "samtools==1.3"
+  - mkdir samtools_1.2
+  - cd samtools_1.2
+  - wget https://depot.galaxyproject.org/package/linux/x86_64/samtools/samtools-1.2-Linux-x86_64.tgz
+  - tar -zxvf samtools-1.2-Linux-x86_64.tgz
+  - export PATH=$HOME/samtools_1.2/bin/:$PATH
   - cd $HOME
   - git clone https://github.com/weizhongli/cdhit.git
   - cd cdhit
