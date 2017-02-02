@@ -23,8 +23,15 @@ script:
 #   - download spades.3.9.1
 #   - download fastqc 0.11.5
 #	- download muscle 3.8.31
-#	- dowload cdhit version 4.6
+#	- download cdhit version 4.6
+#	- download binary for samtools 1.2
 before_install:
+  - cd $HOME
+  - mkdir samtools_1.2
+  - cd samtools_1.2
+  - wget https://depot.galaxyproject.org/package/linux/x86_64/samtools/samtools-1.2-Linux-x86_64.tgz
+  - tar -zxvf samtools-1.2-Linux-x86_64.tgz
+  - export PATH=$HOME/samtools_1.2/bin/:$PATH
   - cd $HOME
   - git clone https://github.com/weizhongli/cdhit.git
   - cd cdhit
