@@ -27,6 +27,7 @@ script:
 #	- dwonload samtools - use conda
 before_install:
   - cd $HOME
+  - pip install auxlib
   - pip install conda
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
