@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 
 """Tests pycits wrapper for samtools_index.
-and IDXSTATS"""
+and IDXSTATS
+
+NOTE TO DO:
+
+consider changing this to PYSAM
+https://github.com/pysam-developers/pysam
+http://pysam.readthedocs.io/en/latest/"""
 
 import os
 import shutil
