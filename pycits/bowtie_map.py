@@ -93,8 +93,8 @@ class Bowtie2_Map(object):
          XM:i:<n> The number of mismatches in the alignment
 
         """
-        first = os.path.split(ASSEM_READS)[-1].split(".f")[0]
-        second = "_Vs_" + os.path.split(FA_INDEX)[-1] + ".sam"
+        first = os.path.split(reads)[-1].split(".f")[0]
+        second = "_Vs_" + os.path.split(index_prefix)[-1] + ".sam"
         outfile_name = first + second
         self._outfname = os.path.join(outdir, outfile_name)
         file_type = ""
