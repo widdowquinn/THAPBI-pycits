@@ -24,8 +24,8 @@ FA_INDEX = os.path.join("tests", "test_out_bowtie", "FA_INDEX")
 THREADS = "1"
 
 # TARGET OUTPUT DATA
-TARGET = os.path.join("tests", "test_targets", "bowtie",
-                      "DNAMIX_S95_L001_R1_001_bowtie.html")
+# TARGET = os.path.join("tests", "test_targets", "bowtie",
+#                      "")
 
 
 def test_FQ_FA_is_compressed():
