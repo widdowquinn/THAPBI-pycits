@@ -135,7 +135,7 @@ def test_bowtie_map_cmd_using_fasta():
     """bowtie2 instantiates, runs and returns correct form of cmd-line
     fasta file input"""
     obj = bowtie_map.Bowtie2_Map("bowtie2")
-    first = os.path.split(ASSEM_READS)[-1].split(".f")[0]
+    first = os.path.split(ASSEM_FA)[-1].split(".f")[0]
     second = "_Vs_" + os.path.split(FA_INDEX)[-1] + ".sam"
     outfile_name = first + second
     target = ' '.join(["bowtie2",
