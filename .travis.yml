@@ -41,14 +41,10 @@ before_install:
   - wget https://depot.galaxyproject.org/package/linux/x86_64/bwa/bwa-0.7.10.039ea20639.tar.gz
   - tar -zxvf bwa-0.7.10.039ea20639.tar.gz
   - export PATH=$HOME/bwa/bwa-0.7.10.039ea20639/:$PATH
-<<<<<<< HEAD
-  - git clone https://github.com/alexdobin/STAR.git
-  - cd STAR
-=======
   - cd $HOME
+  - cd STAR
   - git clone https://github.com/alexdobin/STAR.git
->>>>>>> 23202f59c47a89af2b119fe91f0b9e6cd1b61a9f
-  - export PATH=$HOME/STAR/bin/Linux_x86_64_static:$PATH
+  - export PATH=$HOME/STAR/bin/Linux_x86_64_static/:$PATH
   - cd $HOME
   - mkdir samtools_1.2
   - cd samtools_1.2
