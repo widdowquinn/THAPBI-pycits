@@ -14,6 +14,7 @@ import gzip
 from subprocess import check_output, CalledProcessError
 import hashlib
 import sys
+import pysam
 
 from collections import defaultdict
 from optparse import OptionParser
@@ -157,6 +158,31 @@ def check_OTU_db_abundance_val(OTUfasta):
         return outfile
     else:
         return OTUfasta
+
+
+def filter_sam_file(in_sam, outfile):
+    """function for pysam to filter the sam file to obtain matches
+    that only match for its length
+    # AS:i:0 are perfect matches
+    # samfile format, good apge:
+    # http://www.metagenomics.wiki/tools/samtools/bam-sam-file-format
+    """
+    # counter to track number of seq of interest
+    no_missmtch = open(outfile, "w")
+    samfile = pysam.AlignmentFile(in_sam)
+    cig_list = []
+    matches = []
+    for read in samfile:
+        # this apparently are pure matches. But not the same as AS:i:0(?)
+        if (len(read.cigar)) == 1:
+            out_info = "%s\t%s\t%s\n" % (read.reference_name,
+                                         read.query_name,
+                                         read.cigar)
+            no_missmtch.write(out_info)
+            matches.append(out_info)
+        cig_list.append(read.cigar)
+    no_missmtch.close()
+    return cig_list, matches
 
 
 # Function replacing Santi's blastclust_lst2fasta.py script
