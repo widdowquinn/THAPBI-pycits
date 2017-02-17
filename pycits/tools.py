@@ -394,3 +394,83 @@ def reformat_cdhit_clustrs(clustr, outfile, out_R):
     # call func to write out lists
     write_out_clusters(f_out, cluster_members)
     write_out_clusters(F_R_out, R_clusters)
+
+
+#################################################
+# the following reformat sam for format to work in R
+
+
+def split_sam_line(line):
+    """funct: return a split version of the samline.
+    Returns: reads, db_entry"""
+    if "AS:i:0" not in line:
+        print ("WARNING these are not perfect matches")
+    elements = line.split("\t")
+    reads = elements[0]
+    db_entry = elements[2]
+    return reads, db_entry
+
+
+def remove_from_list(remove_id, in_list):
+    """funct: remove and item from list.
+    But checks it is possible and breaks the program
+    if not."""
+    try:
+        in_list.remove(remove_id)
+    except ValueError:
+        print ("%s not in passed db file. Exiting!" % remove_id)
+        sys.exit(1)
+    return in_list
+
+
+def get_all_seq_names(fasta_in):
+    """funct: get all the ids that are used.
+    Pass the func the file used that has the db and the reads
+    retunrs a list of names"""
+    names = []
+    for seq_record in SeqIO.parse(fasta_in, "fasta"):
+        names.append(seq_record.id)
+    return names
+
+
+def write_out_dict(outfile, names, input_dict):
+    """funct: write out members of a input_dict to a file.
+    The memebers are passed to the function as a dict
+    [db_entry] = [read, read2].
+    The outfile has already been opened"""
+    cluster_count = 0
+    for db, reads in sorted(input_dict.items()):
+        cluster_count = cluster_count + 1
+        data_out = "%s\t%d\n" % (db, cluster_count)
+        outfile.write(data_out)
+        names = remove_from_list(db, names)
+        # now iterate through the reads in the db cluster
+        for read in sorted(reads):
+            data_out = "%s\t%d\n" % (read, cluster_count)
+            outfile.write(data_out)
+            names = remove_from_list(read, names)
+    # the remaining list should be those which no reads mapped
+    # to or singleton reads
+    for singleton in sorted(names):
+        cluster_count = cluster_count + 1
+        data_out = "%s\t%d\n" % (singleton, cluster_count)
+        outfile.write(data_out)
+
+
+def reformat_sam_clusters(sam, db_and_reads, outfile):
+    """function: return the sam file as
+    a dict of [dbname] = read_list
+    """
+    f_out = open(outfile, "w")
+    data = open_parse(sam)
+    # get list of all db and read names
+    names = get_all_seq_names(db_and_reads)
+    db_to_reads = defaultdict(list)
+    for line in data:
+        if not line.strip():
+            continue  # if the line is blank
+        if line.startswith("@"):
+            continue  # these are headers
+        reads, db_entry = split_sam_line(line)
+        db_to_reads[db_entry].append(reads)
+    write_out_dict(f_out, names, db_to_reads)
