@@ -311,3 +311,86 @@ def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
     # close the files
     cluster_file.close()
     summary_out_file.close()
+
+
+######################################################################
+# set of functions to reformat cdhit clusters
+
+
+def open_parse(clustr):
+    """function: opens file and return
+    list split on \n from the file"""
+    with open(clustr) as file:
+        data = file.read().split("\n")
+    return data
+
+
+def get_cluster_member(line):
+    """function: split the line from cd hit
+    cluster to obtain the member.
+    e.g. 0	233nt, >read_1... *
+    to return read_1    """
+    member = line.split(">")[1]
+    member = member.split("...")[0]
+    return member
+
+
+def write_out_clusters(outfile, input_list):
+    """funct: write out members of a list to a file.
+    The memebers are passed to the function as a list
+    [member\t, member_2\t].
+    The outfile has already been opened"""
+    for i in input_list:
+        # should have \t already with the name.
+        # but an extra one at the end.
+        outfile.write(i)
+
+
+def reformat_cdhit_clustrs(clustr, outfile, out_R):
+    """function: return the cd hit clusters to one line
+    per cluster, as is the format from some other clustering
+    programs.
+    Also, function write the cd hit cluster to a format
+    of:
+    ID\tcluster_number
+    This format is for future R analysis.
+    Take in .clstr filen from cdhit
+    gets open_parse to return the file as a \n separated list
+    write the new format to file."""
+    f_out = open(outfile, "w")
+    F_R_out = open(out_R, "w")
+    data = open_parse(clustr)
+    # list to put the cluster memebers in
+    cluster_members = []
+    R_clusters = []
+    for line in data:
+        if not line.strip():
+            continue  # if the line is blank
+        # this is a new cluster group
+        if line.startswith(">"):
+            # e.g. >Cluster 0
+            # starts at zero, need 1 based
+            clust_num = int(line.split()[1]) + 1
+            cluster_members.append("\n")
+            # start of file, memebr list if empty
+            if clust_num == 1:
+                # remove the first \n
+                cluster_members.pop(-1)
+                pass
+            else:
+                pass
+        else:
+            # these are members of this cluster, can be many!
+            # call the func
+            member = get_cluster_member(line)
+            # this will result in an extra \t after the list
+            # entry
+            member = member + "\t"
+            cluster_members.append(member)
+            # format required for R: ID\tcluster_number
+            # \n is added to the write out function
+            R_format = "%s%d\n" % (member, clust_num)
+            R_clusters.append(R_format)
+    # call func to write out lists
+    write_out_clusters(f_out, cluster_members)
+    write_out_clusters(F_R_out, R_clusters)
