@@ -199,6 +199,38 @@ make
 put PATH_TO/cdhit in your PATH
 ```
 
+### `bowtie_2.2.5`
+
+* [home page](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml)
+
+`bowtie_2.2.5` bowtie_2.2.5 is a read mapping program. [`bowtie_2.2.5` download page]https://depot.galaxyproject.org/package/linux/x86_64/bowtie2/bowtie2-2.2.5-Linux-x86_64.tar.gz
+We have use the pre compiled binary to reduce difficulty in getting this to work.
+
+```
+mkdir bowtie_2.2.5
+cd bowtie_2.2.5
+wget https://depot.galaxyproject.org/package/linux/x86_64/bowtie2/bowtie2-2.2.5-Linux-x86_64.tar.gz
+tar -zxvf bowtie2-2.2.5-Linux-x86_64.tar.gz
+put this in your path
+export PATH=$HOME/bowtie_2.2.5/bin/:$PATH
+```
+
+### `samtools_1.2`
+
+* [home page](http://www.htslib.org/doc/samtools.html)
+
+`samtools_1.2` samtools_1.2 is a program to do lots of thing with sam/ bam files. [`samtools_1.2` download page]https://depot.galaxyproject.org/package/linux/x86_64/samtools/samtools-1.2-Linux-x86_64.tgz
+We have use the pre compiled binary to reduce difficulty in getting this to work.
+
+```
+mkdir samtools_1.2
+cd samtools_1.2
+wget https://depot.galaxyproject.org/package/linux/x86_64/samtools/samtools-1.2-Linux-x86_64.tgz
+tar -zxvf samtools-1.2-Linux-x86_64.tgz
+put this in your path
+export PATH=$HOME/samtools_1.2/bin/:$PATH
+```
+
 
 ### More information
 
