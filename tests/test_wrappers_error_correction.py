@@ -37,8 +37,7 @@ def sort_fq_output(fq_file):
         in_file = gzip.open(fq_file, mode='rt', compresslevel=9,
                             encoding=None, errors=None,
                             newline=None)
-    except:
-        ValueError
+    except ValueError:
         fq_file = fq_file.split(".gz")[0]
         in_file = open(fq_file)
     fq_set = set([])
