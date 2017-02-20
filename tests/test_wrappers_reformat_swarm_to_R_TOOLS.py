@@ -39,7 +39,7 @@ def test_convert_exec():
 
     result_file = os.path.join(OUTDIR, TEST_OUT)
 
-    # reformat_swarm_cls(sam, db_and_reads, outfile)
+    # reformat_swarm_cls(swarm, db, db_and_reads, outfile)
     reformat_swarm_cls(os.path.join(INDIR, INFILE),
                        DBFILE,
                        DBFILE,
