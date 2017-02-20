@@ -39,7 +39,8 @@ def test_convert_exec():
     db = os.path.join(INDIR, TEST_DB)
     # parse_tab_file_get_clusters(filename, database, out_file)
     parse_tab_file_get_clusters((os.path.join(INDIR, TEST_FILE)),
-                                OTU_DATABASE, db, result_file)
+                                OTU_DATABASE, db, result_file,
+                                True)
     # compare the precomputaed results versus these results.
     with open(TARGET, "rt") as target_fh:
         with open(result_file, "r") as test_fh:
@@ -59,7 +60,8 @@ def test_convert_exec():
     db = os.path.join(INDIR, TEST_DB)
     # parse_tab_file_get_clusters(filename, database, out_file)
     parse_tab_file_get_clusters((os.path.join(INDIR, TEST_FILE)),
-                                OTU_DATABASE, db, result_file)
+                                OTU_DATABASE, db, result_file,
+                                True)
     # compare the precomputaed results versus these results.
     with open(TARGET, "rt") as target_fh:
         with open(result_file, "r") as test_fh:
