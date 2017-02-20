@@ -256,7 +256,8 @@ def return_real_line(line):
     return cluster_line
 
 
-def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
+def parse_tab_file_get_clusters(in_file, seq_db, database, out_file,
+                                dev=False):
     """script to open up a tab or space separeted clustering
     output and rename according to the name in the database file.
     Abundance is also appended to the name"""
@@ -278,7 +279,10 @@ def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
             if member in names or member in names_abudance_removed:
                 if member.endswith("_1"):
                     member = ("_").join(member.split("_")[:-1])
-                cluster_summary = "%s_abundance=1\t" % (member)
+                if dev:  # for development sctripts.PT
+                    cluster_summary = "%s_abundance=1\t" % (member)
+                else:
+                    cluster_summary = "%s\t" % (member)
                 output_str = output_str + cluster_summary
                 continue
             try:
@@ -292,16 +296,20 @@ def parse_tab_file_get_clusters(in_file, seq_db, database, out_file):
                 else:
                     species = coded_name_to_species_dict[coded_name]
                     abundance = member.split("_")[-1]
-                    species = "\t".join("%s_abundance=%s"
-                                        % (i, abundance) for i in species)
-                # print (abundance)
-            except:
-                KeyError
+                    if dev:  # develop for abundance in name
+                        species = "\t".join("%s_abundance=%s"
+                                            % (i, abundance)
+                                            for i in species)
+                    else:
+                        species = "\t".join("%s" % (i)
+                                            for i in species)
+
+            except KeyError:
                 print ("we have an error at %s " % member)
-                print ("""something went wrong with decoding the names maybe
-                your names were not separated in your database? If so, the
-                block of code above this staement need adjusting accordingly.
-                """)
+                print ("something went wrong w/decoding the names maybe " +
+                       "names were not separated in your database? " +
+                       "If so, the code above this statement need " +
+                       "adjusting accordingly ")
                 sys.exit()
             # add the info to a str, we will write at the
             # end of the cluster line
