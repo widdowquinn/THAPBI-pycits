@@ -478,13 +478,16 @@ def reformat_sam_clusters(sam, db_and_reads, outfile):
 
 # the following is to reformat swarm clusters to a format for R
 # it calls functions above in this collection
-def split_swarm_line(line, dbnames, dbnames_abun_remvd):
+def split_swarm_line(line, dbnames, dbnames_abun_remvd,
+                     abundance):
     """funct: return a split version of the swarmline.
     Returns: reads, db_entry.
     Take in a list of db entry names"""
     out_list = []
     elements = line.split()
     for element in elements:
+        if element == "":
+            continue
         if element.replace("_abundance=", "_") in dbnames:
             # this is a db sequence
             element = element.replace("_abundance=", "_")
@@ -495,7 +498,12 @@ def split_swarm_line(line, dbnames, dbnames_abun_remvd):
             # this are the assembled reads. They have
             # e.g. _abundance=1 has been added. And need to
             # be removed.
-            element = "".join(element.split("_")[:-1])
+            if abundance:
+                element = "".join(element.split("_")[:-1])
+            else:
+                # this is so we can use blast clust results
+                # with the same function
+                element = element
         out_list.append(element)
     return out_list
 
@@ -515,7 +523,8 @@ def write_out_swam_to_R(outfile, names, input_lists):
             names = remove_from_list(member, names)
 
 
-def reformat_swarm_cls(swarm, seq_db, db_and_reads, outfile):
+def reformat_swarm_cls(swarm, seq_db, db_and_reads, outfile,
+                       abundance=True):
     """function: return the swarm file as
     name\tcluster_number
     This is so we can easily import the data into R.
@@ -538,6 +547,8 @@ def reformat_swarm_cls(swarm, seq_db, db_and_reads, outfile):
         # clustering tools will report the names.
         # need to keep the names consitent
         line = line.rstrip()
-        cluster = split_swarm_line(line, dbnames, dbnames_abun_remvd)
+        cluster = split_swarm_line(line, dbnames, dbnames_abun_remvd,
+                                   abundance)
         all_clusters.append(cluster)
     write_out_swam_to_R(f_out, names, all_clusters)
+    f_out.close()
