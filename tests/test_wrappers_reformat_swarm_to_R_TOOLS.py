@@ -43,7 +43,8 @@ def test_convert_exec():
     reformat_swarm_cls(os.path.join(INDIR, INFILE),
                        DBFILE,
                        DBFILE,
-                       result_file)
+                       result_file,
+                       True)
 
     with open(TARGET, "rt") as target_fh:
         data = target_fh.read().split("\n")
