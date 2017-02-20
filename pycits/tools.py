@@ -474,3 +474,70 @@ def reformat_sam_clusters(sam, db_and_reads, outfile):
         reads, db_entry = split_sam_line(line)
         db_to_reads[db_entry].append(reads)
     write_out_dict(f_out, names, db_to_reads)
+
+
+# the following is to reformat swarm clusters to a format for R
+# it calls functions above in this collection
+def split_swarm_line(line, dbnames, dbnames_abun_remvd):
+    """funct: return a split version of the swarmline.
+    Returns: reads, db_entry.
+    Take in a list of db entry names"""
+    out_list = []
+    elements = line.split()
+    for element in elements:
+        if element.replace("_abundance=", "_") in dbnames:
+            # this is a db sequence
+            element = element.replace("_abundance=", "_")
+        elif element.replace("_abundance=", "_") in dbnames_abun_remvd:
+            # this is a db sequence
+            element = element.replace("_abundance=", "_1")
+        else:
+            # this are the assembled reads. They have
+            # e.g. _abundance=1 has been added. And need to
+            # be removed.
+            element = "".join(element.split("_")[:-1])
+        out_list.append(element)
+    return out_list
+
+
+def write_out_swam_to_R(outfile, names, input_lists):
+    """funct: write out members of a list of lists.
+    The swarm clusters are passed to this function as a list of lists.
+    Names is a list of all the sequence- names of which were subjected to
+    clustering"""
+    cluster_count = 0
+    for cluster in input_lists:
+        cluster_count = cluster_count + 1
+        for member in cluster:
+            member = member.rstrip()  # any trailing \n
+            data_out = "%s\t%d\n" % (member, cluster_count)
+            outfile.write(data_out)
+            names = remove_from_list(member, names)
+
+
+def reformat_swarm_cls(swarm, seq_db, db_and_reads, outfile):
+    """function: return the swarm file as
+    name\tcluster_number
+    This is so we can easily import the data into R.
+    Take in a swarm file: 1 line per cluster (\t separated)
+    seq_db is the db used to cluster swarm with.
+    db_and_reads is a file containing the db and the assmebled
+    read."""
+    all_clusters = []
+    f_out = open(outfile, "w")
+    data = open_parse(swarm)
+    # get list of all db and read names
+    dbnames, dbnames_abun_remvd = get_names_from_Seq_db(seq_db)
+    names = get_all_seq_names(db_and_reads)
+    for line in data:
+        if not line.strip():
+            continue  # if the line is blank
+        if line.startswith("#"):
+            continue  # these are comments
+        # This func is needed as the _abundance is not how the other
+        # clustering tools will report the names.
+        # need to keep the names consitent
+        line = line.rstrip()
+        cluster = split_swarm_line(line, dbnames, dbnames_abun_remvd)
+        all_clusters.append(cluster)
+    write_out_swam_to_R(f_out, names, all_clusters)
