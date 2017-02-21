@@ -231,6 +231,17 @@ put this in your path
 export PATH=$HOME/samtools_1.2/bin/:$PATH
 ```
 
+### `vsearch`
+
+* [home page](https://github.com/torognes/vsearch)
+
+`vsearch` vsearch Versatile open-source tool for metagenomics. [`vsearch` download page]https://github.com/torognes/vsearch
+
+```
+wget https://github.com/torognes/vsearch/releases/download/v2.4.0/vsearch-2.4.0-linux-x86_64.tar.gz
+tar xzf vsearch-2.4.0-linux-x86_64.tar.gz
+```
+
 
 ### More information
 
