@@ -434,7 +434,7 @@ def split_sam_line(line):
         print ("WARNING these are not perfect matches")
     elements = line.split("\t")
     reads = elements[0]
-    db_entry = elements[1]
+    db_entry = elements[2]
     return reads, db_entry
 
 
