@@ -34,7 +34,7 @@ TARGET_R_FORMAT = os.path.join("tests", "test_targets", "vsearch",
 TARGET_C_FAST_B6 = os.path.join("tests", "test_targets", "vsearch",
                                 "clusterfast.blast6")
 TARGET_C_FAST_UC = os.path.join("tests", "test_targets", "vsearch",
-                                "test_runfast.clusters.uc")
+                                "target_runfast.clusters.uc")
 TARGET_CENTROIDS = os.path.join("tests", "test_targets", "vsearch",
                                 "target.centroids.fasta")
 TARGET_ALIGNED = os.path.join("tests", "test_targets", "vsearch",
@@ -65,7 +65,7 @@ def get_sorted_fa(fasta):
     """funct to return a sorted list of fa records.
     takes in a fasta, returns sorted list"""
     out_list = []
-    for seq_record in SeqIO.parse(filename, "fasta"):
+    for seq_record in SeqIO.parse(fasta, "fasta"):
         data = "%s\t%s" % (seq_record.id, seq_record.seq)
         out_list.append(data)
     return sorted(out_list)
@@ -263,23 +263,34 @@ def test_Vsearch_fastas_cmd():
                        "--id",
                        THRESHOLD,
                        "--centroids",
-                       os.path.join(OUTDIR, PREFIX +
+                       os.path.join(OUTDIR,
+                                    PREFIX +
+                                    THRESHOLD +
                                     '.centroids.fasta'),
                        "--msaout",
-                       os.path.join(OUTDIR, PREFIX +
+                       os.path.join(OUTDIR,
+                                    PREFIX +
+                                    THRESHOLD +
                                     '.alignedclusters.fasta'),
                        "--uc",
-                       os.path.join(OUTDIR, PREFIX +
-                                    'fast.clusters.uc'),
+                       os.path.join(OUTDIR,
+                                    PREFIX +
+                                    THRESHOLD +
+                                    '.fast.clusters.uc'),
                        "--consout",
-                       os.path.join(OUTDIR, PREFIX +
+                       os.path.join(OUTDIR,
+                                    PREFIX +
+                                    THRESHOLD +
                                     '.consensus_cls_seq.fasta'),
                        "--db",
                        DB,
                        "--threads",
                        THREADS,
                        "--blast6out",
-                       os.path.join(OUTDIR, 'clusterfast.blast6')])
+                       os.path.join(OUTDIR,
+                                    PREFIX +
+                                    THRESHOLD +
+                                    '.clusterfast.blast6')])
     # fasta_in, outdir, prefix, db, threads, threshold)
     assert_equal(cluster.run(INFILE_CLUSTER,
                              OUTDIR,
@@ -322,34 +333,35 @@ def test_vsearch_exec():
     # Results = namedtuple("Results", "command fastaout " +
     # "stdout stderr")
     # fasta_in, outdir, prefix, db, threads, threshold=0.99
-    result = cluster.run(INFILE_CLUSTER,
-                         OUTDIR,
-                         PREFIX,
-                         DB,
-                         THREADS,
-                         THRESHOLD)
+    result2 = cluster.run(INFILE_CLUSTER,
+                          OUTDIR,
+                          PREFIX,
+                          DB,
+                          THREADS,
+                          THRESHOLD)
     # use the named tuple to get the clustering results file
     # compare the blast6 output, convert them to sorted lists first
     target_blast = get_sorted_list(TARGET_C_FAST_B6)
-    result_blast = get_sorted_list(result.blast6)
+    result_blast = get_sorted_list(result2.blast6)
     assert_equal(result_blast, target_blast)
 
     # UC outfiles
     target_uc = get_sorted_list(TARGET_C_FAST_UC)
-    result_uc = get_sorted_list(result.uc_clusters)
+    result_uc = get_sorted_list(result2.uc_clusters)
     assert_equal(result_uc, target_uc)
 
     # centroids outfiles
     target_cent = get_sorted_fa(TARGET_CENTROIDS)
-    result_cent = get_sorted_fa(result.centroids)
+    result_cent = get_sorted_fa(result2.centroids)
     assert_equal(target_cent, result_cent)
 
     # TARGET_ALIGNED
     target_alig = get_sorted_fa(TARGET_ALIGNED)
-    result_alig = get_sorted_fa(result.aligned)
+    result_alig = get_sorted_fa(result2.aligned)
     assert_equal(target_alig, result_alig)
 
     # TARGET_CONCENSUS
     target_conc = get_sorted_fa(TARGET_CONCENSUS)
-    result_conc = get_sorted_fa(result.consensus_cls)
+    result_conc = get_sorted_fa(result2.consensus_cls)
     assert_equal(target_conc, result_conc)
+##
