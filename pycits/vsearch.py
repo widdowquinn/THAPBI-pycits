@@ -201,6 +201,7 @@ class Vsearch_fastas(object):
 
         -o a/b/cdefg
         """
+        threshold = str(threshold)
         self._outfnames = [os.path.join(outdir, prefix + threshold) +
                            suffix for suffix in
                            ('.clusterfast.blast6',
@@ -213,7 +214,7 @@ class Vsearch_fastas(object):
                "--cluster_fast",
                fasta_in,
                "--id",
-               str(threshold),
+               threshold,
                "--centroids",
                os.path.join(outdir, prefix + threshold +
                             '.centroids.fasta'),
