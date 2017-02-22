@@ -144,7 +144,7 @@ class Vsearch_cluster(object):
                "--id",
                threshold,
                "--uc",
-               os.path.join(outdir, prefix + '.clusters.uc'),
+               os.path.join(outdir, prefix + threshold + '.clusters.uc'),
                "--db",
                db,
                "--threads",
