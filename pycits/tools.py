@@ -80,7 +80,7 @@ def convert_fq_to_fa(in_file, out_file):
     SeqIO.convert(in_file, "fastq", out_file, "fasta")
 
 
-def deduplicate_and_rename(seqlist):
+def deduplicate_and_rename(seqlist, vsearch):
     """Removes duplicates from the passed SeqRecords, and replaces sequence
     IDs with the md5 hash of the sequence, suffixed with the number of
     sequences that were replaced. Returns a tuple (sequences, names_old_to_new)
@@ -106,26 +106,34 @@ def deduplicate_and_rename(seqlist):
     # and return with ID:hash lookup
     seqlist = list()
     for name, abundance_val in abundance.items():
-        seqname = "{0}_{1}".format(name, abundance_val)
-        seqlist.append(SeqRecord(id=seqname, description="",
-                                 seq=hash_to_seq[name]))
+        if vsearch:
+            seqname = "{0};size={1};".format(hash_to_name[name],
+                                             abundance_val)
+            seqlist.append(SeqRecord(id=seqname, description="",
+                                     seq=hash_to_seq[name]))
+        else:
+            seqname = "{0}_{1}".format(name, abundance_val)
+            seqlist.append(SeqRecord(id=seqname, description="",
+                                     seq=hash_to_seq[name]))
     return(seqlist, new_to_old, hash_to_seq)
 
 
-def dereplicate_name(fasta, database_out, out):
+def dereplicate_name(fasta, database_out, out, vsearch=False):
     """function to dereplicate the seq. Thus generating an
     abundance of that seq. Rename the seq to something
     swarm will work with.
     - fasta     - fasta file of assembled seq
     - database_out   - ouput old name to new file.
     -out        - outfile
+    vsearch is for outputting in a specific vsearch reuired format.
+    >name;size=6;
     """
     # open files to write to
     fasta_out = open(out, 'w')
     name_out = open(database_out, "w")
     # convert the file to a list of Seqrecord objects
     seqlist = list(SeqIO.parse(fasta, 'fasta'))
-    seqlist, new_to_old, hash_to_seq = deduplicate_and_rename(seqlist)
+    seqlist, new_to_old, hash_to_seq = deduplicate_and_rename(seqlist, vsearch)
     for key, vals in new_to_old.items():
         out_data = "%s\t%s\n" % (key, "\t".join(vals))
         name_out.write(out_data)
@@ -408,6 +416,17 @@ def reformat_cdhit_clustrs(clustr, outfile, out_R):
 # the following reformat sam for format to work in R
 
 
+def split_blast_line(line):
+    """funct: return a split version of the b;ast6.
+    output from vsearch
+    Returns: reads, db_entry"""
+    elements = line.split("\t")
+    reads = elements[0]
+    reads = reads.split(";size=")[0]
+    db_entry = elements[1]
+    return reads.rstrip(), db_entry.rstrip()
+
+
 def split_sam_line(line):
     """funct: return a split version of the samline.
     Returns: reads, db_entry"""
@@ -480,6 +499,26 @@ def reformat_sam_clusters(sam, db_and_reads, outfile):
         if line.startswith("@"):
             continue  # these are headers
         reads, db_entry = split_sam_line(line)
+        db_to_reads[db_entry].append(reads)
+    write_out_dict(f_out, names, db_to_reads)
+
+
+def reformat_blast6_clusters(blast6, db_and_reads, outfile):
+    """function: return the blast6 file as
+    a dict of [dbname] = read_list
+    """
+    f_out = open(outfile, "w")
+    data = open_parse(blast6)
+    # get list of all db and read names
+    names = get_all_seq_names(db_and_reads)
+    db_to_reads = defaultdict(list)
+    for line in data:
+        if not line.strip():
+            continue  # if the line is blank
+        if line.startswith("	"):
+            # this happend if the file is windows formatted
+            continue  # these are blast formta
+        reads, db_entry = split_blast_line(line)
         db_to_reads[db_entry].append(reads)
     write_out_dict(f_out, names, db_to_reads)
 

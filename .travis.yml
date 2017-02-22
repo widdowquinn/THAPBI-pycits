@@ -28,7 +28,14 @@ script:
 #	- download bowtie_2.2.5 - binary
 #	- download bwa-0.7.10 - binary
 #	- STAR RNAseq aligner
+#	- Vsearch2.4.0
 before_install:
+  - cd $HOME
+  - mkdir vsearch
+  - cd vsearch
+  - wget https://github.com/torognes/vsearch/releases/download/v2.4.0/vsearch-2.4.0-linux-x86_64.tar.gz
+  - tar xzf vsearch-2.4.0-linux-x86_64.tar.gz
+  - export PATH=$HOME/vsearch/vsearch-2.4.0-linux-x86_64/bin/:$PATH
   - cd $HOME
   - mkdir bowtie_2.2.5
   - cd bowtie_2.2.5
