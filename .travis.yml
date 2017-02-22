@@ -32,6 +32,7 @@ script:
 before_install:
   - cd $HOME
   - mkdir vsearch
+  - cd vsearch
   - wget https://github.com/torognes/vsearch/releases/download/v2.4.0/vsearch-2.4.0-linux-x86_64.tar.gz
   - tar xzf vsearch-2.4.0-linux-x86_64.tar.gz
   - export PATH=$HOME/vsearch/vsearch-2.4.0-linux-x86_64/bin/:$PATH
