@@ -9,6 +9,9 @@ from pycits import vsearch
 from pycits.tools import NotExecutableError, reformat_blast6_clusters
 import subprocess
 from nose.tools import nottest, assert_equal
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio import SeqIO
 
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "vsearch")
@@ -45,7 +48,7 @@ if not os.path.exists(OUTDIR):
 
 def get_sorted_list(in_file):
     """funct to return a sorted list.
-    takes in a file, restunr sorted list"""
+    takes in a file, returns sorted list"""
     out_list = []
     with open(in_file) as fh:
         data = fh.read().split("\n")
@@ -55,6 +58,16 @@ def get_sorted_list(in_file):
             if line.startswith("#"):  # dont want comment lines
                 continue
         out_list.append(line)
+    return sorted(out_list)
+
+
+def get_sorted_fa(fasta):
+    """funct to return a sorted list of fa records.
+    takes in a fasta, returns sorted list"""
+    out_list = []
+    for seq_record in SeqIO.parse(filename, "fasta"):
+        data = "%s\t%s" % (seq_record.id, seq_record.seq)
+        out_list.append(data)
     return sorted(out_list)
 
 
@@ -327,16 +340,16 @@ def test_vsearch_exec():
     assert_equal(result_uc, target_uc)
 
     # centroids outfiles
-    target_cent = get_sorted_list(TARGET_CENTROIDS)
-    result_cent = get_sorted_list(result.centroids)
+    target_cent = get_sorted_fa(TARGET_CENTROIDS)
+    result_cent = get_sorted_fa(result.centroids)
     assert_equal(target_cent, result_cent)
 
     # TARGET_ALIGNED
-    target_alig = get_sorted_list(TARGET_ALIGNED)
-    result_alig = get_sorted_list(result.aligned)
+    target_alig = get_sorted_fa(TARGET_ALIGNED)
+    result_alig = get_sorted_fa(result.aligned)
     assert_equal(target_alig, result_alig)
 
     # TARGET_CONCENSUS
-    target_conc = get_sorted_list(TARGET_CONCENSUS)
-    result_conc = get_sorted_list(result.consensus_cls)
+    target_conc = get_sorted_fa(TARGET_CONCENSUS)
+    result_conc = get_sorted_fa(result.consensus_cls)
     assert_equal(target_conc, result_conc)
