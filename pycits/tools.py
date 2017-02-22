@@ -516,7 +516,8 @@ def reformat_blast6_clusters(blast6, db_and_reads, outfile):
         if not line.strip():
             continue  # if the line is blank
         if line.startswith("	"):
-            continue  # these are headers
+            # this happend if the file is windows formatted
+            continue  # these are blast formta
         reads, db_entry = split_blast_line(line)
         db_to_reads[db_entry].append(reads)
     write_out_dict(f_out, names, db_to_reads)

@@ -22,7 +22,7 @@ Results_cluster = namedtuple("Results", "command blast6 uc_clusters " +
                              "stdout stderr")
 
 Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
-                           "aligned centroids onsensus_cls " +
+                           "aligned centroids consensus_cls " +
                            "stdout stderr")
 
 
