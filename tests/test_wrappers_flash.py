@@ -23,6 +23,10 @@ PREFIX = os.path.split(READS1)[-1].split("_R")[0]
 TARGET = os.path.join("tests", "test_targets", "flash",
                       "flash_test.assembled.fastq")
 
+# folder checking
+if not os.path.exists(OUTDIR):
+    os.makedirs(OUTDIR)
+
 
 def sort_flash_output(flash_assmebled_file):
     """function to sort the output of the flash assembled data
@@ -79,11 +83,6 @@ def test_flash_exec():
     this often does not produce the same result twice. So we may have
     to disable this test"""
     obj = flash.Flash("flash")
-    try:
-        shutil.rmtree(OUTDIR)
-    except FileNotFoundError:
-        pass
-    os.makedirs(OUTDIR, exist_ok=True)
     result = obj.run(READS1, READS2, 4, OUTDIR, PREFIX, dry_run=False)
     # call function to sort the data. returned as a sorted(set)
     # the flash output is not sorted, so a direct comparason of the file

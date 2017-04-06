@@ -100,10 +100,11 @@ before_install:
   - chmod 755 Trimmomatic-0.36/trimmomatic
   - export PATH=$HOME/Trimmomatic-0.36:$PATH
   - cd $HOME
-  - git clone https://github.com/torognes/swarm.git
-  - cd swarm/src
-  - make
-  - export PATH=$HOME/swarm/bin:$PATH
+  - mkdir swarm
+  - cd swarm
+  - wget https://github.com/torognes/swarm/releases/download/v2.1.10/swarm-2.1.10-linux-x86_64
+  - chmod a+x swarm-2.1.10-linux-x86_64
+  - export PATH=$HOME/swarm/:$PATH
   - cd $TRAVIS_BUILD_DIR
 
 sudo: false
