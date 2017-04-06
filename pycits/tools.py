@@ -15,6 +15,7 @@ from subprocess import check_output, CalledProcessError
 import hashlib
 import sys
 import pysam
+import sklearn
 
 from collections import defaultdict
 from optparse import OptionParser
@@ -424,6 +425,7 @@ def split_blast_line(line):
     reads = elements[0]
     reads = reads.split(";size=")[0]
     db_entry = elements[1]
+    db_entry = db_entry.split(";size=")[0]
     return reads.rstrip(), db_entry.rstrip()
 
 
@@ -460,7 +462,7 @@ def get_all_seq_names(fasta_in):
     return names
 
 
-def write_out_dict(outfile, names, input_dict):
+def write_out_dict(outfile, outfile2, names, input_dict):
     """funct: write out members of a input_dict to a file.
     The memebers are passed to the function as a dict
     [db_entry] = [read, read2].
@@ -469,19 +471,23 @@ def write_out_dict(outfile, names, input_dict):
     for db, reads in sorted(input_dict.items()):
         cluster_count = cluster_count + 1
         data_out = "%s\t%d\n" % (db, cluster_count)
-        outfile.write(data_out)
+        outfile2.write(db + "\t")
         names = remove_from_list(db, names)
+        outfile.write(data_out)
         # now iterate through the reads in the db cluster
         for read in sorted(reads):
             data_out = "%s\t%d\n" % (read, cluster_count)
             outfile.write(data_out)
+            outfile2.write(read + "\t")
             names = remove_from_list(read, names)
+        outfile2.write("\n")
     # the remaining list should be those which no reads mapped
     # to or singleton reads
     for singleton in sorted(names):
         cluster_count = cluster_count + 1
         data_out = "%s\t%d\n" % (singleton, cluster_count)
         outfile.write(data_out)
+        outfile2.write(singleton + "\n")
 
 
 def reformat_sam_clusters(sam, db_and_reads, outfile):
@@ -489,6 +495,7 @@ def reformat_sam_clusters(sam, db_and_reads, outfile):
     a dict of [dbname] = read_list
     """
     f_out = open(outfile, "w")
+    f_out2 = open(outfile + "_1_line", "w")
     data = open_parse(sam)
     # get list of all db and read names
     names = get_all_seq_names(db_and_reads)
@@ -500,7 +507,8 @@ def reformat_sam_clusters(sam, db_and_reads, outfile):
             continue  # these are headers
         reads, db_entry = split_sam_line(line)
         db_to_reads[db_entry].append(reads)
-    write_out_dict(f_out, names, db_to_reads)
+    write_out_dict(f_out, f_out2, names, db_to_reads)
+    f_out.close()
 
 
 def reformat_blast6_clusters(blast6, db_and_reads, outfile):
@@ -508,6 +516,7 @@ def reformat_blast6_clusters(blast6, db_and_reads, outfile):
     a dict of [dbname] = read_list
     """
     f_out = open(outfile, "w")
+    f_out2 = open(outfile + "_1_line", "w")
     data = open_parse(blast6)
     # get list of all db and read names
     names = get_all_seq_names(db_and_reads)
@@ -520,7 +529,9 @@ def reformat_blast6_clusters(blast6, db_and_reads, outfile):
             continue  # these are blast formta
         reads, db_entry = split_blast_line(line)
         db_to_reads[db_entry].append(reads)
-    write_out_dict(f_out, names, db_to_reads)
+    write_out_dict(f_out, f_out2, names, db_to_reads)
+    f_out.close()
+    f_out2.close()
 
 
 # the following is to reformat swarm clusters to a format for R

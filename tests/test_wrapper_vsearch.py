@@ -343,16 +343,19 @@ def test_vsearch_exec():
     # compare the blast6 output, convert them to sorted lists first
     target_blast = get_sorted_list(TARGET_C_FAST_B6)
     result_blast = get_sorted_list(result2.blast6)
+    print ("This is test1")
     assert_equal(result_blast, target_blast)
 
     # UC outfiles
     target_uc = get_sorted_list(TARGET_C_FAST_UC)
     result_uc = get_sorted_list(result2.uc_clusters)
+    print ("This is test2")
     assert_equal(result_uc, target_uc)
 
     # centroids outfiles
     target_cent = get_sorted_fa(TARGET_CENTROIDS)
     result_cent = get_sorted_fa(result2.centroids)
+    print ("This is test3")
     assert_equal(target_cent, result_cent)
 
     # TARGET_ALIGNED
@@ -364,4 +367,3 @@ def test_vsearch_exec():
     target_conc = get_sorted_fa(TARGET_CONCENSUS)
     result_conc = get_sorted_fa(result2.consensus_cls)
     assert_equal(target_conc, result_conc)
-##
