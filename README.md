@@ -1,4 +1,6 @@
-![THAPBI-pycits TravisCI build status](https://api.travis-ci.org/widdowquinn/THAPBI-pycits.svg?branch=master) ![codecov.io coverage status](https://img.shields.io/codecov/c/github/widdowquinn/THAPBI-pycits.svg) [![Code Health](https://landscape.io/github/widdowquinn/THAPBI-pycits/master/landscape.svg?style=flat)](https://landscape.io/github/widdowquinn/THAPBI-pycits/master)
+[![THAPBI-pycits TravisCI build status](https://api.travis-ci.org/widdowquinn/THAPBI-pycits.svg?branch=master)](https://travis-ci.org/widdowquinn/THAPBI-pycits/branches)
+[![codecov.io coverage status](https://img.shields.io/codecov/c/github/widdowquinn/THAPBI-pycits.svg)](https://codecov.io/gh/widdowquinn/THAPBI-pycits)
+[![Code Health](https://landscape.io/github/widdowquinn/THAPBI-pycits/master/landscape.svg?style=flat)](https://landscape.io/github/widdowquinn/THAPBI-pycits/master)
 
 * [Travis-CI page](https://travis-ci.org/widdowquinn/THAPBI-pycits/branches)
 * [`codecov.io` page](https://codecov.io/gh/widdowquinn/THAPBI-pycits)
