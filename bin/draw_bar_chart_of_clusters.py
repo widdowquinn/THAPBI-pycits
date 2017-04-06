@@ -13,6 +13,13 @@ from sys import stdin, argv
 from math import log
 from Bio import SeqIO
 import matplotlib
+# this code added to prevent this error:
+# self.tk = _tkinter.create(screenName, baseName,
+# className, interactive, wantobjects, useTk, sync, use)
+# _tkinter.TclError: no display name and
+# no $DISPLAY environment variable
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import numpy
@@ -22,13 +29,7 @@ import numpy as np
 # Turn off warning messages
 import warnings
 warnings.filterwarnings('ignore')
-# this code added to prevent this error:
-# self.tk = _tkinter.create(screenName, baseName,
-# className, interactive, wantobjects, useTk, sync, use)
-# _tkinter.TclError: no display name and
-# no $DISPLAY environment variable
-# Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
+
 
 ##########################################################
 # drawing a histogram
@@ -326,7 +327,7 @@ python draws_bar...py -i clustering_file -o summarise_clusters.out
 
 requires:
 use pip install ...
- seaborn
+
  matplotlib
  numpy
  Biopython
