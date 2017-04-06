@@ -103,7 +103,8 @@ before_install:
   - mkdir swarm
   - cd swarm
   - wget https://github.com/torognes/swarm/releases/download/v2.1.10/swarm-2.1.10-linux-x86_64
-  - chmod a+x swarm-2.1.10-linux-x86_64
+  - cp swarm-2.1.10-linux-x86_64 swarm
+  - chmod a+x swarm
   - export PATH=$HOME/swarm/:$PATH
   - cd $TRAVIS_BUILD_DIR
 
