@@ -5,11 +5,7 @@
 # The James Hutton Insitute, Dundee, UK.
 # imports
 import os
-import sys
-from optparse import OptionParser
-import datetime
-import os
-from sys import stdin, argv
+import argparse
 from math import log
 from Bio import SeqIO
 import matplotlib
@@ -22,7 +18,6 @@ import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-import numpy
 import pylab
 import numpy as np
 
@@ -333,24 +328,30 @@ use pip install ...
  Biopython
 """
 
-parser = OptionParser(usage=usage)
 
-parser.add_option("-i", "--in", dest="in_file",
-                  default=None,
-                  help="clustering out file")
+def get_args():
+    parser = argparse.ArgumentParser(description="draw bar charts of " +
+                                     " clusters :  %s " % usage,
+                                     add_help=False)
+    optional = parser.add_argument_group('optional arguments')
+    optional.add_argument("-i", "--in", dest="in_file",
+                          default=None,
+                          help="clustering out file")
 
-parser.add_option("--db", dest="seq_db",
-                  default=None,
-                  help="db used for clustering")
-parser.add_option("--heatmap", dest="heatmap",
-                  default=False,
-                  help="draw a heat map of the species clustering " +
-                  " currently not implemented")
+    optional.add_argument("--db", dest="seq_db",
+                          default=None,
+                          help="db used for clustering")
+    optional.add_argument("--heatmap", dest="heatmap",
+                          default=False,
+                          help="draw a heatmap of the species clustering " +
+                          " currently not implemented")
+    args = parser.parse_args()
+    return args
 
-(options, args) = parser.parse_args()
-in_file = options.in_file
-heatmap = options.heatmap
-seq_db = options.seq_db
+args = get_args()
+in_file = args.in_file
+heatmap = args.heatmap
+seq_db = args.seq_db
 
 # run the program
 parse_tab_file_get_clusters(in_file, seq_db)
