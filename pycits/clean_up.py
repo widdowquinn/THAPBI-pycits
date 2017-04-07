@@ -4,20 +4,12 @@
 # (c) The James Hutton Institute 2016
 # Author: Leighton Pritchard and Peter Thorpe
 
-import os
-import sys
 import subprocess
 from .tools import is_exe, NotExecutableError
 from collections import namedtuple
 
 
 Results = namedtuple("Results", "command stdout stderr")
-
-
-class Clean_up(Exception):
-    """Exception raised when flash fails"""
-    def __init__(self, message):
-        self.message = message
 
 
 class Clean_up(object):

@@ -7,8 +7,6 @@
 # November 2016. The James Hutton Insitute, Dundee, UK.
 
 import os
-import sys
-import sklearn
 from sklearn.metrics.cluster import adjusted_rand_score
 
 
@@ -24,8 +22,7 @@ def return_rand_cluster_member(line):
     """function: split the line """
     element = line.split("\t")
     cluster = element[1]
-    member = element[0]
-    return member.rstrip(), cluster.rstrip()
+    return cluster.rstrip()
 
 
 def prepare_rand_list(infile):
@@ -37,7 +34,7 @@ def prepare_rand_list(infile):
             continue  # if the last line is blank
         if line.startswith("#"):  # dont want comment lines
             continue
-        member1, cluster = return_rand_cluster_member(line)
+        cluster = return_rand_cluster_member(line)
         cluster_list.append(cluster)
     return cluster_list
 
