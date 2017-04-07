@@ -5,10 +5,8 @@
 # September 2016. The James Hutton Insitute, Dundee, UK.
 
 # imports
-import os
 import sys
 from optparse import OptionParser
-import os
 from collections import defaultdict
 ###############################################################
 
@@ -36,7 +34,6 @@ def parse_line(line):
     if line.startswith("    "):
         return 0
     line = line.rstrip()
-    out_put_str = ""
     result_line = line.rstrip("\n").split("\t")
     cluster_num = result_line[0]
     species = result_line[1]
@@ -44,7 +41,7 @@ def parse_line(line):
     return cluster_num, species, reads
 
 
-def parse_list(in_list, out_file):
+def parse_list(in_list, out_file=False):
     """script to open up a tab separeted clustering output
     and identify the species in the clustering"""
     spe_fnd_dic = defaultdict(set)
