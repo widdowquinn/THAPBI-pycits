@@ -81,12 +81,14 @@ def compare_found(spe_fnd_dic, out_file):
         spe_fnd_dic["vsearch"] & \
         spe_fnd_dic["vse_faclus"] &\
         spe_fnd_dic["blastclust"]
+    common_in_all = sorted(common_in_all)
     out = "#%d Species found in all methods:\t%s\n\n" % (len(common_in_all),
                                                          str(common_in_all))
     f_out.write(out)
-    for program, species in spe_fnd_dic.items():
+    for program, species in sorted(spe_fnd_dic.items()):
         number_of_items += 1
         names.append(program)
+        species = sorted(species)
         out_str = "%s method found %d species:\t%s" % (program, len(species),
                                                        species)
         f_out.write(out_str)
@@ -111,9 +113,11 @@ def compare_found(spe_fnd_dic, out_file):
                     common_var = spe_fnd_dic[n1].intersection(spe_fnd_dic[n2],
                                                               spe_fnd_dic[n3],
                                                               spe_fnd_dic[n4])
+                    common_var = sorted(common_var)
                     diff_var = spe_fnd_dic[n1].difference(spe_fnd_dic[n2],
                                                           spe_fnd_dic[n3],
                                                           spe_fnd_dic[n4])
+                    diff_var = sorted(diff_var)
                     fmd = "%s_vs_%s_%s_%s_%d_COMMON:\t%s\n" % (n1, n2,
                                                                n3, n4,
                                                                len(common_var),
@@ -137,8 +141,10 @@ def compare_found(spe_fnd_dic, out_file):
                     continue
                 common_var = spe_fnd_dic[n1].intersection(spe_fnd_dic[n2],
                                                           spe_fnd_dic[n3])
+                common_var = sorted(common_var)
                 diff_var = spe_fnd_dic[n1].difference(spe_fnd_dic[n2],
                                                       spe_fnd_dic[n3])
+                diff_var = sorted(diff_var)
                 formmatted = "%s_vs_%s_%s_%d_COMMON:\t%s\n" % (n1, n2, n3,
                                                                len(common_var),
                                                                str(common_var))
@@ -154,11 +160,13 @@ def compare_found(spe_fnd_dic, out_file):
             if n1 == n2:
                 continue
             common_var = spe_fnd_dic[n1].intersection(spe_fnd_dic[n2])
+            common_var = sorted(common_var)
             diff_var = spe_fnd_dic[n1].difference(spe_fnd_dic[n2])
             formmatted = "%s_vs_%s_%d_COMMON:\t%s\n" % (n1, n2,
                                                         len(common_var),
                                                         str(common_var))
             f_out.write(formmatted)
+            diff_var = sorted(diff_var)
             formated = "%s_vs_%s_%d_DIFFERENCE:\t%s\n" % (n1, n2,
                                                           len(diff_var),
                                                           str(diff_var))
