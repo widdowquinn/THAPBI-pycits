@@ -6,7 +6,7 @@
 
 # imports
 import sys
-from optparse import OptionParser
+import argparse
 from collections import defaultdict
 ###############################################################
 
@@ -207,21 +207,27 @@ example of result file format:
 
 """
 
-parser = OptionParser(usage=usage)
 
-parser.add_option("--in_list", dest="in_list",
-                  default=None,
-                  help="list strings of files: ['program\tfile']")
+def get_args():
+    parser = argparse.ArgumentParser(description="program to compare " +
+                                     "results : \n%s " % usage,
+                                     add_help=False)
+    optional = parser.add_argument_group('optional arguments')
+    optional.add_argument("--in_list", dest="in_list",
+                          default=None,
+                          help="list strings of files: ['program\tfile']")
 
-parser.add_option("-o", "--out_prefix", dest="out_file",
-                  default="summarise_clusters.out",
-                  help="prefix to the output filenames")
+    optional.add_argument("-o", "--out_prefix", dest="out_file",
+                          default="summarise_clusters.out",
+                          help="prefix to the output filenames")
+    args = parser.parse_args()
+    return args
 
-(options, args) = parser.parse_args()
+args = get_args()
 # --in_list
-in_list = options.in_list
+in_list = args.in_list
 # -o
-out_file = options.out_file
+out_file = args.out_file
 
 
 ###################################################################
