@@ -5,10 +5,8 @@
 # September 2016. The James Hutton Insitute, Dundee, UK.
 
 # imports
-import os
 import sys
-from optparse import OptionParser
-import os
+import argparse
 from collections import defaultdict
 ###############################################################
 
@@ -36,7 +34,6 @@ def parse_line(line):
     if line.startswith("    "):
         return 0
     line = line.rstrip()
-    out_put_str = ""
     result_line = line.rstrip("\n").split("\t")
     cluster_num = result_line[0]
     species = result_line[1]
@@ -44,7 +41,7 @@ def parse_line(line):
     return cluster_num, species, reads
 
 
-def parse_list(in_list, out_file):
+def parse_list(in_list, out_file=False):
     """script to open up a tab separeted clustering output
     and identify the species in the clustering"""
     spe_fnd_dic = defaultdict(set)
@@ -210,21 +207,27 @@ example of result file format:
 
 """
 
-parser = OptionParser(usage=usage)
 
-parser.add_option("--in_list", dest="in_list",
-                  default=None,
-                  help="list strings of files: ['program\tfile']")
+def get_args():
+    parser = argparse.ArgumentParser(description="program to compare " +
+                                     "results : \n%s " % usage,
+                                     add_help=False)
+    optional = parser.add_argument_group('optional arguments')
+    optional.add_argument("--in_list", dest="in_list",
+                          default=None,
+                          help="list strings of files: ['program\tfile']")
 
-parser.add_option("-o", "--out_prefix", dest="out_file",
-                  default="summarise_clusters.out",
-                  help="prefix to the output filenames")
+    optional.add_argument("-o", "--out_prefix", dest="out_file",
+                          default="summarise_clusters.out",
+                          help="prefix to the output filenames")
+    args = parser.parse_args()
+    return args
 
-(options, args) = parser.parse_args()
+args = get_args()
 # --in_list
-in_list = options.in_list
+in_list = args.in_list
 # -o
-out_file = options.out_file
+out_file = args.out_file
 
 
 ###################################################################
