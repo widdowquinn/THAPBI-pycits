@@ -20,7 +20,7 @@ from .tools import is_exe, NotExecutableError
 Results = namedtuple("Results", "command index stdout stderr")
 
 
-class Bowtie2_Build(Exception):
+class Bowtie2_BuildError(Exception):
     """Exception raised when Bowtie2_Build fails"""
     def __init__(self, message):
         self.message = message
