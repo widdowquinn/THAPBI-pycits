@@ -5,11 +5,7 @@
 # The James Hutton Insitute, Dundee, UK.
 # imports
 import os
-import sys
 from optparse import OptionParser
-import datetime
-import os
-from sys import stdin, argv
 from math import log
 from Bio import SeqIO
 import matplotlib
@@ -22,7 +18,6 @@ import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-import numpy
 import pylab
 import numpy as np
 
