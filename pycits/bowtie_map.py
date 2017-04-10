@@ -8,7 +8,6 @@
 # Author: Leighton Pritchard and Peter Thorpe
 
 import os
-import sys
 import subprocess
 from collections import namedtuple
 from .tools import is_exe, NotExecutableError
