@@ -6,7 +6,6 @@
 # imports
 import os
 import argparse
-from math import log
 from Bio import SeqIO
 import matplotlib
 # this code added to prevent this error:
