@@ -8,7 +8,6 @@
 # Author: Leighton Pritchard and Peter Thorpe
 
 import os
-import sys
 import subprocess
 from collections import namedtuple
 from .tools import is_exe, NotExecutableError
@@ -22,7 +21,7 @@ from .tools import is_exe, NotExecutableError
 Results = namedtuple("Results", "command sam stdout stderr")
 
 
-class Bowtie2_Map(Exception):
+class Bowtie2_MapError(Exception):
     """Exception raised when Bowtie2_Map fails"""
     def __init__(self, message):
         self.message = message
