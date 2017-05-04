@@ -152,7 +152,7 @@ def test_samtools_sort_cmd():
                        "-@",
                        THREADS,
                        BAM_FILE,
-                       SORTED_OUTFILE])
+                       '-o', SORTED_OUTFILE])
     results = obj.run(BAM_FILE, SORTED_OUTFILE, THREADS)
     assert_equal(results.command,
                  target)
