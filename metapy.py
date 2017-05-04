@@ -30,9 +30,9 @@ from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
     cd_hit, blast, vsearch, samtools_index, muscle
 
 # check this is running under python 3
-if sys.version_info[0] < 3:
+if sys.version_info !=  (3, 5):
     # break the program
-    raise ImportError ("\n\t\tYou must be using Python 3\n")
+    raise ImportError("Python 3.5 is required for metapy.py")
     sys.exit(1)
 
 if "-v" in sys.argv or "--version" in sys.argv:
