@@ -53,18 +53,8 @@ class Samtools_Idxstats(object):
         """Build a command-line for Samtools_index"""
         self._outfname = outfile
         # pipe the output through sort and grep without the "8" sign
-        cmd = ["samtools",
-               "idxstats",
-               infname,
-               "|",
-               "grep",
-               "-v",
-               "'*'",
-               "|",
-               "sort",
-               "--reverse",
-               "-n",
-               "-k3",
-               ">",
-               self._outfname]
+        cmd = ["samtools", "idxstats", infname,
+               "|", "grep", "-v", "'*'",
+               "|", "sort", "--reverse", "-n", "-k3",
+               ">", self._outfname]
         self._cmd = ' '.join(cmd)
