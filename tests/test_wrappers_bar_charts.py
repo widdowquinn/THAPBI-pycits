@@ -21,7 +21,7 @@ def test_METAPY_exec():
     test data. So we only need to call the program
     """
     prog = os.path.join("bin", "draw_bar_chart_of_clusters.py")
-    temp_s = ["python",
+    temp_s = ["python3",
               prog,
               "-i",
               INFILE,
