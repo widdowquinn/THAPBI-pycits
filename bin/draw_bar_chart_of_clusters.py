@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# title: Parse clusters and find the corresponding spcies
+#!/usr/bin/env python3
+#
+# title: Parse clusters and find the corresponding species
 # in the cluster
 # author: Peter Thorpe, Leighton Pritchard September 2016.
 # The James Hutton Insitute, Dundee, UK.
