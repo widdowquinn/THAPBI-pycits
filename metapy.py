@@ -29,12 +29,14 @@ from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
     flash, clean_up, swarm, seq_crumbs, bowtie_build, bowtie_map,\
     cd_hit, blast, vsearch, samtools_index, muscle
 
+## TODO: This code should be in the main process of the script
 # check this is running under python 3
 if sys.version_info !=  (3, 5):
     # break the program
     raise ImportError("Python 3.5 is required for metapy.py")
     sys.exit(1)
 
+## TODO: This should be incorporated into the argument parser
 if "-v" in sys.argv or "--version" in sys.argv:
     print("Pycits classify OTU: v0.0.1")
     sys.exit()
@@ -54,6 +56,9 @@ def get_args():
                           type=str,
                           help="number of threads")
 
+    ## TODO: Why are these files being specified? They are not general.
+    ## DESIGN: Attempting to collate everything here into a single cmd-line
+    ##         interface is a bad idea. We need to restructure this.
     optional.add_argument("-l", "--left", dest='left',
                           action="store",
                           default=os.path.join(file_directory,
@@ -193,23 +198,21 @@ def get_args():
     return args, file_directory
 
 
+## TODO: The PSL has the gzip library for this!!!!!
+##       https://docs.python.org/3/library/gzip.html#examples-of-usage
 def decompress(infile):
     """function to decompress gzipped reads"""
-    cmd = ["gunzip",
-           infile]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(["gunzip", infile])
     pipe = subprocess.run(cmd, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
                           check=True)
-    return infile.split(".gz")[0]
+    return infile.split(".gz")[0]  # os.splitext(infile)[0]!!!!!
 
 
 def compress(infile):
-    """function to decompress reads, make them .gz"""
-    cmd = ["gzip",
-           infile]
-    cmd = ' '.join(cmd)
+    """function to compress reads, make them .gz"""
+    cmd = ' '.join(["gzip", infile])
     pipe = subprocess.run(cmd, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
@@ -261,6 +264,13 @@ RESULTS = []
 #####################################################################
 
 
+
+## TODO: There is *a lot* of repeated code here. The many try-except structures
+##       should be making you think that you need a function
+## DESIGN: Why require that the command is in the $PATH? As a default
+##         assumption when collecting the argument above, sure - but if you
+##         allow for pointing to a different version you can also compare the
+##         pipeline as it runs with different software versions.
 def check_tools_exist():
     """function to check to see what tools are in the PATH,
     decide what we can use
@@ -331,6 +341,7 @@ def check_tools_exist():
     return tools_list, Warning_out
 
 
+## TODO: os.makedirs(dest_dir, exist_ok=True)!!!!!
 def make_folder(folder):
     """function to make a folder with desired name"""
     dest_dir = os.path.join(WORKING_DIR, folder)
@@ -368,6 +379,13 @@ def covert_chop_read(infile):
     trim_seq(infile + ".bio.fasta",
              infile + ".bio.chopped.fasta",
              LEFT_TRIM, RIGHT_TRIM)
+
+## DESIGN: Why are you ignoring all the wrappers? This is hugely
+##         counterproductive!
+## DESIGN: If you write a Python script, and need to call code from another
+##         script, that should be telling you that you need to write
+##         a function in a module, and call it from both scripts. Using
+##         a shell call to Python in your Python script is *very bad*!
 
 #######################################################################
 # Run as script
