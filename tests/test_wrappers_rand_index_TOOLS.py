@@ -14,7 +14,7 @@ import sklearn
 
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "Rand_index")
-OUTDIR = os.path.join("tests", "tests_out_Rand_index")
+OUTDIR = os.path.join("tests", "test_out_Rand_index")
 test_files = ['blastclust99', 'cdhit0.99',
               'perfect_map', 'swarm',
               'vsearch0.99']

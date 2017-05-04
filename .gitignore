@@ -19,9 +19,7 @@ venv-THAPBI-pycits/
 # Exclude test output
 test_out/
 test_out.log
-tests/test_out_blastclust/
-tests/test_out_pear/
-tests/test_out_trimmomatic/
+tests/test_out*
 error.log
 
 # Exclude OSX files

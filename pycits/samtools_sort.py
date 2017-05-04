@@ -55,5 +55,5 @@ class Samtools_Sort(object):
                "-@",
                threads,
                infname,
-               self._outfname]
+               '-o', self._outfname]
         self._cmd = ' '.join(cmd)

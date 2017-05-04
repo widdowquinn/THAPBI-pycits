@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # run-pycits.py
 #
@@ -23,7 +23,7 @@ import traceback
 from argparse import ArgumentParser
 from biom import load_table
 
-from pycits import tools, fastqc, seq_crumbs, ea_utils, blast, qiime
+from pycits import tools, fastqc, seq_crumbs, blast, qiime
 from pycits import muscle, __version__
 
 
