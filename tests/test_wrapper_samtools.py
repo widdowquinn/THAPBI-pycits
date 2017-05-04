@@ -46,8 +46,7 @@ def test_samtools_index_cmd():
     obj = samtools_index.Samtools_Index("samtools")
     target = ' '.join(["samtools", "index", BAM_FILE])
     stats = obj.run(BAM_FILE)
-    assert_equal(stats.command,
-                 target)
+    assert_equal(stats.command, target)
 
 
 def test_samtools_index_exec_notexist():
@@ -153,7 +152,7 @@ def test_samtools_sort_cmd():
                        "-@",
                        THREADS,
                        BAM_FILE,
-                       SORTED_OUTFILE])
+                       '-o', SORTED_OUTFILE])
     results = obj.run(BAM_FILE, SORTED_OUTFILE, THREADS)
     assert_equal(results.command,
                  target)

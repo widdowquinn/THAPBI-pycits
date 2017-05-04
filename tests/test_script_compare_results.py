@@ -45,7 +45,7 @@ def test_compare_results_exec():
     """
     outfile = os.path.join(OUTDIR, "compare_tests.txt")
     prog = os.path.join("bin", "compare_results.py")
-    temp_s = ["python",
+    temp_s = ["python3",
               prog,
               " -o",
               outfile,
