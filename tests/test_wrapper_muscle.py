@@ -33,8 +33,18 @@ def setup_outdir():
 
 
 def test_muscle_path():
-    """muscle executable is in the $PATH"""
+    """muscle executable is in $PATH"""
     muscle_aln = muscle.Muscle("muscle")
+
+
+def test_muscle_exec_notexist():
+    """error thrown if muscle executable does not exist"""
+    try:
+        bc = muscle.Muscle(os.path.join(".", "muscle"))
+    except NotExecutableError:
+        return True
+    else:
+        return False
 
 
 def test_muscle_cmd():
@@ -45,7 +55,7 @@ def test_muscle_cmd():
                        '-in', INFILE,
                        '-out', OUTFILE])
     assert_equal(muscle_result.command, target)
-    
+
 
 @with_setup(setup_outdir)
 def test_muscle_exec():
