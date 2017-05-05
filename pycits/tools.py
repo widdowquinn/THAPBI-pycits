@@ -196,15 +196,20 @@ def filter_sam_file(in_sam, outfile):
 
 # Function replacing Santi's blastclust_lst2fasta.py script
 def blastclust_to_fasta(infname, seqfname, outdir):
-    """Converts input BLASTCLUST output list to a subdirectory of FASTA files,
-    each of which contains all sequences from a single cluster. The sequences
-    matching the IDs listed in BLASTCLUST output should all be in the file
-    seqfname.
+    """Converts input BLASTCLUST output list to a subdirectory of FASTA files.
+
+
+    Each individual FASTA file contains all sequences from a single cluster.
+    The sequences matching the IDs listed in the BLASTCLUST output .lst file 
+    should all be found in the same file.
+
+    Returns the output directory and a list of the files, as a tuple.
     """
     outdirname = os.path.join(outdir, "blastclust_OTUs")
     if not os.path.exists(outdirname):
         os.makedirs(outdirname)
     seqdict = SeqIO.index(seqfname, 'fasta')
+    outfnames = []
     with open(infname, 'r') as fh:
         otu_id = 0
         for line in fh:
@@ -213,7 +218,8 @@ def blastclust_to_fasta(infname, seqfname, outdir):
                                     "blastclust_OTU_%06d.fasta" % otu_id)
             SeqIO.write((seqdict[key] for key in line.split()),
                         outfname, 'fasta')
-    return outdirname
+            outfnames.append(outfname)
+    return (outdirname, outfnames)
 
 
 # the following four function are to rename the clusters back to their
