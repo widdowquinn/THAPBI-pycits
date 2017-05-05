@@ -21,7 +21,7 @@ Results = namedtuple("Results", "command index stdout stderr")
 
 
 class Bowtie2_BuildError(Exception):
-    """Exception raised when Bowtie2_Build fails"""
+    """Exception raised when bowtie2-build fails"""
     def __init__(self, message):
         self.message = message
 
