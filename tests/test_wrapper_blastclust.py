@@ -10,12 +10,13 @@ from pycits import blast
 from pycits.tools import NotExecutableError
 from pycits.tools import reformat_swarm_cls
 
-from nose.tools import nottest, assert_equal
+from nose.tools import nottest, assert_equal, with_setup
 
 THREADS = 2
+
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "blastclust")
-OUTDIR = os.path.join("tests", "test_out_blastclust")
+OUTDIR = os.path.join("tests", "test_out", "blastclust")
 
 # TARGET OUTPUT
 TARGET = os.path.join("tests", "test_targets", "blastclust",
@@ -25,21 +26,31 @@ TARGET_FOR_R = os.path.join("tests", "test_targets", "blastclust",
                             "trimmed.fasta.blastclust99.Rout")
 
 
+# The setup_outdir() function decorates functions by creating the appropriate
+# output directory tree
+def setup_outdir():
+    """Set up test fixtures"""
+    try:
+        shutil.rmtree(OUTDIR)
+    except FileNotFoundError:
+        pass
+    os.makedirs(OUTDIR, exist_ok=True)
+
+
 def test_blastclust():
-    """Blastclust instantiates with cmd-line and blastclust is in $PATH"""
+    """blastclust is in $PATH"""
     blast.Blastclust("blastclust")
 
 
 def test_blastclust_cmd():
     """Blastclust instantiates and returns correct form of cmd-line"""
     bc = blast.Blastclust("blastclust")
-    target = ' '.join(["blastclust -L 0.90 -S 99 -a 4 -p F",
+    target = ' '.join(["blastclust", "-L 0.90", "-S 99", "-a 4", "-p F",
                        "-i trimmed.fasta",
-                       "-o",
-                       os.path.join("test_out",
-                                    "trimmed.fasta.blastclust99.lst")])
-    assert_equal(bc.run("trimmed.fasta", "test_out", 4, dry_run=True),
-                 target)
+                       "-o", os.path.join("tests", "test_out", "blastclust",
+                                          "trimmed.fasta.blastclust99.lst")])
+    result = bc.run("trimmed.fasta", OUTDIR, 4, dry_run=True)
+    assert_equal(result.command, target)
 
 
 def test_blastclust_exec_notexist():
@@ -62,14 +73,10 @@ def test_blastclust_notexec():
         return False
 
 
+@with_setup(setup_outdir)
 def test_blastclust_exec():
     """Run blastclust on test data and compare output to precomputed target"""
     bc = blast.Blastclust("blastclust")
-    try:
-        shutil.rmtree(OUTDIR)
-    except FileNotFoundError:
-        pass
-    os.makedirs(OUTDIR, exist_ok=True)
     result = bc.run(os.path.join(INDIR, "trimmed.fasta"), OUTDIR, THREADS)
     with open(TARGET, "r") as target_fh:
         with open(result.outfilename, "r") as test_fh:
