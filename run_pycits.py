@@ -275,7 +275,7 @@ def run_pycits_main():
         muscle_result = muscle_aln.run(os.path.join(fname))
     logger.info("Aligned BLASTCLUST OTU sequences written to:\n\t%s",
                 bc_outdir)
-        
+
     # Pick de novo OTUs with QIIME
     logger.info("Picking UCLUST OTUs with QIIME")
     try:
