@@ -16,8 +16,8 @@ from .tools import is_exe, NotExecutableError
 
 # outfile - this is the out file
 # stderr
-Results = namedtuple("Results", "command muscle_outfile " +
-                     "stdout stderr")
+Results = namedtuple("Results",
+                     "command outfile stdout stderr")
 
 
 # TO DO extra options for muscle
@@ -36,23 +36,18 @@ class Muscle(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, infile, outfile, outfolder, dry_run=False):
+    def run(self, infile, dry_run=False):
         """Run MUSCLE on the single passed file
-        take the infile as a fasta, the given outfile name and the
-        given outfolder name.
 
-        -in infile
-        -out outfile
-        Returns a tuple of output file, and the STOUT returned by the
+        Writes the alignment result alongside the input file
+
+        Returns a tuple of output file, and the STDOUT, STDERR returned by the
         muscle run.
         """
-        self._outfolder = os.path.join(outfolder)
-        if not os.path.exists(self._outfolder):
-            os.makedirs(self._outfolder)
+        # Place output in the same folder as the input file
+        self._outfolder = os.path.join(*os.path.split(infile)[:-1])
 
-        # ensure the file format is correct - has something weird happened?
-        assert (infile.endswith(".fa") or infile.endswith(".fasta"))
-        self.__build_cmd(infile, outfile, outfolder)
+        self.__build_cmd(infile)
         if dry_run:
             return(self._cmd)
         pipe = subprocess.run(self._cmd, shell=True,
@@ -63,9 +58,10 @@ class Muscle(object):
                           pipe.stderr)
         return results
 
-    def __build_cmd(self, infile, outfile, outfolder):
+    def __build_cmd(self, infile):
         """Build a command-line for MUSCLE"""
-        self._outfilename = os.path.join(self._outfolder, outfile)
+        self._outfilename = os.path.join(os.path.splitext(infile)[0] +
+                                         '_muscle.aln')
 
         cmd = ["muscle",
                "-in", infile,
