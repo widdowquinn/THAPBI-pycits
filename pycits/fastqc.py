@@ -19,8 +19,8 @@ from .tools import is_exe, NotExecutableError
 # fastqc_html - this is the html file
 # fastqc_zip -  this is the output zip folder.
 # stderr
-Results = namedtuple("Results", "command fastqc_html fastqc_zip " +
-                     "stdout stderr")
+Results = namedtuple("Results",
+                     "command htmlfile zipfile stdout stderr")
 
 
 class FastQCError(Exception):
