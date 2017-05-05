@@ -177,12 +177,8 @@ def run_pycits_main():
     for fname in infilenames:
         if ' ' in os.path.relpath(fname):
             logger.error("Relative path to file or directory " +
-                         "'%s' contains whitespace", fname)
-            logger.error("(exiting)")
+                         "'%s' contains whitespace (exiting)", fname)
             sys.exit(1)
-
-    # Check dependencies for third-party tools
-    check_dependencies(args, logger)
 
     # Check for presence of third-party tools, by instantiating interfaces
     logger.info("Checking third-party packages:")
@@ -255,34 +251,31 @@ def run_pycits_main():
     # Cluster OTUs with BLASTCLUST
     logger.info("Clustering OTUs with BLASTCLUST")
     try:
-        blastclustlst, blastclustout = blastclust.run(trimmed_joined_fasta,
-                                                      args.outdirname,
-                                                      args.threads)
+        bc_result = blastclust.run(trimmed_joined_fasta, args.outdirname,
+                                   args.threads)
     except:
         logger.error("Error clustering with BLASTCLUST (exiting)")
         logger.error(last_exception())
         sys.exit(1)
     else:
-        logger.info("Clustering joined, trimmed sequences with BLASTCLUST:")
-        logger.info("\t%s", blastclustlst)
-        logger.info("BLASTCLUST output:")
-        for line in blastclustout:
-            logger.info("\t%s", line)
+        logger.info("Clustering joined, trimmed sequences with " +
+                    "BLASTCLUST:\n\t%s", bc_result.outfilename)
 
     # Convert BLASTCLUST output to FASTA sequence files
     logger.info("Generating FASTA from BLASTCLUST output")
-    blastclust_outdir = tools.blastclust_to_fasta(blastclustlst,
-                                                  trimmed_joined_fasta,
-                                                  args.outdirname)
-    logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
-    logger.info("\t%s", blastclust_outdir)
+    bc_outdir, bc_files = tools.blastclust_to_fasta(bc_result.outfilename,
+                                                    trimmed_joined_fasta,
+                                                    args.outdirname)
+    logger.info("FASTA sequences for BLASTCLUST OTUs written to:\n\t%s",
+                bc_outdir)
 
     # Align the BLASTCLUST OTUs with MUSCLE
-    logger.info("Aligning BLASTCLUST OTU sequences")
-    muscle_dir = muscle_aln.run(blastclust_outdir)
-    logger.info("Aligned BLASTCLUST OTU sequences written to:")
-    logger.info("\t%s", muscle_dir)
-
+    logger.info("Aligning BLASTCLUST OTU sequences with MUSCLE")
+    for fname in bc_files:
+        muscle_result = muscle_aln.run(os.path.join(fname))
+    logger.info("Aligned BLASTCLUST OTU sequences written to:\n\t%s",
+                bc_outdir)
+        
     # Pick de novo OTUs with QIIME
     logger.info("Picking UCLUST OTUs with QIIME")
     try:
@@ -294,8 +287,8 @@ def run_pycits_main():
         logger.error(last_exception())
         sys.exit(1)
     else:
-        logger.info("OTUs picked by QIIME with UCLUST written to:")
-        logger.info("\t%s", qiime_uclustdir)
+        logger.info("OTUs picked by QIIME with UCLUST written to:\n\t%s",
+                    qiime_uclustdir)
 
     # Pick closed-reference OTUs with QIIME
     logger.info("Picking closed-reference OTUs with QIIME")
@@ -309,31 +302,30 @@ def run_pycits_main():
         logger.error(last_exception())
         sys.exit(1)
     else:
-        logger.info("OTUs picked by QIIME (closed-reference) written to:")
-        logger.info("\t%s", qiime_pcrodir)
+        logger.info("OTUs picked by QIIME (closed-reference) " +
+                    "written to:\n\t%s", qiime_pcrodir)
         logger.info("Converting BIOM output to tabular (TSV) format")
         biomfname = os.path.join(qiime_pcrodir, "otu_table.biom")
         biom_table = load_table(biomfname)
         tsvfname = os.path.splitext(biomfname)[0] + ".tsv"
         with open(tsvfname, 'w') as ofh:
             ofh.write(biom_table.to_tsv())
-        logger.info("TSV output written to:")
-        logger.info("\t%s", tsvfname)
+        logger.info("TSV output written to:\n\t%s", tsvfname)
 
     # Run FastQC on the read files
     logger.info("Running FastQC")
+    fastqc_outdir = os.path.join(args.outdirname, "FastQC")
     for infname in infilenames + trimmed_fnames + [joined_reads]:
         try:
             logger.info(infname)
-            fastqcdir, fastqcout = fastqc_qc.run(infname, args.outdirname)
+            qc_result = fastqc_qc.run(infname, fastqc_outdir)
         except:
             logger.error("Error running FASTQ on %s", infname)
             logger.error(last_exception())
             sys.exit(1)
         else:
-            logger.info("Writing to %s", fastqcdir)
-            for line in fastqcout:
-                logger.info("\t%s", line)
+            logger.info("Writing to:\n\t%s\n\t%s",
+                        qc_result.htmlfile, qc_result.zipfile)
 
     # Announce end of pipeline
     logger.info("Pipeline complete: %s", time.asctime())
