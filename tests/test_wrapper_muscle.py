@@ -65,3 +65,13 @@ def test_muscle_exec():
     with open(TARGET, "r") as target_fh:
         with open(result.outfile, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
+
+
+def test_muscle_notexec():
+    """error thrown if muscle exe not executable"""
+    try:
+        bc = muscle.Muscle("LICENSE")
+    except NotExecutableError:
+        return True
+    else:
+        return False
