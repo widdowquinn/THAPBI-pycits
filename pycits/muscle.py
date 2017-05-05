@@ -36,7 +36,8 @@ class Muscle(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, infile, dry_run=False):
+
+    def run(self, infile, outfile=None, dry_run=False):
         """Run MUSCLE on the single passed file
 
         Writes the alignment result alongside the input file
@@ -44,24 +45,29 @@ class Muscle(object):
         Returns a tuple of output file, and the STDOUT, STDERR returned by the
         muscle run.
         """
-        # Place output in the same folder as the input file
-        self._outfolder = os.path.join(*os.path.split(infile)[:-1])
-
-        self.__build_cmd(infile)
+        # Construct command and return if a dry run
+        self.__build_cmd(infile, outfile)
         if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
+            results = Results(self._cmd, self._outfilename, None, None)
+        else:
+            pipe = subprocess.run(self._cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
-        results = Results(self._cmd, self._outfilename, pipe.stdout,
-                          pipe.stderr)
+            results = Results(self._cmd, self._outfilename, pipe.stdout,
+                              pipe.stderr)
         return results
 
-    def __build_cmd(self, infile):
+    
+    def __build_cmd(self, infile, outfile):
         """Build a command-line for MUSCLE"""
-        self._outfilename = os.path.join(os.path.splitext(infile)[0] +
-                                         '_muscle.aln')
+        # Default to a new alignment alongside the input if no output file is
+        # specified.
+        if outfile is None:
+            self._outfilename = os.path.join(os.path.splitext(infile)[0] +
+                                             '_muscle.aln')
+        else:
+            self._outfilename = outfile
 
         cmd = ["muscle",
                "-in", infile,
