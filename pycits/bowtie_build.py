@@ -35,27 +35,23 @@ class Bowtie2_Build(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, infname, index_out, dry_run=False):
-        """
-        Bowtie2 is btter for longer reads, than bowtie 1.
-        Run bowtie2-build on the passed file
-        infnames    -  the fasta to index
-        index_out   -  the out index prefix
-        """
-        self.__build_cmd(infname, index_out)
+    def run(self, infname, outstem, dry_run=False):
+        """Construct and execute a bowtie2-build command-line"""
+        self.__build_cmd(infname, outstem)
         if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
-        results = Results(self._cmd, self._outfname, pipe.stdout,
-                          pipe.stderr)
+            results = Results(self._cmd, self._outfname, None, None)
+        else:
+            pipe = subprocess.run(self._cmd, shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  check=True)
+            results = Results(self._cmd, self._outfname, pipe.stdout,
+                              pipe.stderr)
         return results
 
-    def __build_cmd(self, infname, index_out):
+    def __build_cmd(self, infname, outstem):
         """Build a command-line for bowtie2-build"""
-        self._outfname = index_out
+        self._outfname = outstem
         cmd = ["bowtie2-build",
                "--quiet",
                "-f",
