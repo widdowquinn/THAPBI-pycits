@@ -17,13 +17,10 @@ from nose.tools import nottest, assert_equal, with_setup
 import subprocess
 
 # INPUT DATA
-INDIR = os.path.join("tests", "test_data")
 OUTDIR = os.path.join("tests", "test_out", "bowtie2-build")
 TARGETDIR = os.path.join("tests", "test_targets", "bowtie2-build")
-DATABASE = os.path.join("tests", "test_data", "databases",
+DATABASE = os.path.join("tests", "test_data", "bowtie2-build",
                         "database_bowtie_test.fasta")
-READS = os.path.join(INDIR, "pear_test.assembled.fastq.gz")
-FASTA = os.path.join(INDIR, "bowtie", "bowtie_test.assembled.fastq")
 
 FA_INDEX = os.path.join(OUTDIR, "fasta_index")
 THREADS = "1"
