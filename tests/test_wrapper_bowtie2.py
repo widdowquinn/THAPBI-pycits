@@ -47,8 +47,7 @@ def test_bowtie2_cmd():
     bt2_map = bowtie_map.Bowtie2_Map("bowtie2")
     outfilename = os.path.join(OUTDIR,
                                "_vs_".join([os.path.split(os.path.splitext(READS)[0])[-1],
-                                            os.path.split(os.path.splitext(FA_INDEX)[0])[-1]]) +
-            ".sam")
+                                            os.path.split(os.path.splitext(FA_INDEX)[0])[-1]]) + ".sam")
     target = ' '.join(["bowtie2",
                        "--very-sensitive",
                        "--no-unal",
@@ -85,17 +84,18 @@ def test_bowtie2_notexec():
 def test_bowtie2_build_exec():
     """bowtie2 maps reads correctly with FASTA test data"""
     bt2_map = bowtie_map.Bowtie2_Map("bowtie2")
-    outfilename = \
-                  os.path.join(OUTDIR,
+    outfilename = os.path.join(OUTDIR,
                                "_vs_".join([os.path.split(os.path.splitext(READS)[0])[-1],
                                             os.path.split(os.path.splitext(FA_INDEX)[0])[-1]]) +
                                ".sam")
     result = bt2_map.run(READS, FA_INDEX, outfilename, THREADS, fasta=True)
-    # Test for equality of output and target MD5 hashes
-    with open(os.path.join(outfilename), "rb") as outfh:
-        outhash = hashlib.md5()
-        outhash.update(outfh.read())
-    with open(TARGET, "rb") as tgtfh:
-        tgthash = hashlib.md5()
-        tgthash.update(tgtfh.read())
-    assert_equal(tgthash.digest(), outhash.digest())
+    # Test for equality of output and target MD5 files
+    # To establish equality, we need to ignore the @PG line that describes the
+    # path to bowtie2, as this may differ between systems
+    with open(os.path.join(outfilename), "r") as outfh:
+        with open(TARGET, "r") as tgtfh:
+            tgtdata = '\n'.join([l for l in tgtfh.readlines() if
+                                 l.startswith('@PG')])
+            outdata = '\n'.join([l for l in outfh.readlines() if
+                                 l.startswith('@PG')])
+            assert_equal(tgtdata, outdata)
