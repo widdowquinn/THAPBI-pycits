@@ -95,7 +95,7 @@ def test_bowtie2_build_exec():
     with open(os.path.join(outfilename), "r") as outfh:
         with open(TARGET, "r") as tgtfh:
             tgtdata = '\n'.join([l for l in tgtfh.readlines() if
-                                 l.startswith('@PG')])
+                                 not l.startswith('@PG')])
             outdata = '\n'.join([l for l in outfh.readlines() if
-                                 l.startswith('@PG')])
+                                 not l.startswith('@PG')])
             assert_equal(tgtdata, outdata)
