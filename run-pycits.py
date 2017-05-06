@@ -28,7 +28,7 @@ from pycits import muscle, __version__
 
 
 # Process command-line arguments
-def parse_cmdline(args):
+def parse_cmdline():
     """Parse command-line arguments"""
     parser = ArgumentParser(prog="pycits.py")
     parser.add_argument("-p", "--prefix", dest="prefix",
@@ -91,67 +91,79 @@ def last_exception():
                                               exc_traceback))
 
 
-# Run as script
-if __name__ == '__main__':
+# Make logger
+def construct_logger(args):
+    """Returns a logger, configured as required from cmd-line arguments."""
+    # Instantiate logger
+    logger = logging.getLogger('pycits.py %s: %s' % (time.asctime(),
+                                                     __version__))
+    logger.setLevel(logging.DEBUG)  # default logger level
 
-    # Parse command-line
-    args = parse_cmdline(sys.argv)
-
-    # Set up logging
-    logger = logging.getLogger('pycits.py: %s' % time.asctime())
-    logger = logging.getLogger('version: %s' % __version__)
-    logger.setLevel(logging.DEBUG)
+    # Set default stream to STDERR
     err_handler = logging.StreamHandler(sys.stderr)
     err_formatter = logging.Formatter('%(levelname)s: %(message)s')
     err_handler.setFormatter(err_formatter)
     logger.addHandler(err_handler)
 
-    # Was a logfile specified? If so, use it
-    if args.logfile is not None:
-        try:
-            logstream = open(args.logfile, 'w')
-            err_handler_file = logging.StreamHandler(logstream)
-            err_handler_file.setFormatter(err_formatter)
-            # logfile is always verbose
-            err_handler_file.setLevel(logging.INFO)
-            logger.addHandler(err_handler_file)
-        except:
-            logger.error("Could not open %s for logging" %
-                         args.logfile)
-            sys.exit(1)
-
-    # Do we need verbosity at the terminal?
+    # Do we need verbosity in STDERR?
     if args.verbose:
         err_handler.setLevel(logging.INFO)
     else:
         err_handler.setLevel(logging.WARNING)
 
+    # Was a logfile specified? If so, add it as a stream
+    if args.logfile is not None:
+        try:
+            logstream = open(args.logfile, 'w')
+        except FileNotFoundError:
+            logger.error("Could not open %s for logging (exiting)",
+                         args.logfile)
+            sys.exit(1)
+        else:
+            err_handler_file = logging.StreamHandler(logstream)
+            err_handler_file.setFormatter(err_formatter)
+            # logfile is always verbose
+            err_handler_file.setLevel(logging.INFO)
+            logger.addHandler(err_handler_file)
+
+    return logger
+
+
+# Main process for script
+def run_pycits_main():
+    """Main process for run-pycits.py script"""
+    # Parse command-line
+    args = parse_cmdline()
+
+    # Set up logging
+    logger = construct_logger(args)
+
     # Report input arguments
-    logger.info("Command-line: %s" % ' '.join(sys.argv))
+    logger.info("Command-line: %s", ' '.join(sys.argv))
     logger.info(args)
-    logger.info("Starting pipeline: %s" % time.asctime())
+    logger.info("Starting pipeline: %s", time.asctime())
 
     # Have we got an input directory, reference set and prefix? If not, exit.
     if args.indirname is None:
         logger.error("No input directory name (exiting)")
         sys.exit(1)
-    logger.info("Input directory: %s" % args.indirname)
+    logger.info("Input directory: %s", args.indirname)
     if args.prefix is None:
         logger.error("No read file prefix given (exiting)")
         sys.exit(1)
-    logger.info("Read file prefix: %s" % args.prefix)
+    logger.info("Read file prefix: %s", args.prefix)
     if args.reference_fasta is None:
         logger.error("No reference FASTA file given (exiting)")
         sys.exit(1)
-    logger.info("Reference FASTA file: %s" % args.reference_fasta)
+    logger.info("Reference FASTA file: %s", args.reference_fasta)
 
     # Have we got an output directory and prefix? If not, create it.
     try:
-        logger.info("Creating directory %s" % args.outdirname)
+        logger.info("Creating directory %s", args.outdirname)
         os.makedirs(args.outdirname)
     except OSError as exception:
         if exception.errno != errno.EEXIST:
-            logger.error("Error creating directory %s (exiting)" %
+            logger.error("Error creating directory %s (exiting)",
                          args.outdirname)
             logger.info(last_exception())
             sys.exit(1)
@@ -161,78 +173,84 @@ if __name__ == '__main__':
     infilenames = sorted([os.path.join(args.indirname, fname) for
                           fname in os.listdir(args.indirname) if
                           fname.startswith(args.prefix)])
-    logger.info("Input files: %s" % infilenames)
+    logger.info("Input files: %s", infilenames)
     for fname in infilenames:
         if ' ' in os.path.relpath(fname):
             logger.error("Relative path to file or directory " +
-                         "'%s' contains whitespace" % fname)
+                         "'%s' contains whitespace", fname)
             logger.error("(exiting)")
             sys.exit(1)
 
+    # Check dependencies for third-party tools
+    check_dependencies(args, logger)
+
     # Check for presence of third-party tools, by instantiating interfaces
     logger.info("Checking third-party packages:")
-    logger.info("\tFastQC... (%s)" % args.fastqc)
-    fastQC = fastqc.FastQC(args.fastqc, logger)
-    logger.info("\ttrim_quality... (%s)" % args.trim_quality)
+    logger.info("\tFastQC... (%s)", args.fastqc)
+    fastqc_qc = fastqc.FastQC(args.fastqc)
+    logger.info("\ttrim_quality... (%s)", args.trim_quality)
     trim_quality = seq_crumbs.Trim_Quality(args.trim_quality, logger)
-    logger.info("\tjoin_paired_ends.py... (%s)" % args.join_paired_ends)
+    logger.info("\tjoin_paired_ends.py... (%s)", args.join_paired_ends)
     jpe = qiime.Join_Paired_Ends(args.join_paired_ends, logger)
-    logger.info("\tconvert_format... (%s)" % args.convert_format)
+    logger.info("\tconvert_format... (%s)", args.convert_format)
     convert_format = seq_crumbs.Convert_Format(args.convert_format, logger)
-    logger.info("\tblastclust... (%s)" % args.blastclust)
+    logger.info("\tblastclust... (%s)", args.blastclust)
     blastclust = blast.Blastclust(args.blastclust)
-    logger.info("\tmuscle... (%s)" % args.muscle)
-    muscle = muscle.Muscle(args.muscle, logger)
-    logger.info("\tpick_otus.py... (%s)" % args.pick_otus)
+    logger.info("\tmuscle... (%s)", args.muscle)
+    muscle_aln = muscle.Muscle(args.muscle)
+    logger.info("\tpick_otus.py... (%s)", args.pick_otus)
     pick_otus = qiime.Pick_Otus(args.pick_otus, logger)
-    logger.info("\tpick_closed_reference_otus.py... (%s)" %
+    logger.info("\tpick_closed_reference_otus.py... (%s)",
                 args.pick_closed_reference_otus)
     pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
 
     # How many threads are we using?
     args.threads = min(args.threads, multiprocessing.cpu_count())
-    logger.info("Using %d threads/CPUs where available" % args.threads)
+    logger.info("Using %d threads/CPUs where available", args.threads)
 
     # Trim reads on quality - forward and reverse reads
     logger.info("Trim reads by quality")
     try:
         trimmed_fnames = [trim_quality.run(fname, args.outdirname) for
                           fname in infilenames]
-        logger.info("Trimmed FASTQ files:")
-        logger.info("\t%s" % trimmed_fnames)
     except:
         logger.error("Error running trim_quality (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+    else:
+        logger.info("Trimmed FASTQ files:")
+        logger.info("\t%s", trimmed_fnames)
 
     # Join the trimmed, paired-end reads together
     logger.info("Join trimmed, paired-end reads")
     try:
         joined_reads = jpe.run(trimmed_fnames, args.outdirname)
-        logger.info("Joined reads:")
-        logger.info("\t%s" % joined_reads)
     except:
         logger.error("Error joining reads (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+    else:
+        logger.info("Joined reads:")
+        logger.info("\t%s", joined_reads)
 
     # Create a FASTA file equivalent to the joined FASTQ reads
     logger.info("Creating FASTA file")
     try:
         joined_fasta = convert_format.run(joined_reads, args.outdirname)
-        logger.info("Converted to FASTA:")
-        logger.info("\t%s" % joined_fasta)
     except:
         logger.error("Error converting to FASTA (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+    else:
+        logger.info("Converted to FASTA:")
+        logger.info("\t%s", joined_fasta)
 
     # Trim sequences by 20nt on left and right
     logger.info("Trimming sequences")
     trimmed_joined_fasta = os.path.splitext(joined_fasta)[0] + '_trimmed.fasta'
     write_count = tools.trim_seq(joined_fasta, trimmed_joined_fasta)
-    logger.info("Trimmed, joined FASTA (%d sequences):" % write_count)
-    logger.info("\t%s" % trimmed_joined_fasta)
+    logger.info("Trimmed, joined FASTA (%d sequences):", write_count)
+    logger.info("\t%s", trimmed_joined_fasta)
 
     # Cluster OTUs with BLASTCLUST
     logger.info("Clustering OTUs with BLASTCLUST")
@@ -240,15 +258,16 @@ if __name__ == '__main__':
         blastclustlst, blastclustout = blastclust.run(trimmed_joined_fasta,
                                                       args.outdirname,
                                                       args.threads)
-        logger.info("Clustering joined, trimmed sequences with BLASTCLUST:")
-        logger.info("\t%s" % blastclustlst)
-        logger.info("BLASTCLUST output:")
-        for line in blastclustout:
-            logger.info("\t%s" % line)
     except:
         logger.error("Error clustering with BLASTCLUST (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+    else:
+        logger.info("Clustering joined, trimmed sequences with BLASTCLUST:")
+        logger.info("\t%s", blastclustlst)
+        logger.info("BLASTCLUST output:")
+        for line in blastclustout:
+            logger.info("\t%s", line)
 
     # Convert BLASTCLUST output to FASTA sequence files
     logger.info("Generating FASTA from BLASTCLUST output")
@@ -256,13 +275,13 @@ if __name__ == '__main__':
                                                   trimmed_joined_fasta,
                                                   args.outdirname)
     logger.info("FASTA sequences for BLASTCLUST OTUs written to:")
-    logger.info("\t%s" % blastclust_outdir)
+    logger.info("\t%s", blastclust_outdir)
 
     # Align the BLASTCLUST OTUs with MUSCLE
     logger.info("Aligning BLASTCLUST OTU sequences")
-    muscle_dir = muscle.run(blastclust_outdir)
+    muscle_dir = muscle_aln.run(blastclust_outdir)
     logger.info("Aligned BLASTCLUST OTU sequences written to:")
-    logger.info("\t%s" % muscle_dir)
+    logger.info("\t%s", muscle_dir)
 
     # Pick de novo OTUs with QIIME
     logger.info("Picking UCLUST OTUs with QIIME")
@@ -270,12 +289,13 @@ if __name__ == '__main__':
         qiime_uclustdir = pick_otus.run(trimmed_joined_fasta,
                                         args.reference_fasta,
                                         args.outdirname)
-        logger.info("OTUs picked by QIIME with UCLUST written to:")
-        logger.info("\t%s" % qiime_uclustdir)
     except:
         logger.error("Error clustering with QIIME (UCLUST) (exiting)")
         logger.error(last_exception())
         sys.exit(1)
+    else:
+        logger.info("OTUs picked by QIIME with UCLUST written to:")
+        logger.info("\t%s", qiime_uclustdir)
 
     # Pick closed-reference OTUs with QIIME
     logger.info("Picking closed-reference OTUs with QIIME")
@@ -283,8 +303,14 @@ if __name__ == '__main__':
         qiime_pcrodir = pcro.run(trimmed_joined_fasta,
                                  args.reference_fasta,
                                  args.outdirname)
+    except:
+        logger.error("Error clustering with QIIME (closed-reference) " +
+                     "(exiting)")
+        logger.error(last_exception())
+        sys.exit(1)
+    else:
         logger.info("OTUs picked by QIIME (closed-reference) written to:")
-        logger.info("\t%s" % qiime_pcrodir)
+        logger.info("\t%s", qiime_pcrodir)
         logger.info("Converting BIOM output to tabular (TSV) format")
         biomfname = os.path.join(qiime_pcrodir, "otu_table.biom")
         biom_table = load_table(biomfname)
@@ -292,26 +318,28 @@ if __name__ == '__main__':
         with open(tsvfname, 'w') as ofh:
             ofh.write(biom_table.to_tsv())
         logger.info("TSV output written to:")
-        logger.info("\t%s" % tsvfname)
-    except:
-        logger.error("Error clustering with QIIME (closed-reference) " +
-                     "(exiting)")
-        logger.error(last_exception())
-        sys.exit(1)
+        logger.info("\t%s", tsvfname)
 
     # Run FastQC on the read files
     logger.info("Running FastQC")
     for infname in infilenames + trimmed_fnames + [joined_reads]:
         try:
             logger.info(infname)
-            fastqcdir, fastqcout = fastQC.run(infname, args.outdirname)
-            logger.info("Writing to %s" % fastqcdir)
-            for line in fastqcout:
-                logger.info("\t%s" % line)
+            fastqcdir, fastqcout = fastqc_qc.run(infname, args.outdirname)
         except:
-            logger.error("Error running FASTQ on %s" % infname)
+            logger.error("Error running FASTQ on %s", infname)
             logger.error(last_exception())
             sys.exit(1)
+        else:
+            logger.info("Writing to %s", fastqcdir)
+            for line in fastqcout:
+                logger.info("\t%s", line)
 
     # Announce end of pipeline
-    logger.info("Pipeline complete: %s" % time.asctime())
+    logger.info("Pipeline complete: %s", time.asctime())
+
+
+# Run as script
+if __name__ == '__main__':
+
+    run_pycits_main()
