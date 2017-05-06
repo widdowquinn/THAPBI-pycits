@@ -79,13 +79,13 @@ def get_sorted_fa(fasta):
     return sorted(out_list)
 
 
-def test_vsearch_derep():
-    """Vsearch_derep instantiates with cmd-line if cd-hit is in $PATH"""
+def test_vsearch_path():
+    """vsearch is in $PATH"""
     derep = vsearch.Vsearch_derep("vsearch")
 
 
-def test_vsearch_derep_cmd():
-    """Vsearch_derep instantiates and returns correct form of cmd-line"""
+def test_vsearch_cmd():
+    """vsearch returns correct form of cmd-line"""
     outfname = os.path.join(OUTDIR, PREFIX +
                             'derep.fasta')
     derep = vsearch.Vsearch_derep("vsearch")
@@ -97,8 +97,8 @@ def test_vsearch_derep_cmd():
                            dry_run=True), target)
 
 
-def test_vsearch_derep_exec_notexist():
-    """Error thrown if Vsearch_derep executable does not exist"""
+def test_vsearch_exec_notexist():
+    """error thrown if vsearch executable does not exist"""
     try:
         derep = vsearch.Vsearch_derep(os.path.join(".", "vsearch"))
     except NotExecutableError:
@@ -107,7 +107,7 @@ def test_vsearch_derep_exec_notexist():
         return False
 
 
-def test_vsearch_derep_notexec():
+def test_vsearch_notexec():
     """Error thrown if vsearch not executable"""
     try:
         cluster = vsearch.Vsearch_derep("LICENSE")
@@ -198,6 +198,7 @@ def test_Vsearch_cluster_notexec():
         return False
 
 
+@with_setup(setup_outdir)
 def test_vsearch_exec():
     """Run vsearch on test data
 
@@ -230,6 +231,7 @@ def test_vsearch_exec():
 ###################################################################
 # Now to test conversion to another format
 
+@with_setup(setup_outdir)
 def test_convert_vsearch_format():
     """ testing function in tools to convert blast6 format to format
     for R"""
@@ -330,6 +332,7 @@ def test_vsearch_fastas_notexec():
         return False
 
 
+@with_setup(setup_outdir)
 def test_vsearch_exec():
     """Run vsearch on test data
 
