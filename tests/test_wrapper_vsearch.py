@@ -8,19 +8,19 @@ import shutil
 from pycits import vsearch
 from pycits.tools import NotExecutableError, reformat_blast6_clusters
 import subprocess
-from nose.tools import nottest, assert_equal
+from nose.tools import nottest, assert_equal, with_setup
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "vsearch")
-OUTDIR = os.path.join("tests", "test_out_vsearch")
+OUTDIR = os.path.join("tests", "test_out", "vsearch")
 INFILE_DEREP = os.path.join(INDIR, "test_db_for_abundance_checking.fasta")
 PREFIX = "test_run"
 THRESHOLD = "0.96"
 THREADS = "2"
-DB = os.path.join("data", "ITS_db_NOT_conf_correct_last14bp_removd.fasta")
+DB = os.path.join(INDIR, "vsearch_tests_ITS_db.fasta")
 
 # TARGET OUTPUT
 TARGET_DEREP = os.path.join("tests", "test_targets", "vsearch",
@@ -41,9 +41,17 @@ TARGET_ALIGNED = os.path.join("tests", "test_targets", "vsearch",
                               "target.alignedclusters.fasta")
 TARGET_CONCENSUS = os.path.join("tests", "test_targets", "vsearch",
                                 "target.consensus_cls_seq.fasta")
-# folder checking
-if not os.path.exists(OUTDIR):
-    os.makedirs(OUTDIR)
+
+
+# The setup_outdir() function decorates functions by creating the appropriate
+# output directory tree
+def setup_outdir():
+    """Set up test fixtures"""
+    try:
+        shutil.rmtree(OUTDIR)
+    except FileNotFoundError:
+        pass
+    os.makedirs(OUTDIR, exist_ok=True)
 
 
 def get_sorted_list(in_file):
@@ -109,6 +117,7 @@ def test_Vsearch_derep_notexec():
         return False
 
 
+@with_setup(setup_outdir)
 def test_vsearch_exec():
     """Run vsearch on test data
 
@@ -343,19 +352,16 @@ def test_vsearch_exec():
     # compare the blast6 output, convert them to sorted lists first
     target_blast = get_sorted_list(TARGET_C_FAST_B6)
     result_blast = get_sorted_list(result2.blast6)
-    print ("This is test1")
     assert_equal(result_blast, target_blast)
 
     # UC outfiles
     target_uc = get_sorted_list(TARGET_C_FAST_UC)
     result_uc = get_sorted_list(result2.uc_clusters)
-    print ("This is test2")
     assert_equal(result_uc, target_uc)
 
     # centroids outfiles
     target_cent = get_sorted_fa(TARGET_CENTROIDS)
     result_cent = get_sorted_fa(result2.centroids)
-    print ("This is test3")
     assert_equal(target_cent, result_cent)
 
     # TARGET_ALIGNED
