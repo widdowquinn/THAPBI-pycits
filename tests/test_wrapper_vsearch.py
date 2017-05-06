@@ -79,12 +79,12 @@ def get_sorted_fa(fasta):
     return sorted(out_list)
 
 
-def test_Vsearch_derep():
+def test_vsearch_derep():
     """Vsearch_derep instantiates with cmd-line if cd-hit is in $PATH"""
     derep = vsearch.Vsearch_derep("vsearch")
 
 
-def test_Vsearch_derep_cmd():
+def test_vsearch_derep_cmd():
     """Vsearch_derep instantiates and returns correct form of cmd-line"""
     outfname = os.path.join(OUTDIR, PREFIX +
                             'derep.fasta')
@@ -97,7 +97,7 @@ def test_Vsearch_derep_cmd():
                            dry_run=True), target)
 
 
-def test_Vsearch_derep_exec_notexist():
+def test_vsearch_derep_exec_notexist():
     """Error thrown if Vsearch_derep executable does not exist"""
     try:
         derep = vsearch.Vsearch_derep(os.path.join(".", "vsearch"))
@@ -107,7 +107,7 @@ def test_Vsearch_derep_exec_notexist():
         return False
 
 
-def test_Vsearch_derep_notexec():
+def test_vsearch_derep_notexec():
     """Error thrown if vsearch not executable"""
     try:
         cluster = vsearch.Vsearch_derep("LICENSE")
@@ -258,12 +258,12 @@ def test_convert_vsearch_format():
 # Now to tests Vsearch_fastas
 
 
-def test_Vsearch_fastas():
+def test_vsearch_fastas():
     """Vsearch_fastas instantiates with cmd-line if cd-hit is in $PATH"""
     cluster = vsearch.Vsearch_fastas("vsearch")
 
 
-def test_Vsearch_fastas_cmd():
+def test_vsearch_fastas_cmd():
     """Vsearch_fastas instantiates and returns correct form of cmd-line"""
     cluster = vsearch.Vsearch_fastas("vsearch")
     target = ' '.join(["vsearch",
@@ -310,7 +310,7 @@ def test_Vsearch_fastas_cmd():
                              dry_run=True), target)
 
 
-def test_Vsearch_fastas_exec_notexist():
+def test_vsearch_fastas_exec_notexist():
     """Error thrown if Vsearch_fastas executable does not exist"""
     try:
         cluster = vsearch.Vsearch_fastas(os.path.join(".", "vsearch"))
@@ -320,7 +320,7 @@ def test_Vsearch_fastas_exec_notexist():
         return False
 
 
-def test_Vsearch_fastas_notexec():
+def test_vsearch_fastas_notexec():
     """Error thrown if vsearch not executable"""
     try:
         cluster = vsearch.Vsearch_fastas("LICENSE")
