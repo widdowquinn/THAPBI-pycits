@@ -42,13 +42,14 @@ class Blastclust(object):
         """
         self.__build_cmd(infnames, outdir, threads)
         if dry_run:
-            return self._cmd
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
-        results = Results_bc(self._cmd, self._outfname, pipe.stdout,
-                             pipe.stderr)
+            results = Results_bc(self._cmd, self._outfname, None, None)
+        else:
+            pipe = subprocess.run(self._cmd, shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  check=True)
+            results = Results_bc(self._cmd, self._outfname, pipe.stdout,
+                                 pipe.stderr)
         return results
 
     def __build_cmd(self, infname, outdir, threads):

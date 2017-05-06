@@ -42,28 +42,43 @@ def is_exe(filename):
     return os.path.isfile(exefile) and os.access(exefile, os.X_OK)
 
 
-# Defaults  settings are for the current ITS1 phy
-# primers and the development ITS1 Phy database. DON'T BLINDLY USE THESE
-# The filenames, we now provide directly.
-def trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
-    """Trims all FASTA sequences in infname by lclip and rclip on the
-    'left'- and 'right'-hand ends, respectively and writes the results to
-    outfname. Any clipped sequence with length < minlen is not written.
-
-    Defaults are equivalent to the default settings are for the current ITS1
-    phy primers and the development ITS1 Phy database. PLEASE DONT BLINDLY
-    USE THESE. The filenames, we now provide directly.
+# The function below replicates Santi's trim_longitudes.py script, and is
+# this functionality is required to ensure compatibility/consistency with
+# his old script for testing. Defaults are equivalent to the default settings
+# in Santi's script, excepting the filenames, which we now provide directly.
+def trim_seq(infname, outfname, lclip=21, rclip=20, minlen=100):
+    """Trims all FASTA sequences in infname by lclip and rclip.
+    
+    lclip and rclip are the 'left'- and 'right'-hand ends, respectively.
+    This function writes the results to outfname. Any clipped sequence with
+    length < minlen is not written.
     """
-    # ensure these are int, as they may have been passed as a string.
-    lclip = int(lclip)
-    rclip = int(rclip)
     with open(infname, 'r') as fh:
-        # rclip needs to be set up to allow for zero values, using logic:
-        # rclip_coordinate = len(s) - rclip
         # Use generators to save memory
-        s_trim = (s[lclip:(len(s) - rclip)] for s in SeqIO.parse(fh, 'fasta'))
-        return SeqIO.write((s for s in s_trim if len(s) >= minlen),
+        s_trimmed = (s[lclip:-rclip] for s in SeqIO.parse(fh, 'fasta'))
+        return SeqIO.write((s for s in s_trimmed if len(s) >= minlen),
                            outfname, 'fasta')
+
+# Commented out PT's changes, which break backwards compatibility!
+#def trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
+#    """Trims all FASTA sequences in infname by lclip and rclip on the
+#    'left'- and 'right'-hand ends, respectively and writes the results to
+#    outfname. Any clipped sequence with length < minlen is not written.
+#
+#    Defaults are equivalent to the default settings are for the current ITS1
+#    phy primers and the development ITS1 Phy database. PLEASE DONT BLINDLY
+#    USE THESE. The filenames, we now provide directly.
+#    """
+#    # ensure these are int, as they may have been passed as a string.
+#    lclip = int(lclip)
+#    rclip = int(rclip)
+#    with open(infname, 'r') as fh:
+#        # rclip needs to be set up to allow for zero values, using logic:
+#        # rclip_coordinate = len(s) - rclip
+#        # Use generators to save memory
+#        s_trim = (s[lclip:(len(s) - rclip)] for s in SeqIO.parse(fh, 'fasta'))
+#        return SeqIO.write((s for s in s_trim if len(s) >= minlen),
+#                           outfname, 'fasta')
 
 
 def convert_fq_to_fa(in_file, out_file):
@@ -196,15 +211,20 @@ def filter_sam_file(in_sam, outfile):
 
 # Function replacing Santi's blastclust_lst2fasta.py script
 def blastclust_to_fasta(infname, seqfname, outdir):
-    """Converts input BLASTCLUST output list to a subdirectory of FASTA files,
-    each of which contains all sequences from a single cluster. The sequences
-    matching the IDs listed in BLASTCLUST output should all be in the file
-    seqfname.
+    """Converts input BLASTCLUST output list to a subdirectory of FASTA files.
+
+
+    Each individual FASTA file contains all sequences from a single cluster.
+    The sequences matching the IDs listed in the BLASTCLUST output .lst file 
+    should all be found in the same file.
+
+    Returns the output directory and a list of the files, as a tuple.
     """
     outdirname = os.path.join(outdir, "blastclust_OTUs")
     if not os.path.exists(outdirname):
         os.makedirs(outdirname)
     seqdict = SeqIO.index(seqfname, 'fasta')
+    outfnames = []
     with open(infname, 'r') as fh:
         otu_id = 0
         for line in fh:
@@ -213,7 +233,8 @@ def blastclust_to_fasta(infname, seqfname, outdir):
                                     "blastclust_OTU_%06d.fasta" % otu_id)
             SeqIO.write((seqdict[key] for key in line.split()),
                         outfname, 'fasta')
-    return outdirname
+            outfnames.append(outfname)
+    return (outdirname, outfnames)
 
 
 # the following four function are to rename the clusters back to their
