@@ -16,6 +16,7 @@ install:
   - mkdir $HOME/seq_crumbs
   - python2 -m pip install --install-option="--user" -e seq_crumbs-0.1.9
   - cd $TRAVIS_BUILD_DIR
+  - python2 -m pip install --only-binary=numpy,scipy
   - python2 -m pip install qiime
 
 # Run tests. Use --nocapture to get extra verbose output for debugging
