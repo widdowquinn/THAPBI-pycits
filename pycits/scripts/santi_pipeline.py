@@ -196,7 +196,7 @@ def create_interfaces(args, logger):
                 args.pick_closed_reference_otus)
     pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
     return (fastqc_qc, trim_quality, jpe, convert_format, blastclust,
-            muscle_aln, pick_outs, pcro)
+            muscle_aln, pick_otus, pcro)
 
 
 def trim_reads(trim_quality, infilenames, args, logger):
@@ -213,6 +213,83 @@ def join_reads(jpe, trimmed_fnames, args, logger):
     joined_reads = jpe.run(trimmed_fnames, args.outdirname)
     logger.info("Joined reads:\t%s", joined_reads)
     return joined_reads
+
+
+def fastq_to_fasta(convert_format, infname, outdirname, logger):
+    """Convert FASTQ sequence to FASTA."""
+    logger.info("Creating FASTA file from %s", infname)
+    fasta = convert_format.run(infname, outdirname)
+    logger.info("Converted to FASTA:\t%s", fasta)
+    return fasta
+
+
+def trim_sequences(infname, outfname, logger):
+    """Trim sequences by 20nt on left and right."""
+    logger.info("Trimming sequences")
+    write_count = tools.trim_seq(infname, outfname)
+    logger.info("Trimmed, joined FASTA (%d sequences):\t%s",
+                write_count, outfname)
+
+
+def blastclust_cluster(blastclust, infname, outdirname, threads, logger):
+    """Cluster sequences with BLASTCLUST."""
+    logger.info("Clustering OTUs with BLASTCLUST")
+    bc_result = blastclust.run(infname, outdirname, threads)
+    logger.info("Clustering joined, trimmed sequences with " +
+                "BLASTCLUST:\n\t%s", bc_result.outfilename)
+    return bc_result
+
+
+def muscle_align(muscle_aln, infiles, outdir, logger):
+    """Align files with MUSCLE and place alignments in outdir."""
+    logger.info("Aligning BLASTCLUST OTU sequences with MUSCLE")
+    for fname in infiles:
+        muscle_result = muscle_aln.run(os.path.join(fname))
+    logger.info("Aligned BLASTCLUST OTU sequences written to:\n\t%s",
+                outdir)
+    return muscle_result
+
+
+def pick_denovo_otus(pick_otus, infname, reference, outdirname, logger):
+    """Pick denovo OTUs from input sequences with QIIME."""
+    logger.info("Picking UCLUST OTUs with QIIME")
+    qiime_uclustdir = pick_otus.run(infname, reference, outdirname)
+    logger.info("OTUs picked by QIIME with UCLUST written to:\n\t%s",
+                qiime_uclustdir)
+    return qiime_uclustdir
+
+
+def pick_closedref_otus(pcro, infname, reference, outdirname, logger):
+    """Pick closed-reference OTUs with QIIME."""
+    logger.info("Picking closed-reference OTUs with QIIME")
+    qiime_pcrodir = pcro.run(infname, reference, outdirname)
+    logger.info("OTUs picked by QIIME (closed-reference) " +
+                "written to:\n\t%s", qiime_pcrodir)
+    return qiime_pcrodir
+
+
+def biom_to_tsv(biomfname, logger):
+    """Converts BIOM file to TSV and places output in same directory."""
+    logger.info("Converting BIOM output to tabular (TSV) format")
+    biom_table = load_table(biomfname)
+    tsvfname = os.path.splitext(biomfname)[0] + ".tsv"
+    with open(tsvfname, 'w') as ofh:
+        ofh.write(biom_table.to_tsv())
+    logger.info("TSV output written to:\n\t%s", tsvfname)
+    return tsvfname
+
+
+def run_fastqc(fastqc_qc, infnames, outdirname, logger):
+    logger.info("Running FastQC")
+    fastqc_outdir = os.path.join(outdirname, "FastQC")
+    results = []
+    for infname in infnames:
+        logger.info(infname)
+        qc_result = fastqc_qc.run(infname, fastqc_outdir)
+        logger.info("Writing to:\n\t%s\n\t%s",
+                    qc_result.htmlfile, qc_result.zipfile)
+        results.append(qc_result)
+    return results
 
 
 # Main process for script
@@ -260,7 +337,7 @@ def run_pycits_main(namespace=None):
 
     # Check for presence of third-party tools, by instantiating interfaces
     (fastqc_qc, trim_quality, jpe, convert_format, blastclust,
-     muscle_aln, pick_outs, pcro) = create_interfaces(args, logger)
+     muscle_aln, pick_otus, pcro) = create_interfaces(args, logger)
 
     # How many threads are we using?
     args.threads = min(args.threads, multiprocessing.cpu_count())
@@ -273,36 +350,16 @@ def run_pycits_main(namespace=None):
     joined_reads = join_reads(jpe, trimmed_fnames, args, logger)
 
     # Create a FASTA file equivalent to the joined FASTQ reads
-    logger.info("Creating FASTA file")
-    try:
-        joined_fasta = convert_format.run(joined_reads, args.outdirname)
-    except:
-        logger.error("Error converting to FASTA (exiting)")
-        logger.error(last_exception())
-        return 1
-    else:
-        logger.info("Converted to FASTA:")
-        logger.info("\t%s", joined_fasta)
+    joined_fasta = fastq_to_fasta(convert_format, joined_reads,
+                                  args.outdirname, logger)
 
     # Trim sequences by 20nt on left and right
-    logger.info("Trimming sequences")
     trimmed_joined_fasta = os.path.splitext(joined_fasta)[0] + '_trimmed.fasta'
-    write_count = tools.trim_seq(joined_fasta, trimmed_joined_fasta)
-    logger.info("Trimmed, joined FASTA (%d sequences):", write_count)
-    logger.info("\t%s", trimmed_joined_fasta)
+    write_count = trim_sequences(joined_fasta, trimmed_joined_fasta, logger)
 
     # Cluster OTUs with BLASTCLUST
-    logger.info("Clustering OTUs with BLASTCLUST")
-    try:
-        bc_result = blastclust.run(trimmed_joined_fasta, args.outdirname,
-                                   args.threads)
-    except:
-        logger.error("Error clustering with BLASTCLUST (exiting)")
-        logger.error(last_exception())
-        return 1
-    else:
-        logger.info("Clustering joined, trimmed sequences with " +
-                    "BLASTCLUST:\n\t%s", bc_result.outfilename)
+    bc_result = blastclust_cluster(blastclust, trimmed_joined_fasta,
+                                   args.outdirname, args.threads, logger)
 
     # Convert BLASTCLUST output to FASTA sequence files
     logger.info("Generating FASTA from BLASTCLUST output")
@@ -313,62 +370,26 @@ def run_pycits_main(namespace=None):
                 bc_outdir)
 
     # Align the BLASTCLUST OTUs with MUSCLE
-    logger.info("Aligning BLASTCLUST OTU sequences with MUSCLE")
-    for fname in bc_files:
-        muscle_result = muscle_aln.run(os.path.join(fname))
-    logger.info("Aligned BLASTCLUST OTU sequences written to:\n\t%s",
-                bc_outdir)
+    muscle_result = muscle_align(muscle_aln, bc_files, bc_outdir, logger)
 
     # Pick de novo OTUs with QIIME
-    logger.info("Picking UCLUST OTUs with QIIME")
-    try:
-        qiime_uclustdir = pick_otus.run(trimmed_joined_fasta,
-                                        args.reference_fasta,
-                                        args.outdirname)
-    except:
-        logger.error("Error clustering with QIIME (UCLUST) (exiting)")
-        logger.error(last_exception())
-        return 1
-    else:
-        logger.info("OTUs picked by QIIME with UCLUST written to:\n\t%s",
-                    qiime_uclustdir)
+    qiime_uclustdir = pick_denovo_otus(pick_otus, trimmed_joined_fasta,
+                                       args.reference_fasta, args.outdirname,
+                                       logger)
 
     # Pick closed-reference OTUs with QIIME
-    logger.info("Picking closed-reference OTUs with QIIME")
-    try:
-        qiime_pcrodir = pcro.run(trimmed_joined_fasta,
-                                 args.reference_fasta,
-                                 args.outdirname)
-    except:
-        logger.error("Error clustering with QIIME (closed-reference) " +
-                     "(exiting)")
-        logger.error(last_exception())
-        return 1
-    else:
-        logger.info("OTUs picked by QIIME (closed-reference) " +
-                    "written to:\n\t%s", qiime_pcrodir)
-        logger.info("Converting BIOM output to tabular (TSV) format")
-        biomfname = os.path.join(qiime_pcrodir, "otu_table.biom")
-        biom_table = load_table(biomfname)
-        tsvfname = os.path.splitext(biomfname)[0] + ".tsv"
-        with open(tsvfname, 'w') as ofh:
-            ofh.write(biom_table.to_tsv())
-        logger.info("TSV output written to:\n\t%s", tsvfname)
+    qiime_pcrodir = pick_closedref_otus(pcro, trimmed_joined_fasta,
+                                        args.reference_fasta, args.outdirname,
+                                        logger)
+
+    # Convert BIOM output to TSV
+    biomfname = os.path.join(qiime_pcrodir, "otu_table.biom")
+    tsvfname = biom_to_tsv(biomfname, logger)
 
     # Run FastQC on the read files
-    logger.info("Running FastQC")
-    fastqc_outdir = os.path.join(args.outdirname, "FastQC")
-    for infname in infilenames + trimmed_fnames + [joined_reads]:
-        try:
-            logger.info(infname)
-            qc_result = fastqc_qc.run(infname, fastqc_outdir)
-        except:
-            logger.error("Error running FASTQ on %s", infname)
-            logger.error(last_exception())
-            return 1
-        else:
-            logger.info("Writing to:\n\t%s\n\t%s",
-                        qc_result.htmlfile, qc_result.zipfile)
+    qc_results = run_fastqc(fastqc_qc,
+                            infilenames + trimmed_fnames + [joined_reads],
+                            args.outdirname, logger)
 
     # Announce end of pipeline
     logger.info("Pipeline complete: %s", time.asctime())
