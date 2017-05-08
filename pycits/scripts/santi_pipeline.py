@@ -91,11 +91,11 @@ def last_exception():
 
 
 # Make logger
-def construct_logger(args):
+def construct_logger(args, header=True):
     """Returns a logger, configured as required from cmd-line arguments."""
     # Instantiate logger
-    logger = logging.getLogger('pycits.py %s: %s' % (time.asctime(),
-                                                     __version__))
+    logger = logging.getLogger('run_santi_pipeline.py %s: %s' %
+                               (time.asctime(), __version__))
     logger.setLevel(logging.DEBUG)  # default logger level
 
     # Set default stream to STDERR
@@ -112,43 +112,32 @@ def construct_logger(args):
 
     # Was a logfile specified? If so, add it as a stream
     if args.logfile is not None:
-        try:
-            logstream = open(args.logfile, 'w')
-        except FileNotFoundError:
-            logger.error("Could not open %s for logging (exiting)",
-                         args.logfile)
-            return 1
-        else:
-            err_handler_file = logging.StreamHandler(logstream)
-            err_handler_file.setFormatter(err_formatter)
-            # logfile is always verbose
-            err_handler_file.setLevel(logging.INFO)
-            logger.addHandler(err_handler_file)
+        logstream = open(args.logfile, 'w')
+        err_handler_file = logging.StreamHandler(logstream)
+        err_handler_file.setFormatter(err_formatter)
+        # logfile is always verbose
+        err_handler_file.setLevel(logging.INFO)
+        logger.addHandler(err_handler_file)
+
+    # Write header to logger
+    if header:
+        logger.info("Command-line: %s", ' '.join(sys.argv))
+        logger.info(args)
+        logger.info("Python version: %s", sys.version)
+        logger.info("Python executable: %s", sys.executable)
+        logger.info("Starting pipeline: %s", time.asctime())
 
     return logger
 
 
-def report_arguments(logger, cmdline, args):
-    """Report usage information to the logger."""
-    logger.info("Command-line: %s", cmdline)
-    logger.info(args)
-    logger.info("Python version: %s", sys.version)
-    logger.info("Python executable: %s", sys.executable)
-    logger.info("Starting pipeline: %s", time.asctime())
-
-
-def create_output_directory(outdirname, logger):
+def create_output_directory(outdirname):
     """Create the output directory if it doesn't exist."""
     try:
         os.makedirs(outdirname)
     except OSError:
-        logger.error("Error creating directory %s (exiting)",
-                     outdirname)
-        logger.info(last_exception())
         return 1
     else:
         if not os.path.isdir(outdirname):
-            logger.error("%s is not a directory (exiting)", outdirname)
             return 1
     return 0
 
@@ -268,15 +257,19 @@ def pick_closedref_otus(pcro, infname, reference, outdirname, logger):
     return qiime_pcrodir
 
 
-def biom_to_tsv(biomfname, logger):
-    """Converts BIOM file to TSV and places output in same directory."""
-    logger.info("Converting BIOM output to tabular (TSV) format")
+def biom_to_tsv(biomfname, outdir=None):
+    """Converts BIOM file to TSV.
+
+    Places output in same directory as input, by default
+    """
     biom_table = load_table(biomfname)
-    tsvfname = os.path.splitext(biomfname)[0] + ".tsv"
-    with open(tsvfname, 'w') as ofh:
+    if outdir is None:
+        outdir = os.path.join(os.path.split(biomfname)[:-1])
+    tsvfname = os.path.splitext(os.path.split(biomfname)[-1])[0] + ".tsv"
+    outfname = os.path.join(outdir, tsvfname)
+    with open(outfname, 'w') as ofh:
         ofh.write(biom_table.to_tsv())
-    logger.info("TSV output written to:\n\t%s", tsvfname)
-    return tsvfname
+    return outfname
 
 
 def run_fastqc(fastqc_qc, infnames, outdirname, logger):
@@ -304,9 +297,6 @@ def run_pycits_main(namespace=None):
     # Set up logging
     logger = construct_logger(args)
 
-    # Report input arguments
-    report_arguments(logger, ' '.join(sys.argv), args)
-
     # Have we got an input directory, reference set and prefix? If not, exit.
     if args.indirname is None:
         logger.error("No input directory name (exiting)")
@@ -326,7 +316,8 @@ def run_pycits_main(namespace=None):
     # Have we got an output directory and prefix? If not, create it.
     # create_output_directory() returns 1 if creation fails.
     logger.info("Creating directory %s", args.outdirname)
-    if create_output_directory(args.outdirname, logger):
+    if create_output_directory(args.outdirname):
+        logger.error("Could not create directory %s", args.outdirname)
         return 1
 
     # Check for the presence of space characters in any of the input filenames
@@ -384,7 +375,9 @@ def run_pycits_main(namespace=None):
 
     # Convert BIOM output to TSV
     biomfname = os.path.join(qiime_pcrodir, "otu_table.biom")
-    tsvfname = biom_to_tsv(biomfname, logger)
+    logger.info("Converting BIOM output to tabular (TSV) format")
+    tsvfname = biom_to_tsv(biomfname, qiime_pcrodir)
+    logger.info("TSV output written to:\n\t%s", tsvfname)
 
     # Run FastQC on the read files
     qc_results = run_fastqc(fastqc_qc,
