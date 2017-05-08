@@ -108,6 +108,9 @@ before_install:
   - cp swarm-2.1.10-linux-x86_64 swarm
   - chmod a+x swarm
   - export PATH=$HOME/swarm/:$PATH
+  - cd $TRAVIS_BUILD_DIR
+
+sudo: required
   - cd $HOME
   - wget https://github.com/JoseBlanca/seq_crumbs/archive/v0.1.9.tar.gz
   - tar -zxvf v0.1.9.tar.gz 
