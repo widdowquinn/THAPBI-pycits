@@ -171,6 +171,50 @@ def get_filenames(args, logger):
     return infilenames
 
 
+def create_interfaces(args, logger):
+    """Check third-party executable dependencies exist and instantiate.
+
+    The instantiated interfaces are returned.
+    """
+    # Check for presence of third-party tools, by instantiating interfaces
+    logger.info("Checking third-party packages:")
+    logger.info("\tFastQC... (%s)", args.fastqc)
+    fastqc_qc = fastqc.FastQC(args.fastqc)
+    logger.info("\ttrim_quality... (%s)", args.trim_quality)
+    trim_quality = seq_crumbs.Trim_Quality(args.trim_quality, logger)
+    logger.info("\tjoin_paired_ends.py... (%s)", args.join_paired_ends)
+    jpe = qiime.Join_Paired_Ends(args.join_paired_ends, logger)
+    logger.info("\tconvert_format... (%s)", args.convert_format)
+    convert_format = seq_crumbs.Convert_Format(args.convert_format, logger)
+    logger.info("\tblastclust... (%s)", args.blastclust)
+    blastclust = blast.Blastclust(args.blastclust)
+    logger.info("\tmuscle... (%s)", args.muscle)
+    muscle_aln = muscle.Muscle(args.muscle)
+    logger.info("\tpick_otus.py... (%s)", args.pick_otus)
+    pick_otus = qiime.Pick_Otus(args.pick_otus, logger)
+    logger.info("\tpick_closed_reference_otus.py... (%s)",
+                args.pick_closed_reference_otus)
+    pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
+    return (fastqc_qc, trim_quality, jpe, convert_format, blastclust,
+            muscle_aln, pick_outs, pcro)
+
+
+def trim_reads(trim_quality, infilenames, args, logger):
+    """Trim input reads for quality and return."""
+    logger.info("Trim reads by quality")
+    trimmed_fnames = [trim_quality.run(fname, args.outdirname) for
+                      fname in infilenames]
+    logger.info("Trimmed FASTQ files:")
+    return trimmed_fnames
+
+
+def join_reads(jpe, trimmed_fnames, args, logger):
+    logger.info("Join trimmed, paired-end reads")
+    joined_reads = jpe.run(trimmed_fnames, args.outdirname)
+    logger.info("Joined reads:\t%s", joined_reads)
+    return joined_reads
+
+
 # Main process for script
 def run_pycits_main(namespace=None):
     """Main process for run-pycits.py script"""
@@ -203,10 +247,11 @@ def run_pycits_main(namespace=None):
     logger.info("Reference FASTA file: %s", args.reference_fasta)
 
     # Have we got an output directory and prefix? If not, create it.
+    # create_output_directory() returns 1 if creation fails.
     logger.info("Creating directory %s", args.outdirname)
     if create_output_directory(args.outdirname, logger):
         return 1
-        
+
     # Check for the presence of space characters in any of the input filenames
     # If we have any, abort here and now.
     infilenames = get_filenames(args, logger)
@@ -214,53 +259,18 @@ def run_pycits_main(namespace=None):
         return 1
 
     # Check for presence of third-party tools, by instantiating interfaces
-    logger.info("Checking third-party packages:")
-    logger.info("\tFastQC... (%s)", args.fastqc)
-    fastqc_qc = fastqc.FastQC(args.fastqc)
-    logger.info("\ttrim_quality... (%s)", args.trim_quality)
-    trim_quality = seq_crumbs.Trim_Quality(args.trim_quality, logger)
-    logger.info("\tjoin_paired_ends.py... (%s)", args.join_paired_ends)
-    jpe = qiime.Join_Paired_Ends(args.join_paired_ends, logger)
-    logger.info("\tconvert_format... (%s)", args.convert_format)
-    convert_format = seq_crumbs.Convert_Format(args.convert_format, logger)
-    logger.info("\tblastclust... (%s)", args.blastclust)
-    blastclust = blast.Blastclust(args.blastclust)
-    logger.info("\tmuscle... (%s)", args.muscle)
-    muscle_aln = muscle.Muscle(args.muscle)
-    logger.info("\tpick_otus.py... (%s)", args.pick_otus)
-    pick_otus = qiime.Pick_Otus(args.pick_otus, logger)
-    logger.info("\tpick_closed_reference_otus.py... (%s)",
-                args.pick_closed_reference_otus)
-    pcro = qiime.Pick_Closed_Ref_Otus(args.pick_closed_reference_otus, logger)
+    (fastqc_qc, trim_quality, jpe, convert_format, blastclust,
+     muscle_aln, pick_outs, pcro) = create_interfaces(args, logger)
 
     # How many threads are we using?
     args.threads = min(args.threads, multiprocessing.cpu_count())
     logger.info("Using %d threads/CPUs where available", args.threads)
 
     # Trim reads on quality - forward and reverse reads
-    logger.info("Trim reads by quality")
-    try:
-        trimmed_fnames = [trim_quality.run(fname, args.outdirname) for
-                          fname in infilenames]
-    except:
-        logger.error("Error running trim_quality (exiting)")
-        logger.error(last_exception())
-        return 1
-    else:
-        logger.info("Trimmed FASTQ files:")
-        logger.info("\t%s", trimmed_fnames)
+    trimmed_fnames = trim_reads(trim_quality, infilenames, args, logger)
 
     # Join the trimmed, paired-end reads together
-    logger.info("Join trimmed, paired-end reads")
-    try:
-        joined_reads = jpe.run(trimmed_fnames, args.outdirname)
-    except:
-        logger.error("Error joining reads (exiting)")
-        logger.error(last_exception())
-        return 1
-    else:
-        logger.info("Joined reads:")
-        logger.info("\t%s", joined_reads)
+    joined_reads = join_reads(jpe, trimmed_fnames, args, logger)
 
     # Create a FASTA file equivalent to the joined FASTQ reads
     logger.info("Creating FASTA file")

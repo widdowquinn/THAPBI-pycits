@@ -25,7 +25,7 @@ NAMESPACE = Namespace(blastclust='blastclust',
                       verbose=True)
 
 
-def test_complete_script():
+def test_complete_script_notravis():
     """complete script runs"""
     if os.path.isdir(NAMESPACE.outdirname):
         shutil.rmtree(NAMESPACE.outdirname)
