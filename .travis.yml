@@ -13,7 +13,8 @@ install:
   - cd $HOME
   - wget https://github.com/JoseBlanca/seq_crumbs/archive/v0.1.9.tar.gz
   - tar -zxvf v0.1.9.tar.gz 
-  - python2 -m pip install -e seq_crumbs-0.1.9
+  - mkdir $HOME/seq_crumbs
+  - python2 -m pip install -e seq_crumbs-0.1.9 --prefix $HOME/seq_crumbs
   - cd $TRAVIS_BUILD_DIR
 
 # Run tests. Use --nocapture to get extra verbose output for debugging
