@@ -112,7 +112,7 @@ before_install:
   - wget https://github.com/JoseBlanca/seq_crumbs/archive/v0.1.9.tar.gz
   - tar -zxvf v0.1.9.tar.gz 
   - cd seq_crumbs-0.1.9/
-  - python2 setup.py install
+  - pip install -e .
   - cd $TRAVIS_BUILD_DIR
 
 sudo: false
