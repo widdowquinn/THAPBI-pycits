@@ -14,7 +14,7 @@ install:
 # Run tests. Use --nocapture to get extra verbose output for debugging, and
 #            skip tests we can't make run on Travis with the REGEX notravis
 script:
-  - nosetests -v --with-coverage --cover-package=pycits --nocapture --exclude="*notravis*"
+  - nosetests -v --with-coverage --cover-package=pycits --nocapture --exclude="notravis"
 
 # application dependencies:
 #   - build legacy BLAST (blastclust) from source
