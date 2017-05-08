@@ -11,9 +11,10 @@ install:
   - pip install -r requirements.txt
   - pip install codecov
 
-# Run tests. Use --nocapture to get extra verbose output for debugging
+# Run tests. Use --nocapture to get extra verbose output for debugging, and
+#            skip tests we can't make run on Travis with the REGEX notravis
 script:
-  - nosetests -v --with-coverage --cover-package=pycits --nocapture
+  - nosetests -v --with-coverage --cover-package=pycits --nocapture --exclude="notravis"
 
 # application dependencies:
 #   - build legacy BLAST (blastclust) from source
@@ -110,11 +111,11 @@ before_install:
   - export PATH=$HOME/swarm/:$PATH
   - cd $TRAVIS_BUILD_DIR
 
+
 sudo: false
 #addons:
 #  apt:
 #    packages:
-#    - trimmomatic
 
 after_success:
   - codecov

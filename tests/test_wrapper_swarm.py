@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tests of wrapper code in pycits. swarm"""
+"""Tests of wrapper code in pycits.swarm"""
 
 import os
 import shutil
