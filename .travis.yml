@@ -120,10 +120,13 @@ before_install:
 
 
 sudo: false
-#addons:
-#  apt:
-#    packages:
-#    - trimmomatic
+addons:
+  apt:
+    packages:
+      - libopenblas-base
+      - libopenblas-dev
+      - liblapack-dev
+      - gfortran
 
 after_success:
   - codecov
