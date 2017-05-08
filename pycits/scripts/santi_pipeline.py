@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 #
-# run-pycits.py
+# santi_pipeline.py
 #
-# Script to identify OTUs from metabarcoding reads.
+# Code for script to identify OTUs from metabarcoding reads.
 #
 # This is an almost direct translation of a pipeline written by Santiago
-# Garcia, to generate OTU clusters from metabarcoding ITS reads in
-# Phytophthora.
+# Garcia (Forest Research), to generate OTU clusters from metabarcoding ITS
+# reads in Phytophthora.
 #
-# (c) The James Hutton Institute 2016
+# (c) The James Hutton Institute 2016-2017
 # Author: Leighton Pritchard, Peter Thorpe
 
-import errno
 import logging
 import logging.handlers
 import multiprocessing
@@ -118,7 +117,7 @@ def construct_logger(args):
         except FileNotFoundError:
             logger.error("Could not open %s for logging (exiting)",
                          args.logfile)
-            sys.exit(1)
+            return 1
         else:
             err_handler_file = logging.StreamHandler(logstream)
             err_handler_file.setFormatter(err_formatter)
@@ -129,47 +128,37 @@ def construct_logger(args):
     return logger
 
 
-# Main process for script
-def run_pycits_main():
-    """Main process for run-pycits.py script"""
-    # Parse command-line
-    args = parse_cmdline()
-
-    # Set up logging
-    logger = construct_logger(args)
-
-    # Report input arguments
-    logger.info("Command-line: %s", ' '.join(sys.argv))
+def report_arguments(logger, cmdline, args):
+    """Report usage information to the logger."""
+    logger.info("Command-line: %s", cmdline)
     logger.info(args)
+    logger.info("Python version: %s", sys.version)
+    logger.info("Python executable: %s", sys.executable)
     logger.info("Starting pipeline: %s", time.asctime())
 
-    # Have we got an input directory, reference set and prefix? If not, exit.
-    if args.indirname is None:
-        logger.error("No input directory name (exiting)")
-        sys.exit(1)
-    logger.info("Input directory: %s", args.indirname)
-    if args.prefix is None:
-        logger.error("No read file prefix given (exiting)")
-        sys.exit(1)
-    logger.info("Read file prefix: %s", args.prefix)
-    if args.reference_fasta is None:
-        logger.error("No reference FASTA file given (exiting)")
-        sys.exit(1)
-    logger.info("Reference FASTA file: %s", args.reference_fasta)
 
-    # Have we got an output directory and prefix? If not, create it.
+def create_output_directory(outdirname, logger):
+    """Create the output directory if it doesn't exist."""
     try:
-        logger.info("Creating directory %s", args.outdirname)
-        os.makedirs(args.outdirname)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            logger.error("Error creating directory %s (exiting)",
-                         args.outdirname)
-            logger.info(last_exception())
-            sys.exit(1)
+        os.makedirs(outdirname)
+    except OSError:
+        logger.error("Error creating directory %s (exiting)",
+                     outdirname)
+        logger.info(last_exception())
+        return 1
+    else:
+        if not os.path.isdir(outdirname):
+            logger.error("%s is not a directory (exiting)", outdirname)
+            return 1
+    return 0
 
-    # Check for the presence of space characters in any of the input filenames
-    # If we have any, abort here and now.
+
+def get_filenames(args, logger):
+    """Return input filenames, or 1 if any input files contain whitespace.
+
+    Whitespace causes problems with some of the third-party applications, so
+    we want to avoid it.
+    """
     infilenames = sorted([os.path.join(args.indirname, fname) for
                           fname in os.listdir(args.indirname) if
                           fname.startswith(args.prefix)])
@@ -178,7 +167,51 @@ def run_pycits_main():
         if ' ' in os.path.relpath(fname):
             logger.error("Relative path to file or directory " +
                          "'%s' contains whitespace (exiting)", fname)
-            sys.exit(1)
+            return 1
+    return infilenames
+
+
+# Main process for script
+def run_pycits_main(namespace=None):
+    """Main process for run-pycits.py script"""
+    # Parse command-line if needed
+    if namespace is None:
+        args = parse_cmdline()
+    else:
+        args = namespace
+
+    # Set up logging
+    logger = construct_logger(args)
+
+    # Report input arguments
+    report_arguments(logger, ' '.join(sys.argv), args)
+
+    # Have we got an input directory, reference set and prefix? If not, exit.
+    if args.indirname is None:
+        logger.error("No input directory name (exiting)")
+        return 1
+    logger.info("Input directory: %s", args.indirname)
+
+    if args.prefix is None:
+        logger.error("No read file prefix given (exiting)")
+        return 1
+    logger.info("Read file prefix: %s", args.prefix)
+
+    if args.reference_fasta is None:
+        logger.error("No reference FASTA file given (exiting)")
+        return 1
+    logger.info("Reference FASTA file: %s", args.reference_fasta)
+
+    # Have we got an output directory and prefix? If not, create it.
+    logger.info("Creating directory %s", args.outdirname)
+    if create_output_directory(args.outdirname, logger):
+        return 1
+        
+    # Check for the presence of space characters in any of the input filenames
+    # If we have any, abort here and now.
+    infilenames = get_filenames(args, logger)
+    if infilenames is None:
+        return 1
 
     # Check for presence of third-party tools, by instantiating interfaces
     logger.info("Checking third-party packages:")
@@ -212,7 +245,7 @@ def run_pycits_main():
     except:
         logger.error("Error running trim_quality (exiting)")
         logger.error(last_exception())
-        sys.exit(1)
+        return 1
     else:
         logger.info("Trimmed FASTQ files:")
         logger.info("\t%s", trimmed_fnames)
@@ -224,7 +257,7 @@ def run_pycits_main():
     except:
         logger.error("Error joining reads (exiting)")
         logger.error(last_exception())
-        sys.exit(1)
+        return 1
     else:
         logger.info("Joined reads:")
         logger.info("\t%s", joined_reads)
@@ -236,7 +269,7 @@ def run_pycits_main():
     except:
         logger.error("Error converting to FASTA (exiting)")
         logger.error(last_exception())
-        sys.exit(1)
+        return 1
     else:
         logger.info("Converted to FASTA:")
         logger.info("\t%s", joined_fasta)
@@ -256,7 +289,7 @@ def run_pycits_main():
     except:
         logger.error("Error clustering with BLASTCLUST (exiting)")
         logger.error(last_exception())
-        sys.exit(1)
+        return 1
     else:
         logger.info("Clustering joined, trimmed sequences with " +
                     "BLASTCLUST:\n\t%s", bc_result.outfilename)
@@ -285,7 +318,7 @@ def run_pycits_main():
     except:
         logger.error("Error clustering with QIIME (UCLUST) (exiting)")
         logger.error(last_exception())
-        sys.exit(1)
+        return 1
     else:
         logger.info("OTUs picked by QIIME with UCLUST written to:\n\t%s",
                     qiime_uclustdir)
@@ -300,7 +333,7 @@ def run_pycits_main():
         logger.error("Error clustering with QIIME (closed-reference) " +
                      "(exiting)")
         logger.error(last_exception())
-        sys.exit(1)
+        return 1
     else:
         logger.info("OTUs picked by QIIME (closed-reference) " +
                     "written to:\n\t%s", qiime_pcrodir)
@@ -322,16 +355,11 @@ def run_pycits_main():
         except:
             logger.error("Error running FASTQ on %s", infname)
             logger.error(last_exception())
-            sys.exit(1)
+            return 1
         else:
             logger.info("Writing to:\n\t%s\n\t%s",
                         qc_result.htmlfile, qc_result.zipfile)
 
     # Announce end of pipeline
     logger.info("Pipeline complete: %s", time.asctime())
-
-
-# Run as script
-if __name__ == '__main__':
-
-    run_pycits_main()
+    return 0
