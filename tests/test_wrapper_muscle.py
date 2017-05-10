@@ -21,9 +21,9 @@ TARGET = os.path.join("tests", "test_targets", "muscle",
                       "muscle_tests.fasta")
 
 
-# The setup_outdir() function decorates functions by creating the appropriate
-# output directory tree
-def setup_outdir():
+# The setup() function runs before all the tests (teardown() runs after they
+# are complete).
+def setup():
     """Set up test fixtures"""
     try:
         shutil.rmtree(OUTDIR)
@@ -57,7 +57,6 @@ def test_muscle_cmd():
     assert_equal(muscle_result.command, target)
 
 
-@with_setup(setup_outdir)
 def test_muscle_exec():
     """muscle aligns test data"""
     muscle_aln = muscle.Muscle("muscle")
