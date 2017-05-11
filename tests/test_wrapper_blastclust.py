@@ -10,7 +10,7 @@ from pycits import blast
 from pycits.tools import NotExecutableError
 from pycits.tools import reformat_swarm_cls
 
-from nose.tools import nottest, assert_equal, with_setup
+from nose.tools import nottest, assert_equal
 
 THREADS = 2
 
@@ -26,9 +26,8 @@ TARGET_FOR_R = os.path.join("tests", "test_targets", "blastclust",
                             "trimmed.fasta.blastclust99.Rout")
 
 
-# The setup_outdir() function decorates functions by creating the appropriate
-# output directory tree
-def setup_outdir():
+# Create output directory tree
+def setup():
     """Set up test fixtures"""
     try:
         shutil.rmtree(OUTDIR)
@@ -73,7 +72,6 @@ def test_blastclust_notexec():
         return False
 
 
-@with_setup(setup_outdir)
 def test_blastclust_exec():
     """Run blastclust on test data and compare output to precomputed target"""
     bc = blast.Blastclust("blastclust")
@@ -81,28 +79,3 @@ def test_blastclust_exec():
     with open(TARGET, "r") as target_fh:
         with open(result.outfilename, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
-
-
-# use the function for converting swarm to "R" format here on this data
-def test_convert_exec():
-    """run the function reformat_swarm_cls
-    to compare the results against
-    pregenerated results"""
-
-    result_file_r = os.path.join(OUTDIR,
-                                 "trimmed.fasta.blastclust99.Rout")
-
-    # reformat_swarm_cls(swarm, db, db_and_reads, outfile)
-    reformat_swarm_cls(os.path.join(OUTDIR,
-                                    "trimmed.fasta.blastclust99.lst"),
-                       os.path.join(INDIR, "phy_db_forblastclust.fasta"),
-                       os.path.join(INDIR, "trimmed.fasta"),
-                       result_file_r,
-                       False)
-
-    with open(TARGET_FOR_R, "rt") as target_fh:
-        data = target_fh.read().split("\n")
-        with open(result_file_r, "r") as test_fh:
-            result = test_fh.read().split("\n")
-
-            assert_equal(result, data)
