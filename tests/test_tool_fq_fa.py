@@ -28,9 +28,8 @@ TARGET = os.path.join("tests", "test_targets", "tools",
                       "pear_tests_FASTA_convert.fasta.gz")
 
 
-# The setup_outdir() function decorates functions by creating the appropriate
-# output directory tree
-def setup_outdir():
+# Create output directory tree
+def setup():
     """Set up test fixtures"""
     try:
         shutil.rmtree(OUTDIR)
