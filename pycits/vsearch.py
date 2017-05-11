@@ -1,13 +1,55 @@
 #!/usr/bin/env python
 #
-# Vsearch * (cluster assembled reads with database)
-# follow this link to get the download.
-# https://github.com/torognes/vsearch
-# https://insidedna.me/tool_page_assets/pdf_manual/vsearch.pdf
-# http://luckylion.de/2016/06/21/quality-filtering-metabarcoding-datasets/
+# vsearch.py
 #
-# (c) The James Hutton Institute 2016
+# Wrapper code for the VSEARCH package, available from:
+# https://github.com/torognes/vsearch
+#
+# (c) The James Hutton Institute 2016-2017
 # Author: Leighton Pritchard and Peter Thorpe
+
+"""vsearch.py
+
+Provides the Vsearch class as a common wrapper to several Vsearch commands
+used in the pycits/metapy workflow:
+
+vsearch --cluster_fast FILENAME --id 0.97 --centroids FILENAME
+vsearch --derep_fulllength FILENAME --output FILENAME
+vsearch --usearch_global FILENAME --db FILENAME --id 0.97 --alnout FILENAME
+
+At the terminal, commands are accessed by the first argument to vsearch, and
+this argument controls which parameters are expected by the program.
+
+In this implementation, we abstract out the running of any VSEARCH command
+to the structure:
+
+vsearch <MODE> <INPUTFILE> <OUTPUTFILE> <PARAMETERS>
+
+The <MODE> is used for one of the VSEARCH command options (e.g.
+--cluster_fast) and is expected as a string including the two hyphens.
+
+With this abstraction, options are passed to an instantiated object when the
+.run() method is called. <INPUTFILE> is passed in place of FILENAME (in
+the VSEARCH usage examples), and <OUTPUTFILE> is used for one of the
+output options - exactly which depends on the chosen <MODE>.
+
+All other parameter are passed when calling .run() as a dictionary, keyed
+by argument flag (e.g. --db) with value of the argument value (such as a
+filename). All parameters for a run - whether optional or required for
+VSEARCH command completion - must be passed in <PARAMETERS>.
+
+Example usage:
+
+cluster_params = {'--blast6out': "my_cluster.blast6",
+                  '--id': 0.96,
+                  '--db': "my_sequences.fasta",
+                  '--threads': 2}
+mode = '--usearch_global'
+vsearch_exe = vsearch.Vsearch("vsearch")
+result = vsearch_exe.run(mode, "my_input_sequences.fasta",
+                         "my_output_cluster.uc",
+                         cluster_params)
+"""
 
 import os
 import subprocess
@@ -21,9 +63,6 @@ Results_derep = namedtuple("Results",
 Results_cluster = namedtuple("Results",
                              "command outfile_uc outfile_b6 stdout stderr")
 
-#Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
-#                           "aligned centroids consensus_cls " +
-#                           "stdout stderr")
 Results_cluster_fast = namedtuple("Results",
                                   "command outfile_uc outfile_b6 outfile_msa " +
                                   "outfile_consensus centroids stdout stderr")
