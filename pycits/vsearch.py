@@ -18,8 +18,8 @@ from .tools import is_exe, NotExecutableError
 Results_derep = namedtuple("Results",
                            "command outfilename stdout stderr")
 
-Results_cluster = namedtuple("Results", "command blast6 uc_clusters " +
-                             "stdout stderr")
+Results_cluster = namedtuple("Results",
+                             "command outfile_uc outfile_b6 stdout stderr")
 
 Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
                            "aligned centroids consensus_cls " +
@@ -43,8 +43,10 @@ class Vsearch(object):
 
         # Send to different command-builder depending on operation, and
         # support different output depending on operation
-        self._builders = {'--derep_fulllength': self.__build_cmd_derep}
-        self._returnval = {'--derep_fulllength': self.__return_derep}
+        self._builders = {'--derep_fulllength': self.__build_cmd_derep,
+                          '--usearch_global': self.__build_cmd_cluster}
+        self._returnval = {'--derep_fulllength': self.__return_derep,
+                           '--usearch_global': self.__return_cluster}
         
     def run(self, mode, infile, output, params=None, dry_run=False):
         """Run VSEARCH in the prescribed mode
@@ -52,15 +54,17 @@ class Vsearch(object):
         - mode: one of the VSEARCH arguments for mode of operation
         - infile: path to input file
         - output: path to output directory or filename (depends on operation)
-        - params: parameters for the VSEARCH operation
+        - params: dictionary of parameters for the VSEARCH operation,
+                  whether these are required for an operation may vary
         - dry_run: if True returns cmd-line but does not run
 
         Returns namedtuple with a form reflecting the operation requested:
           --derep_fulllength
             "command outfile stdout stderr"
         """
+        self._params = params
         try:
-            self._builders[mode](infile, output, params)
+            self._builders[mode](infile, output)
         except KeyError:
             msg = "VSEARCH mode {0} not supported".format(mode)
             raise VsearchError(msg)
@@ -73,7 +77,7 @@ class Vsearch(object):
                                   check=True)
         return self._returnval[mode](pipe)
 
-    def __build_cmd_derep(self, infile, outfname, params):
+    def __build_cmd_derep(self, infile, outfname):
         """Run VSEARCH to dereplicate input sequences
 
         The --sizeout option is enforced, to add sequence abundance and sort
@@ -82,8 +86,9 @@ class Vsearch(object):
         cmd = ['vsearch', '--derep_fulllength', infile,
                '--output', self._outfile,
                '--sizeout']
-        if params is not None:
-            cmd += params
+        if self._params is not None:
+            for k, v in self._params.items():
+                cmd.append('--{0} {1}'.format(k, v))
         self._cmd = ' '.join(cmd)
 
     def __return_derep(self, pipe):
@@ -98,127 +103,45 @@ class Vsearch(object):
                                     pipe.stdout, pipe.stderr)
         return results
 
-        
-class Vsearch_derep(object):
-    """Class for working with Vsearch dereplicate"""
+    def __build_cmd_cluster(self, infile, outfname):
+        """Run VSEARCH to cluster input sequences
 
-    def __init__(self, exe_path):
-        """Instantiate with location of executable"""
-        if not is_exe(exe_path):
-            msg = "{0} is not an executable".format(exe_path)
-            raise NotExecutableError(msg)
-        self._exe_path = exe_path
-
-    def run(self, fasta_in, outdir, prefix, dry_run=False):
-        """Run Vsearch to dereplicate the passed fasta files
-        --sizeout adds the abundance and orders them in size
-        order
-        e.g.
-        vsearch --derep_fulllength in.fasta --output out.fasta --sizeout
-
-        Returns a tuple of output filenames, and the STOUT returned by the
-        Vsearch run.
+        The command expects the output .uc file to be specified, but all other
+        options are expected in params
         """
-        self.__build_cmd(fasta_in, outdir, prefix)
-        if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
+        # Some parameters are required for operation
+        for required in ['--id', '--db']:
+            if required not in self._params:
+                msg = "Required parameter {0} not passed".format(required)
+                raise VsearchError(msg)
+        self._outfile = outfname
+        cmd = ['vsearch', '--usearch_global', infile,
+               '--uc', self._outfile]
+        if self._params is not None:
+            for k, v in sorted(self._params.items()):
+                cmd.append('{0} {1}'.format(k, v))
+        self._cmd = ' '.join(cmd)
 
-        results = Results_derep(self._cmd, self._outfnames,
-                                pipe.stdout,
-                                pipe.stderr)
+    def __return_cluster(self, pipe):
+        """Returns output values for clustering input sequences.
+
+        The return value is a Results_cluster namedtuple
+        """
+        # The blast6 output may not be defined in parameters, but is needed
+        # for the return value
+        if '--blast6out' not in self._params:
+            self._params['--blast6out'] = None
+        if pipe is None:  # It was a dry run
+            results = Results_cluster(self._cmd, self._outfile,
+                                      self._params['--blast6out'],
+                                      None, None)
+        else:
+            results = Results_cluster(self._cmd, self._outfile,
+                                      self._params['--blast6out'],
+                                      pipe.stdout, pipe.stderr)
         return results
-
-    def __build_cmd(self, fasta_in, outdir, prefix):
-        """Build a command-line for Vsearch dereplicate.
-
-        Vsearch takes an input fasta
-        and an ouput  - outdir
-
-        path to an output directory PLUS the prefix of the
-        files to write, such that
-
-        -o a/b/cdefg
-        """
-        # outfiles are name WhatEver.out + .bak.clstr and + .clstr
-        self._outfnames = os.path.join(outdir, prefix +
-                                       'derep.fasta')
-        cmd = ["vsearch",
-               "--derep_fulllength", fasta_in,
-               "--output", self._outfnames,
-               "--sizeout"]
-        self._cmd = ' '.join(cmd)
-
-#######################################################################
-
-
-class Vsearch_cluster(object):
-    """Class for working with Vsearch cluster"""
-
-    def __init__(self, exe_path):
-        """Instantiate with location of executable"""
-        if not is_exe(exe_path):
-            msg = "{0} is not an executable".format(exe_path)
-            raise NotExecutableError(msg)
-        self._exe_path = exe_path
-
-    def run(self, fasta_in, outdir, prefix, db,
-            threads, threshold=0.99, dry_run=False):
-        """Run Vsearch to cluster the passed fasta files
-        - the fasta file should already have been dereplicated and
-        sorted using the above class.
-
-
-        Returns a tuple of output filenames, and the STOUT returned by the
-        Vsearch run.
-        """
-        self.__build_cmd(fasta_in, outdir, prefix, db, threads, threshold)
-        if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
-
-        results_clu = Results_cluster(self._cmd, *self._outfnames,
-                                      pipe.stdout,
-                                      pipe.stderr)
-        return results_clu
-
-    def __build_cmd(self,  fasta_in, outdir, prefix, db, threads,
-                    threshold):
-        """Build a command-line for Vsearch_cluster.
-
-        Vsearch takes an input fasta
-        and an ouput  - outdir
-
-        path to an output directory PLUS the prefix of the
-        files to write, such that
-
-        -o a/b/cdefg
-        """
-        threshold = str(threshold)
-        self._outfnames = [os.path.join(outdir, prefix) + suffix for suffix in
-                           (threshold + '.blast6',
-                            threshold + '.clusters.uc')]
-
-        cmd = ["vsearch",
-               "--usearch_global",
-               fasta_in,
-               "--id",
-               threshold,
-               "--uc",
-               os.path.join(outdir, prefix + threshold + '.clusters.uc'),
-               "--db",
-               db,
-               "--threads",
-               str(threads),
-               "--blast6out",
-               os.path.join(outdir, prefix + threshold + '.blast6')]
-        self._cmd = ' '.join(cmd)
+    
+        
 
 
 class Vsearch_fastas(object):
