@@ -4,23 +4,27 @@
 
 import os
 import shutil
+import subprocess
 
 from pycits import vsearch
 from pycits.tools import NotExecutableError, reformat_blast6_clusters
-import subprocess
-from nose.tools import nottest, assert_equal, with_setup
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 
-# INPUT DATA LOCATION
+from nose.tools import nottest, assert_equal
+
+# INPUT DATA
 INDIR = os.path.join("tests", "test_data", "vsearch")
 OUTDIR = os.path.join("tests", "test_out", "vsearch")
-INFILE_DEREP = os.path.join(INDIR, "test_db_for_abundance_checking.fasta")
+INFILE = os.path.join(INDIR, "test_db_for_abundance_checking.fasta")
+DB = os.path.join(INDIR, "vsearch_tests_ITS_db.fasta")
+
+# PARAMETERS
 PREFIX = "test_run"
 THRESHOLD = "0.96"
 THREADS = "2"
-DB = os.path.join(INDIR, "vsearch_tests_ITS_db.fasta")
 
 # TARGET OUTPUT
 TARGET_DEREP = os.path.join("tests", "test_targets", "vsearch",
@@ -39,13 +43,11 @@ TARGET_CENTROIDS = os.path.join("tests", "test_targets", "vsearch",
                                 "target.centroids.fasta")
 TARGET_ALIGNED = os.path.join("tests", "test_targets", "vsearch",
                               "target.alignedclusters.fasta")
-TARGET_CONCENSUS = os.path.join("tests", "test_targets", "vsearch",
+TARGET_CONSENSUS = os.path.join("tests", "test_targets", "vsearch",
                                 "target.consensus_cls_seq.fasta")
 
 
-# The setup_outdir() function decorates functions by creating the appropriate
-# output directory tree
-def setup_outdir():
+def setup():
     """Set up test fixtures"""
     try:
         shutil.rmtree(OUTDIR)
@@ -54,6 +56,16 @@ def setup_outdir():
     os.makedirs(OUTDIR, exist_ok=True)
 
 
+def test_vsearch_path():
+    """vsearch is in $PATH"""
+    vsearch = vsearch.Vsearch_derep("vsearch")
+
+
+
+
+
+    
+    
 def get_sorted_list(in_file):
     """funct to return a sorted list.
     takes in a file, returns sorted list"""
@@ -79,24 +91,27 @@ def get_sorted_fa(fasta):
     return sorted(out_list)
 
 
-def test_vsearch_path():
-    """vsearch is in $PATH"""
-    derep = vsearch.Vsearch_derep("vsearch")
 
 
+
+
+
+
+
+@nottest    
 def test_vsearch_cmd():
     """vsearch returns correct form of cmd-line"""
     outfname = os.path.join(OUTDIR, PREFIX +
                             'derep.fasta')
     derep = vsearch.Vsearch_derep("vsearch")
     target = ' '.join(["vsearch",
-                       "--derep_fulllength", INFILE_DEREP,
+                       "--derep_fulllength", INFILE,
                        "--output", outfname,
                        "--sizeout"])
-    assert_equal(derep.run(INFILE_DEREP, OUTDIR, PREFIX,
+    assert_equal(derep.run(INFILE, OUTDIR, PREFIX,
                            dry_run=True), target)
 
-
+@nottest    
 def test_vsearch_exec_notexist():
     """error thrown if vsearch executable does not exist"""
     try:
@@ -106,7 +121,7 @@ def test_vsearch_exec_notexist():
     else:
         return False
 
-
+@nottest    
 def test_vsearch_notexec():
     """Error thrown if vsearch not executable"""
     try:
@@ -116,8 +131,7 @@ def test_vsearch_notexec():
     else:
         return False
 
-
-@with_setup(setup_outdir)
+@nottest    
 def test_vsearch_exec():
     """Run vsearch on test data
 
@@ -129,7 +143,7 @@ def test_vsearch_exec():
     # Results = namedtuple("Results", "command fastaout " +
     # "stdout stderr")
     # fasta_in, outdir, prefix, dry_run=False)
-    result = derep.run(INFILE_DEREP, OUTDIR, PREFIX)
+    result = derep.run(INFILE, OUTDIR, PREFIX)
     # use the named tuple to get the cluster results file
     vsearch_fasta = result.fasta
 
@@ -142,12 +156,12 @@ def test_vsearch_exec():
 # Now to tests Vsearch_cluster
 INFILE_CLUSTER = TARGET_DEREP
 
-
+@nottest    
 def test_Vsearch_cluster():
     """Vsearch_cluster instantiates with cmd-line if cd-hit is in $PATH"""
     cluster = vsearch.Vsearch_cluster("vsearch")
 
-
+@nottest    
 def test_Vsearch_cluster_cmd():
     """Vsearch_cluster instantiates and returns correct form of cmd-line"""
     cluster = vsearch.Vsearch_cluster("vsearch")
@@ -177,7 +191,7 @@ def test_Vsearch_cluster_cmd():
                              THRESHOLD,
                              dry_run=True), target)
 
-
+@nottest    
 def test_Vsearch_cluster_exec_notexist():
     """Error thrown if Vsearch_cluster executable does not exist"""
     try:
@@ -187,7 +201,7 @@ def test_Vsearch_cluster_exec_notexist():
     else:
         return False
 
-
+@nottest    
 def test_Vsearch_cluster_notexec():
     """Error thrown if vsearch not executable"""
     try:
@@ -197,8 +211,7 @@ def test_Vsearch_cluster_notexec():
     else:
         return False
 
-
-@with_setup(setup_outdir)
+@nottest    
 def test_vsearch_exec():
     """Run vsearch on test data
 
@@ -230,15 +243,14 @@ def test_vsearch_exec():
 
 ###################################################################
 # Now to test conversion to another format
-
-@with_setup(setup_outdir)
+@nottest    
 def test_convert_vsearch_format():
     """ testing function in tools to convert blast6 format to format
     for R"""
     cat_out = os.path.join(OUTDIR, "db_and_reads.fasta")
     cat_cmd = ' '.join(["cat",
                         DB,
-                        INFILE_DEREP,
+                        INFILE,
                         ">",
                         cat_out])
     pipe = subprocess.run(cat_cmd, shell=True,
@@ -259,12 +271,12 @@ def test_convert_vsearch_format():
 ###################################################################
 # Now to tests Vsearch_fastas
 
-
+@nottest    
 def test_vsearch_fastas():
     """Vsearch_fastas instantiates with cmd-line if cd-hit is in $PATH"""
     cluster = vsearch.Vsearch_fastas("vsearch")
 
-
+@nottest    
 def test_vsearch_fastas_cmd():
     """Vsearch_fastas instantiates and returns correct form of cmd-line"""
     cluster = vsearch.Vsearch_fastas("vsearch")
@@ -311,7 +323,7 @@ def test_vsearch_fastas_cmd():
                              THRESHOLD,
                              dry_run=True), target)
 
-
+@nottest    
 def test_vsearch_fastas_exec_notexist():
     """Error thrown if Vsearch_fastas executable does not exist"""
     try:
@@ -321,7 +333,7 @@ def test_vsearch_fastas_exec_notexist():
     else:
         return False
 
-
+@nottest    
 def test_vsearch_fastas_notexec():
     """Error thrown if vsearch not executable"""
     try:
@@ -331,8 +343,7 @@ def test_vsearch_fastas_notexec():
     else:
         return False
 
-
-@with_setup(setup_outdir)
+@nottest    
 def test_vsearch_exec():
     """Run vsearch on test data
 
@@ -372,7 +383,7 @@ def test_vsearch_exec():
     result_alig = get_sorted_fa(result2.aligned)
     assert_equal(target_alig, result_alig)
 
-    # TARGET_CONCENSUS
-    target_conc = get_sorted_fa(TARGET_CONCENSUS)
+    # TARGET_CONSENSUS
+    target_conc = get_sorted_fa(TARGET_CONSENSUS)
     result_conc = get_sorted_fa(result2.consensus_cls)
     assert_equal(target_conc, result_conc)
