@@ -15,8 +15,8 @@ from collections import namedtuple
 from .tools import is_exe, NotExecutableError
 
 # factory class for Vsearch class returned values
-Results_derep = namedtuple("Results", "command fasta " +
-                           "stdout stderr")
+Results_derep = namedtuple("Results",
+                           "command outfilename stdout stderr")
 
 Results_cluster = namedtuple("Results", "command blast6 uc_clusters " +
                              "stdout stderr")
@@ -26,12 +26,79 @@ Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
                            "stdout stderr")
 
 
-class Vsearch_Error(Exception):
+class VsearchError(Exception):
     """Exception raised when Vsearch fails"""
     def __init__(self, message):
         self.message = message
 
 
+class Vsearch(object):
+    """Class for working with VSEARCH"""
+    def __init__(self, exe_path):
+        """Instantiate with location of executable"""
+        if not is_exe(exe_path):
+            msg = "{0} is not an executable".format(exe_path)
+            raise NotExecutableError(msg)
+        self._exe_path = exe_path
+
+        # Send to different command-builder depending on operation, and
+        # support different output depending on operation
+        self._builders = {'--derep_fulllength': self.__build_cmd_derep}
+        self._returnval = {'--derep_fulllength': self.__return_derep}
+        
+    def run(self, mode, infile, output, params=None, dry_run=False):
+        """Run VSEARCH in the prescribed mode
+
+        - mode: one of the VSEARCH arguments for mode of operation
+        - infile: path to input file
+        - output: path to output directory or filename (depends on operation)
+        - params: parameters for the VSEARCH operation
+        - dry_run: if True returns cmd-line but does not run
+
+        Returns namedtuple with a form reflecting the operation requested:
+          --derep_fulllength
+            "command outfile stdout stderr"
+        """
+        try:
+            self._builders[mode](infile, output, params)
+        except KeyError:
+            msg = "VSEARCH mode {0} not supported".format(mode)
+            raise VsearchError(msg)
+        if dry_run:
+            pipe = None
+        else:
+            pipe = subprocess.run(self._cmd, shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  check=True)
+        return self._returnval[mode](pipe)
+
+    def __build_cmd_derep(self, infile, outfname, params):
+        """Run VSEARCH to dereplicate input sequences
+
+        The --sizeout option is enforced, to add sequence abundance and sort
+        """
+        self._outfile = outfname
+        cmd = ['vsearch', '--derep_fulllength', infile,
+               '--output', self._outfile,
+               '--sizeout']
+        if params is not None:
+            cmd += params
+        self._cmd = ' '.join(cmd)
+
+    def __return_derep(self, pipe):
+        """Returns output values for dereplication of input sequences.
+
+        The return value is a Results_derep namedtuple
+        """
+        if pipe is None:  # It was a dry run
+            results = Results_derep(self._cmd, self._outfile, None, None)
+        else:
+            results = Results_derep(self._cmd, self._outfile,
+                                    pipe.stdout, pipe.stderr)
+        return results
+
+        
 class Vsearch_derep(object):
     """Class for working with Vsearch dereplicate"""
 

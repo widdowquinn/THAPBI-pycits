@@ -20,6 +20,7 @@ INDIR = os.path.join("tests", "test_data", "vsearch")
 OUTDIR = os.path.join("tests", "test_out", "vsearch")
 INFILE = os.path.join(INDIR, "test_db_for_abundance_checking.fasta")
 DB = os.path.join(INDIR, "vsearch_tests_ITS_db.fasta")
+OUTFILE_DEREP = os.path.join(OUTDIR, "vsearch_derep.fasta")
 
 # PARAMETERS
 PREFIX = "test_run"
@@ -58,11 +59,49 @@ def setup():
 
 def test_vsearch_path():
     """vsearch is in $PATH"""
-    vsearch = vsearch.Vsearch_derep("vsearch")
+    vsearch_exe = vsearch.Vsearch("vsearch")
 
 
+def test_vsearch_exec_notexist():
+    """error thrown if vsearch executable does not exist"""
+    try:
+        vsearch_exe = vsearch.Vsearch(os.path.join(".", "vsearch"))
+    except NotExecutableError:
+        return True
+    else:
+        return False
 
 
+def test_vsearch_notexec():
+    """Error thrown if vsearch not executable"""
+    try:
+        vsearch_exe = vsearch.Vsearch("LICENSE")
+    except NotExecutableError:
+        return True
+    else:
+        return False
+
+
+def test_vsearch_derep_cmd():
+    """VSEARCH wrapper returns correct dereplication cmd-line"""
+    mode = '--derep_fulllength'
+    target = ' '.join(['vsearch', mode, INFILE,
+                       '--output', OUTFILE_DEREP,
+                       '--sizeout'])
+
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE, OUTFILE_DEREP, dry_run=True)
+    assert_equal(result.command, target)
+
+
+def test_vsearch_derep_exec():
+    """VSEARCH derplicates test data"""
+    mode = '--derep_fulllength'
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE, OUTFILE_DEREP)
+    with open(TARGET_DEREP, 'r') as target_fh:
+        with open(result.outfilename, 'r') as test_fh:
+            assert_equal(target_fh.read(), test_fh.read())
 
     
     
@@ -90,46 +129,6 @@ def get_sorted_fa(fasta):
         out_list.append(data)
     return sorted(out_list)
 
-
-
-
-
-
-
-
-
-@nottest    
-def test_vsearch_cmd():
-    """vsearch returns correct form of cmd-line"""
-    outfname = os.path.join(OUTDIR, PREFIX +
-                            'derep.fasta')
-    derep = vsearch.Vsearch_derep("vsearch")
-    target = ' '.join(["vsearch",
-                       "--derep_fulllength", INFILE,
-                       "--output", outfname,
-                       "--sizeout"])
-    assert_equal(derep.run(INFILE, OUTDIR, PREFIX,
-                           dry_run=True), target)
-
-@nottest    
-def test_vsearch_exec_notexist():
-    """error thrown if vsearch executable does not exist"""
-    try:
-        derep = vsearch.Vsearch_derep(os.path.join(".", "vsearch"))
-    except NotExecutableError:
-        return True
-    else:
-        return False
-
-@nottest    
-def test_vsearch_notexec():
-    """Error thrown if vsearch not executable"""
-    try:
-        cluster = vsearch.Vsearch_derep("LICENSE")
-    except NotExecutableError:
-        return True
-    else:
-        return False
 
 @nottest    
 def test_vsearch_exec():
