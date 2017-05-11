@@ -92,10 +92,9 @@ before_install:
   - wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz
   - tar -zxvf blast-2.2.26-x64-linux.tar.gz
   - export PATH=$HOME/blast-2.2.26/bin:$PATH
-  - wget https://github.com/xflouris/PEAR/releases/download/v0.9.10/pear-src-0.9.10.tar.gz
-  - tar -zxvf pear-0.9.10-bin-64.tar.gz
-  - cp pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
-  - export PATH=$HOME/pear-0.9.10-bin-64/:$PATH
+  - wget https://github.com/xflouris/PEAR/releases/download/v0.9.10/pear-0.9.10-linux-x86_64.tar.gz
+  - tar -zxvf pear-0.9.10-linux-x86_64.tar.gz
+  - export PATH=$HOME/pear-0.9.10-linux-x86_64/bin:$PATH
   - cd $HOME
   - wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.36.zip
   - unzip Trimmomatic-0.36.zip
