@@ -21,9 +21,12 @@ Results_derep = namedtuple("Results",
 Results_cluster = namedtuple("Results",
                              "command outfile_uc outfile_b6 stdout stderr")
 
-Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
-                           "aligned centroids consensus_cls " +
-                           "stdout stderr")
+#Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
+#                           "aligned centroids consensus_cls " +
+#                           "stdout stderr")
+Results_cluster_fast = namedtuple("Results",
+                                  "command outfile_uc outfile_b6 outfile_msa " +
+                                  "outfile_consensus centroids stdout stderr")
 
 
 class VsearchError(Exception):
@@ -44,9 +47,11 @@ class Vsearch(object):
         # Send to different command-builder depending on operation, and
         # support different output depending on operation
         self._builders = {'--derep_fulllength': self.__build_cmd_derep,
-                          '--usearch_global': self.__build_cmd_cluster}
+                          '--usearch_global': self.__build_cmd_cluster,
+                          '--cluster_fast': self.__build_cmd_cluster_fast}
         self._returnval = {'--derep_fulllength': self.__return_derep,
-                           '--usearch_global': self.__return_cluster}
+                           '--usearch_global': self.__return_cluster,
+                           '--cluster_fast': self.__return_cluster_fast}
         
     def run(self, mode, infile, output, params=None, dry_run=False):
         """Run VSEARCH in the prescribed mode
@@ -141,7 +146,51 @@ class Vsearch(object):
                                       pipe.stdout, pipe.stderr)
         return results
     
-        
+
+    def __build_cmd_cluster_fast(self, infile, outfname):
+        """Run VSEARCH to cluster_fast input sequences
+
+        The command expects the output .uc file to be specified, but all other
+        options are expected in params
+        """
+        # Some parameters are required for operation
+        for required in ['--id', '--centroids']:
+            if required not in self._params:
+                msg = "Required parameter {0} not passed".format(required)
+                raise VsearchError(msg)
+        self._outfile = outfname
+        cmd = ['vsearch', '--cluster_fast', infile,
+               '--uc', self._outfile]
+        if self._params is not None:
+            for k, v in sorted(self._params.items()):
+                cmd.append('{0} {1}'.format(k, v))
+        self._cmd = ' '.join(cmd)
+
+    def __return_cluster_fast(self, pipe):
+        """Returns output values for cluster_fast of input sequences.
+
+        The return value is a Results_cluster namedtuple
+        """
+        # Optional output may not be defined in parameters, but is needed
+        # for the return value
+        for param in ['--blast6out', '--msaout', '--consout']:
+            if param not in self._params:
+                self._params[param] = None
+        if pipe is None:  # It was a dry run
+            results = Results_cluster_fast(self._cmd, self._outfile,
+                                           self._params['--blast6out'],
+                                           self._params['--msaout'],
+                                           self._params['--consout'],
+                                           self._params['--centroids'],
+                                           None, None)
+        else:
+            results = Results_cluster_fast(self._cmd, self._outfile,
+                                           self._params['--blast6out'],
+                                           self._params['--msaout'],
+                                           self._params['--consout'],
+                                           self._params['--centroids'],
+                                           pipe.stdout, pipe.stderr)
+        return results
 
 
 class Vsearch_fastas(object):
