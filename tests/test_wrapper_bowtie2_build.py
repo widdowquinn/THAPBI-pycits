@@ -11,7 +11,7 @@ import shutil
 
 from pycits import bowtie_build, bowtie_map
 from pycits.tools import NotExecutableError
-from nose.tools import nottest, assert_equal, with_setup
+from nose.tools import nottest, assert_equal
 
 
 import subprocess
@@ -26,9 +26,8 @@ FA_INDEX = os.path.join(OUTDIR, "fasta_index")
 THREADS = "1"
 
 
-# The setup_outdir() function decorates functions by creating the appropriate
-# output directory tree
-def setup_outdir():
+# Create output directory tree
+def setup():
     """Set up test fixtures"""
     try:
         shutil.rmtree(OUTDIR)
@@ -75,7 +74,6 @@ def test_bowtie2_build_notexec():
         return False
 
 
-@with_setup(setup_outdir)
 def test_bowtie2_build_exec():
     """bowtie2-build indexes the file correctly"""
     bowtie2_idx = bowtie_build.Bowtie2_Build("bowtie2-build")
