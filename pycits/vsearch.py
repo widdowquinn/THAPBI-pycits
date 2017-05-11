@@ -1,13 +1,55 @@
 #!/usr/bin/env python
 #
-# Vsearch * (cluster assembled reads with database)
-# follow this link to get the download.
-# https://github.com/torognes/vsearch
-# https://insidedna.me/tool_page_assets/pdf_manual/vsearch.pdf
-# http://luckylion.de/2016/06/21/quality-filtering-metabarcoding-datasets/
+# vsearch.py
 #
-# (c) The James Hutton Institute 2016
+# Wrapper code for the VSEARCH package, available from:
+# https://github.com/torognes/vsearch
+#
+# (c) The James Hutton Institute 2016-2017
 # Author: Leighton Pritchard and Peter Thorpe
+
+"""vsearch.py
+
+Provides the Vsearch class as a common wrapper to several Vsearch commands
+used in the pycits/metapy workflow:
+
+vsearch --cluster_fast FILENAME --id 0.97 --centroids FILENAME
+vsearch --derep_fulllength FILENAME --output FILENAME
+vsearch --usearch_global FILENAME --db FILENAME --id 0.97 --alnout FILENAME
+
+At the terminal, commands are accessed by the first argument to vsearch, and
+this argument controls which parameters are expected by the program.
+
+In this implementation, we abstract out the running of any VSEARCH command
+to the structure:
+
+vsearch <MODE> <INPUTFILE> <OUTPUTFILE> <PARAMETERS>
+
+The <MODE> is used for one of the VSEARCH command options (e.g.
+--cluster_fast) and is expected as a string including the two hyphens.
+
+With this abstraction, options are passed to an instantiated object when the
+.run() method is called. <INPUTFILE> is passed in place of FILENAME (in
+the VSEARCH usage examples), and <OUTPUTFILE> is used for one of the
+output options - exactly which depends on the chosen <MODE>.
+
+All other parameter are passed when calling .run() as a dictionary, keyed
+by argument flag (e.g. --db) with value of the argument value (such as a
+filename). All parameters for a run - whether optional or required for
+VSEARCH command completion - must be passed in <PARAMETERS>.
+
+Example usage:
+
+cluster_params = {'--blast6out': "my_cluster.blast6",
+                  '--id': 0.96,
+                  '--db': "my_sequences.fasta",
+                  '--threads': 2}
+mode = '--usearch_global'
+vsearch_exe = vsearch.Vsearch("vsearch")
+result = vsearch_exe.run(mode, "my_input_sequences.fasta",
+                         "my_output_cluster.uc",
+                         cluster_params)
+"""
 
 import os
 import subprocess
@@ -15,26 +57,25 @@ from collections import namedtuple
 from .tools import is_exe, NotExecutableError
 
 # factory class for Vsearch class returned values
-Results_derep = namedtuple("Results", "command fasta " +
-                           "stdout stderr")
+Results_derep = namedtuple("Results",
+                           "command outfilename stdout stderr")
 
-Results_cluster = namedtuple("Results", "command blast6 uc_clusters " +
-                             "stdout stderr")
+Results_cluster = namedtuple("Results",
+                             "command outfile_uc outfile_b6 stdout stderr")
 
-Results_fasta = namedtuple("Results", "command blast6 uc_clusters " +
-                           "aligned centroids consensus_cls " +
-                           "stdout stderr")
+Results_cluster_fast = namedtuple("Results",
+                                  "command outfile_uc outfile_b6 outfile_msa " +
+                                  "outfile_consensus centroids stdout stderr")
 
 
-class Vsearch_Error(Exception):
+class VsearchError(Exception):
     """Exception raised when Vsearch fails"""
     def __init__(self, message):
         self.message = message
 
 
-class Vsearch_derep(object):
-    """Class for working with Vsearch dereplicate"""
-
+class Vsearch(object):
+    """Class for working with VSEARCH"""
     def __init__(self, exe_path):
         """Instantiate with location of executable"""
         if not is_exe(exe_path):
@@ -42,196 +83,150 @@ class Vsearch_derep(object):
             raise NotExecutableError(msg)
         self._exe_path = exe_path
 
-    def run(self, fasta_in, outdir, prefix, dry_run=False):
-        """Run Vsearch to dereplicate the passed fasta files
-        --sizeout adds the abundance and orders them in size
-        order
-        e.g.
-        vsearch --derep_fulllength in.fasta --output out.fasta --sizeout
+        # Send to different command-builder depending on operation, and
+        # support different output depending on operation
+        self._builders = {'--derep_fulllength': self.__build_cmd_derep,
+                          '--usearch_global': self.__build_cmd_cluster,
+                          '--cluster_fast': self.__build_cmd_cluster_fast}
+        self._returnval = {'--derep_fulllength': self.__return_derep,
+                           '--usearch_global': self.__return_cluster,
+                           '--cluster_fast': self.__return_cluster_fast}
+        
+    def run(self, mode, infile, output, params=None, dry_run=False):
+        """Run VSEARCH in the prescribed mode
 
-        Returns a tuple of output filenames, and the STOUT returned by the
-        Vsearch run.
+        - mode: one of the VSEARCH arguments for mode of operation
+        - infile: path to input file
+        - output: path to output directory or filename (depends on operation)
+        - params: dictionary of parameters for the VSEARCH operation,
+                  whether these are required for an operation may vary
+        - dry_run: if True returns cmd-line but does not run
+
+        Returns namedtuple with a form reflecting the operation requested:
+          --derep_fulllength
+            "command outfile stdout stderr"
         """
-        self.__build_cmd(fasta_in, outdir, prefix)
+        self._params = params
+        try:
+            self._builders[mode](infile, output)
+        except KeyError:
+            msg = "VSEARCH mode {0} not supported".format(mode)
+            raise VsearchError(msg)
         if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
+            pipe = None
+        else:
+            pipe = subprocess.run(self._cmd, shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  check=True)
+        return self._returnval[mode](pipe)
 
-        results = Results_derep(self._cmd, self._outfnames,
-                                pipe.stdout,
-                                pipe.stderr)
+    def __build_cmd_derep(self, infile, outfname):
+        """Run VSEARCH to dereplicate input sequences
+
+        The --sizeout option is enforced, to add sequence abundance and sort
+        """
+        self._outfile = outfname
+        cmd = ['vsearch', '--derep_fulllength', infile,
+               '--output', self._outfile,
+               '--sizeout']
+        if self._params is not None:
+            for k, v in self._params.items():
+                cmd.append('--{0} {1}'.format(k, v))
+        self._cmd = ' '.join(cmd)
+
+    def __return_derep(self, pipe):
+        """Returns output values for dereplication of input sequences.
+
+        The return value is a Results_derep namedtuple
+        """
+        if pipe is None:  # It was a dry run
+            results = Results_derep(self._cmd, self._outfile, None, None)
+        else:
+            results = Results_derep(self._cmd, self._outfile,
+                                    pipe.stdout, pipe.stderr)
         return results
 
-    def __build_cmd(self, fasta_in, outdir, prefix):
-        """Build a command-line for Vsearch dereplicate.
+    def __build_cmd_cluster(self, infile, outfname):
+        """Run VSEARCH to cluster input sequences
 
-        Vsearch takes an input fasta
-        and an ouput  - outdir
-
-        path to an output directory PLUS the prefix of the
-        files to write, such that
-
-        -o a/b/cdefg
+        The command expects the output .uc file to be specified, but all other
+        options are expected in params
         """
-        # outfiles are name WhatEver.out + .bak.clstr and + .clstr
-        self._outfnames = os.path.join(outdir, prefix +
-                                       'derep.fasta')
-        cmd = ["vsearch",
-               "--derep_fulllength", fasta_in,
-               "--output", self._outfnames,
-               "--sizeout"]
+        # Some parameters are required for operation
+        for required in ['--id', '--db']:
+            if required not in self._params:
+                msg = "Required parameter {0} not passed".format(required)
+                raise VsearchError(msg)
+        self._outfile = outfname
+        cmd = ['vsearch', '--usearch_global', infile,
+               '--uc', self._outfile]
+        if self._params is not None:
+            for k, v in sorted(self._params.items()):
+                cmd.append('{0} {1}'.format(k, v))
         self._cmd = ' '.join(cmd)
 
-#######################################################################
+    def __return_cluster(self, pipe):
+        """Returns output values for clustering input sequences.
 
-
-class Vsearch_cluster(object):
-    """Class for working with Vsearch cluster"""
-
-    def __init__(self, exe_path):
-        """Instantiate with location of executable"""
-        if not is_exe(exe_path):
-            msg = "{0} is not an executable".format(exe_path)
-            raise NotExecutableError(msg)
-        self._exe_path = exe_path
-
-    def run(self, fasta_in, outdir, prefix, db,
-            threads, threshold=0.99, dry_run=False):
-        """Run Vsearch to cluster the passed fasta files
-        - the fasta file should already have been dereplicated and
-        sorted using the above class.
-
-
-        Returns a tuple of output filenames, and the STOUT returned by the
-        Vsearch run.
+        The return value is a Results_cluster namedtuple
         """
-        self.__build_cmd(fasta_in, outdir, prefix, db, threads, threshold)
-        if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
+        # The blast6 output may not be defined in parameters, but is needed
+        # for the return value
+        if '--blast6out' not in self._params:
+            self._params['--blast6out'] = None
+        if pipe is None:  # It was a dry run
+            results = Results_cluster(self._cmd, self._outfile,
+                                      self._params['--blast6out'],
+                                      None, None)
+        else:
+            results = Results_cluster(self._cmd, self._outfile,
+                                      self._params['--blast6out'],
+                                      pipe.stdout, pipe.stderr)
+        return results
+    
 
-        results_clu = Results_cluster(self._cmd, *self._outfnames,
-                                      pipe.stdout,
-                                      pipe.stderr)
-        return results_clu
+    def __build_cmd_cluster_fast(self, infile, outfname):
+        """Run VSEARCH to cluster_fast input sequences
 
-    def __build_cmd(self,  fasta_in, outdir, prefix, db, threads,
-                    threshold):
-        """Build a command-line for Vsearch_cluster.
-
-        Vsearch takes an input fasta
-        and an ouput  - outdir
-
-        path to an output directory PLUS the prefix of the
-        files to write, such that
-
-        -o a/b/cdefg
+        The command expects the output .uc file to be specified, but all other
+        options are expected in params
         """
-        threshold = str(threshold)
-        self._outfnames = [os.path.join(outdir, prefix) + suffix for suffix in
-                           (threshold + '.blast6',
-                            threshold + '.clusters.uc')]
-
-        cmd = ["vsearch",
-               "--usearch_global",
-               fasta_in,
-               "--id",
-               threshold,
-               "--uc",
-               os.path.join(outdir, prefix + threshold + '.clusters.uc'),
-               "--db",
-               db,
-               "--threads",
-               str(threads),
-               "--blast6out",
-               os.path.join(outdir, prefix + threshold + '.blast6')]
+        # Some parameters are required for operation
+        for required in ['--id', '--centroids']:
+            if required not in self._params:
+                msg = "Required parameter {0} not passed".format(required)
+                raise VsearchError(msg)
+        self._outfile = outfname
+        cmd = ['vsearch', '--cluster_fast', infile,
+               '--uc', self._outfile]
+        if self._params is not None:
+            for k, v in sorted(self._params.items()):
+                cmd.append('{0} {1}'.format(k, v))
         self._cmd = ' '.join(cmd)
 
+    def __return_cluster_fast(self, pipe):
+        """Returns output values for cluster_fast of input sequences.
 
-class Vsearch_fastas(object):
-    """Class for working with Vsearch extra tools"""
-
-    def __init__(self, exe_path):
-        """Instantiate with location of executable"""
-        if not is_exe(exe_path):
-            msg = "{0} is not an executable".format(exe_path)
-            raise NotExecutableError(msg)
-        self._exe_path = exe_path
-
-    def run(self, fasta_in, outdir, prefix, db,
-            threads, threshold=0.99, dry_run=False):
-        """Run Vsearch to cluster the passed fasta files
-        - the fasta file should already have been dereplicated and
-        sorted using the above class.
-        this specific extra class runs an alignment and return
-        representative seq for cluster too
-
-
-        Returns a tuple of output filenames, and the STOUT returned by the
-        Vsearch run.
+        The return value is a Results_cluster namedtuple
         """
-        self.__build_cmd(fasta_in, outdir, prefix, db, threads, threshold)
-        if dry_run:
-            return(self._cmd)
-        pipe = subprocess.run(self._cmd, shell=True,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              check=True)
-
-        results_fas = Results_fasta(self._cmd, *self._outfnames,
-                                    pipe.stdout,
-                                    pipe.stderr)
-        return results_fas
-
-    def __build_cmd(self,  fasta_in, outdir, prefix, db, threads,
-                    threshold):
-        """Build a command-line for Vsearch_fastas.
-
-        Vsearch takes an input fasta
-        and an ouput  - outdir
-
-        path to an output directory PLUS the prefix of the
-        files to write, such that
-
-        -o a/b/cdefg
-        """
-        threshold = str(threshold)
-        self._outfnames = [os.path.join(outdir, prefix + threshold) +
-                           suffix for suffix in
-                           ('.clusterfast.blast6',
-                            '.fast.clusters.uc',
-                            '.alignedclusters.fasta',
-                            '.centroids.fasta',
-                            '.consensus_cls_seq.fasta')]
-
-        cmd = ["vsearch",
-               "--cluster_fast",
-               fasta_in,
-               "--id",
-               threshold,
-               "--centroids",
-               os.path.join(outdir, prefix + threshold +
-                            '.centroids.fasta'),
-               "--msaout",
-               os.path.join(outdir, prefix + threshold +
-                            '.alignedclusters.fasta'),
-               "--uc",
-               os.path.join(outdir, prefix + threshold +
-                            '.fast.clusters.uc'),
-               "--consout",
-               os.path.join(outdir, prefix + threshold +
-                            '.consensus_cls_seq.fasta'),
-               "--db",
-               db,
-               "--threads",
-               str(threads),
-               "--blast6out",
-               os.path.join(outdir, prefix + threshold +
-                            '.clusterfast.blast6')]
-        self._cmd = ' '.join(cmd)
+        # Optional output may not be defined in parameters, but is needed
+        # for the return value
+        for param in ['--blast6out', '--msaout', '--consout']:
+            if param not in self._params:
+                self._params[param] = None
+        if pipe is None:  # It was a dry run
+            results = Results_cluster_fast(self._cmd, self._outfile,
+                                           self._params['--blast6out'],
+                                           self._params['--msaout'],
+                                           self._params['--consout'],
+                                           self._params['--centroids'],
+                                           None, None)
+        else:
+            results = Results_cluster_fast(self._cmd, self._outfile,
+                                           self._params['--blast6out'],
+                                           self._params['--msaout'],
+                                           self._params['--consout'],
+                                           self._params['--centroids'],
+                                           pipe.stdout, pipe.stderr)
+        return results

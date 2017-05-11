@@ -12,7 +12,7 @@ from nose.tools import nottest, assert_equal
 
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "swarm")
-OUTDIR = os.path.join("tests", "test_out_swarm")
+OUTDIR = os.path.join("tests", "test_out", "swarm")
 INFILE = os.path.join(INDIR, "swarm_coded_with_abundance.fasta")
 OUTFILE = os.path.join(OUTDIR, "swarm.out")
 
@@ -20,13 +20,22 @@ OUTFILE = os.path.join(OUTDIR, "swarm.out")
 TARGET = os.path.join("tests", "test_targets", "swarm", "swarm.out")
 
 
+def setup():
+    """et up test fixtures"""
+    try:
+        shutil.rmtree(OUTDIR)
+    except FileNotFoundError:
+        pass
+    os.makedirs(OUTDIR, exist_ok=True)
+
+
 def test_swarm():
-    """swarm instantiates with cmd-line if swarm is in $PATH"""
+    """swarm executable is in $PATH"""
     cluster = swarm.Swarm("swarm")
 
 
 def test_swarm_cmd():
-    """swarm instantiates and returns correct form of cmd-line"""
+    """swarm wrapper returns correct form of cmd-line"""
     cluster = swarm.Swarm("swarm")
     target = ' '.join(["swarm -t 1 -d 1",
                        "-o {0}".format(OUTFILE),
@@ -36,7 +45,7 @@ def test_swarm_cmd():
 
 
 def test_swarm_exec_notexist():
-    """Error thrown if swarm executable does not exist"""
+    """error thrown when swarm executable does not exist"""
     try:
         cluster = swarm.Swarm(os.path.join(".", "swarm"))
     except NotExecutableError:
@@ -46,7 +55,7 @@ def test_swarm_exec_notexist():
 
 
 def test_swarm_notexec():
-    """Error thrown if swarm not executable"""
+    """error thrown when swarm exe not executable"""
     try:
         cluster = swarm.Swarm("LICENSE")
     except NotExecutableError:
@@ -56,18 +65,8 @@ def test_swarm_notexec():
 
 
 def test_swarm_exec():
-    """Run swarm on test data
-
-    TODO: We need a Swarm parser. Members of a group may be reported in any
-          order, so we cannot rely on output files being identical on all
-          systems, or after all runs.
-    """
+    """swarm clusters test data"""
     cluster = swarm.Swarm("swarm")
-    try:
-        shutil.rmtree(OUTDIR)
-    except FileNotFoundError:
-        pass
-    os.makedirs(OUTDIR, exist_ok=True)
 
     parameters = swarm.Parameters(t=1, d=1)
     result = cluster.run(INFILE, OUTDIR, parameters)
@@ -75,6 +74,4 @@ def test_swarm_exec():
     parser = swarm.SwarmParser()
     target = parser.read(TARGET)
     swarms = parser.read(result.outfilename)
-    print('\n'.join([', '.join(c.amplicons) for c in target.swarms]))
-    print('\n'.join([', '.join(c.amplicons) for c in swarms.swarms]))
-    print(target == swarms)
+    assert_equal(target, swarms)

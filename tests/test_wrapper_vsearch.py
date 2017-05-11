@@ -4,48 +4,69 @@
 
 import os
 import shutil
+import subprocess
 
 from pycits import vsearch
 from pycits.tools import NotExecutableError, reformat_blast6_clusters
-import subprocess
-from nose.tools import nottest, assert_equal, with_setup
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 
-# INPUT DATA LOCATION
+from nose.tools import nottest, assert_equal
+
+# INPUT DATA
 INDIR = os.path.join("tests", "test_data", "vsearch")
 OUTDIR = os.path.join("tests", "test_out", "vsearch")
+TARGETDIR = os.path.join("tests", "test_targets", "vsearch")
+
+TARGET_DEREP = os.path.join(TARGETDIR, "dedup_test_vsearch.fasta")
+TARGET_CLUSTER_UC = os.path.join(TARGETDIR, "target.uc")
+TARGET_CLUSTER_B6 = os.path.join(TARGETDIR, "target.blast6")
+TARGET_R_FORMAT = os.path.join(TARGETDIR, "target.formatR")
+TARGET_CLUSTER_FAST_B6 = os.path.join(TARGETDIR, "clusterfast.blast6")
+TARGET_CLUSTER_FAST_UC = os.path.join(TARGETDIR,
+                                      "target_runfast.clusters.uc")
+TARGET_CLUSTER_FAST_MSA = os.path.join(TARGETDIR,
+                                      "target.alignedclusters.fasta")
+TARGET_CLUSTER_FAST_CENTROIDS = os.path.join(TARGETDIR,
+                                             "target.centroids.fasta")
+TARGET_CLUSTER_FAST_CONSENSUS = os.path.join(TARGETDIR,
+                                             "target.consensus_cls_seq.fasta")
+
 INFILE_DEREP = os.path.join(INDIR, "test_db_for_abundance_checking.fasta")
-PREFIX = "test_run"
-THRESHOLD = "0.96"
-THREADS = "2"
+INFILE_CLUSTER = TARGET_DEREP
 DB = os.path.join(INDIR, "vsearch_tests_ITS_db.fasta")
+OUTFILE_DEREP = os.path.join(OUTDIR, "vsearch_derep.fasta")
+OUTFILE_CLUSTER_UC = os.path.join(OUTDIR, "vsearch_cluster.uc")
+OUTFILE_CLUSTER_B6 = os.path.join(OUTDIR, "vsearch_cluster.blast6")
+OUTFILE_CLUSTER_FAST_UC = os.path.join(OUTDIR, "vsearch_cluster_fast.uc")
+OUTFILE_CLUSTER_FAST_B6 = os.path.join(OUTDIR, "vsearch_cluster_fast.blast6")
+OUTFILE_CLUSTER_FAST_MSA = os.path.join(OUTDIR,
+                                        "vsearch_cluster_fast_msa.fasta")
+OUTFILE_CLUSTER_FAST_CENTROIDS = os.path.join(OUTDIR,
+                                              "vsearch_cluster_fast_centroids.fasta")
+OUTFILE_CLUSTER_FAST_CONSENSUS = os.path.join(OUTDIR,
+                                              "vsearch_cluster_fast_consensus.fasta")
 
-# TARGET OUTPUT
-TARGET_DEREP = os.path.join("tests", "test_targets", "vsearch",
-                            "dedup_test_vsearch.fasta")
-TARGET_BLAST6 = os.path.join("tests", "test_targets", "vsearch",
-                             "target.blast6")
-TARGET_UC_CLUSTERS = os.path.join("tests", "test_targets", "vsearch",
-                                  "target.uc")
-TARGET_R_FORMAT = os.path.join("tests", "test_targets", "vsearch",
-                               "target.formatR")
-TARGET_C_FAST_B6 = os.path.join("tests", "test_targets", "vsearch",
-                                "clusterfast.blast6")
-TARGET_C_FAST_UC = os.path.join("tests", "test_targets", "vsearch",
-                                "target_runfast.clusters.uc")
-TARGET_CENTROIDS = os.path.join("tests", "test_targets", "vsearch",
-                                "target.centroids.fasta")
-TARGET_ALIGNED = os.path.join("tests", "test_targets", "vsearch",
-                              "target.alignedclusters.fasta")
-TARGET_CONCENSUS = os.path.join("tests", "test_targets", "vsearch",
-                                "target.consensus_cls_seq.fasta")
+THRESHOLD = 0.96
+THREADS = 2
+
+# PARAMETERS
+CLUSTER_PARAMS = {'--blast6out': OUTFILE_CLUSTER_B6,
+                  '--id': THRESHOLD,
+                  '--db': DB,
+                  '--threads': THREADS}
+CLUSTER_FAST_PARAMS = {"--id": THRESHOLD,
+                       "--centroids": OUTFILE_CLUSTER_FAST_CENTROIDS,
+                       "--msaout": OUTFILE_CLUSTER_FAST_MSA,
+                       "--consout": OUTFILE_CLUSTER_FAST_CONSENSUS,
+                       "--db": DB,
+                       "--threads": THREADS,
+                       "--blast6out": OUTFILE_CLUSTER_FAST_B6}
 
 
-# The setup_outdir() function decorates functions by creating the appropriate
-# output directory tree
-def setup_outdir():
+def setup():
     """Set up test fixtures"""
     try:
         shutil.rmtree(OUTDIR)
@@ -54,53 +75,44 @@ def setup_outdir():
     os.makedirs(OUTDIR, exist_ok=True)
 
 
-def get_sorted_list(in_file):
-    """funct to return a sorted list.
-    takes in a file, returns sorted list"""
-    out_list = []
-    with open(in_file) as fh:
-        data = fh.read().split("\n")
-        for line in data:
-            if not line.strip():
-                continue  # if the last line is blank
-            if line.startswith("#"):  # dont want comment lines
-                continue
-        out_list.append(line)
-    return sorted(out_list)
+def compare_sorted_lines(file1, file2, skip_comments=True):
+    """Compares the sorted line-by-line content of two files.
+
+    If skip_comments is True, then lines starting with '#' are ignored. Lines
+    are stripped at both ends for whitespace, and blank lines are discarded.
+    """
+    with open(file1, 'r') as fh1:
+        with open(file2, 'r') as fh2:
+            f1_sorted = sorted([l.strip() for l in fh1.readlines() if
+                                len(l.strip())])
+            f2_sorted = sorted([l.strip() for l in fh2.readlines() if
+                                len(l.strip())])
+    if skip_comments:
+        f1_sorted = [l for l in f1_sorted if not l.startswith('#')]
+        f2_sorted = [l for l in f2_sorted if not l.startswith('#')]
+    assert_equal(f1_sorted, f2_sorted)
 
 
-def get_sorted_fa(fasta):
-    """funct to return a sorted list of fa records.
-    takes in a fasta, returns sorted list"""
-    out_list = []
-    for seq_record in SeqIO.parse(fasta, "fasta"):
-        data = "%s\t%s" % (seq_record.id, seq_record.seq)
-        out_list.append(data)
-    return sorted(out_list)
-
-
+def compare_sorted_fasta(file1, file2):
+    """Compares the sorted content of two FASTA files"""
+    with open(file1, 'r') as fh1:
+        with open(file2, 'r') as fh2:
+            fasta1 = list(SeqIO.parse(fh1, 'fasta'))
+            fasta2 = list(SeqIO.parse(fh2, 'fasta'))
+    fasta1 = sorted([(s.id, s.seq) for s in fasta1])
+    fasta2 = sorted([(s.id, s.seq) for s in fasta2])
+    assert_equal(fasta1, fasta2)
+    
+    
 def test_vsearch_path():
     """vsearch is in $PATH"""
-    derep = vsearch.Vsearch_derep("vsearch")
-
-
-def test_vsearch_cmd():
-    """vsearch returns correct form of cmd-line"""
-    outfname = os.path.join(OUTDIR, PREFIX +
-                            'derep.fasta')
-    derep = vsearch.Vsearch_derep("vsearch")
-    target = ' '.join(["vsearch",
-                       "--derep_fulllength", INFILE_DEREP,
-                       "--output", outfname,
-                       "--sizeout"])
-    assert_equal(derep.run(INFILE_DEREP, OUTDIR, PREFIX,
-                           dry_run=True), target)
+    vsearch_exe = vsearch.Vsearch("vsearch")
 
 
 def test_vsearch_exec_notexist():
     """error thrown if vsearch executable does not exist"""
     try:
-        derep = vsearch.Vsearch_derep(os.path.join(".", "vsearch"))
+        vsearch_exe = vsearch.Vsearch(os.path.join(".", "vsearch"))
     except NotExecutableError:
         return True
     else:
@@ -110,135 +122,98 @@ def test_vsearch_exec_notexist():
 def test_vsearch_notexec():
     """Error thrown if vsearch not executable"""
     try:
-        cluster = vsearch.Vsearch_derep("LICENSE")
+        vsearch_exe = vsearch.Vsearch("LICENSE")
     except NotExecutableError:
         return True
     else:
         return False
 
 
-@with_setup(setup_outdir)
-def test_vsearch_exec():
-    """Run vsearch on test data
+def test_vsearch_derep_cmd():
+    """VSEARCH wrapper returns correct dereplication cmd-line"""
+    mode = '--derep_fulllength'
+    target = ' '.join(['vsearch', mode, INFILE_DEREP,
+                       '--output', OUTFILE_DEREP,
+                       '--sizeout'])
 
-    TODO: finer option could be passed??
-    """
-    derep = vsearch.Vsearch_derep("vsearch")
-    # results are defined in the class:
-    # factory class for vsearch class returned values
-    # Results = namedtuple("Results", "command fastaout " +
-    # "stdout stderr")
-    # fasta_in, outdir, prefix, dry_run=False)
-    result = derep.run(INFILE_DEREP, OUTDIR, PREFIX)
-    # use the named tuple to get the cluster results file
-    vsearch_fasta = result.fasta
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE_DEREP, OUTFILE_DEREP, dry_run=True)
+    assert_equal(result.command, target)
 
-    with open(TARGET_DEREP, "rt") as target_fh:
-        with open(vsearch_fasta, "r") as test_fh:
+
+def test_vsearch_derep_exec():
+    """VSEARCH dereplicates test data"""
+    mode = '--derep_fulllength'
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE_DEREP, OUTFILE_DEREP)
+    with open(TARGET_DEREP, 'r') as target_fh:
+        with open(result.outfilename, 'r') as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
 
+            
+def test_vsearch_cluster_cmd():
+    """VSEARCH wrapper returns correct clustering cmd-line"""
+    mode = '--usearch_global'
+    target = ' '.join(['vsearch', mode, INFILE_CLUSTER,
+                       '--uc', OUTFILE_CLUSTER_UC,
+                       ' '.join(["{0} {1}".format(k, v) for k, v in
+                                 sorted(CLUSTER_PARAMS.items())])
+    ])
 
-###################################################################
-# Now to tests Vsearch_cluster
-INFILE_CLUSTER = TARGET_DEREP
-
-
-def test_Vsearch_cluster():
-    """Vsearch_cluster instantiates with cmd-line if cd-hit is in $PATH"""
-    cluster = vsearch.Vsearch_cluster("vsearch")
-
-
-def test_Vsearch_cluster_cmd():
-    """Vsearch_cluster instantiates and returns correct form of cmd-line"""
-    cluster = vsearch.Vsearch_cluster("vsearch")
-    target = ' '.join(["vsearch",
-                       "--usearch_global",
-                       INFILE_CLUSTER,
-                       "--id",
-                       THRESHOLD,
-                       "--uc",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD +
-                                    '.clusters.uc'),
-                       "--db",
-                       DB,
-                       "--threads",
-                       str(THREADS),
-                       "--blast6out",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD + '.blast6')])
-    assert_equal(cluster.run(INFILE_CLUSTER,
-                             OUTDIR,
-                             PREFIX,
-                             DB,
-                             THREADS,
-                             THRESHOLD,
-                             dry_run=True), target)
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE_CLUSTER, OUTFILE_CLUSTER_UC,
+                             CLUSTER_PARAMS, dry_run=True)
+    assert_equal(result.command, target)
 
 
-def test_Vsearch_cluster_exec_notexist():
-    """Error thrown if Vsearch_cluster executable does not exist"""
-    try:
-        cluster = vsearch.Vsearch_cluster(os.path.join(".", "vsearch"))
-    except NotExecutableError:
-        return True
-    else:
-        return False
+def test_vsearch_cluster_exec():
+    """VSEARCH clusters test data"""
+    mode = '--usearch_global'
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE_CLUSTER, OUTFILE_CLUSTER_UC,
+                             CLUSTER_PARAMS)
+    compare_sorted_lines(TARGET_CLUSTER_UC, result.outfile_uc)
+    compare_sorted_lines(TARGET_CLUSTER_B6, result.outfile_b6)
 
 
-def test_Vsearch_cluster_notexec():
-    """Error thrown if vsearch not executable"""
-    try:
-        cluster = vsearch.Vsearch_cluster("LICENSE")
-    except NotExecutableError:
-        return True
-    else:
-        return False
+def test_vsearch_cluster_fast_cmd():
+    """VSEARCH wrapper returns correct cluster_fast cmd-line"""
+    mode = '--cluster_fast'
+    target = ' '.join(['vsearch', mode, INFILE_CLUSTER,
+                       '--uc', OUTFILE_CLUSTER_FAST_UC,
+                       ' '.join(["{0} {1}".format(k, v) for k, v in
+                                 sorted(CLUSTER_FAST_PARAMS.items())])
+    ])
+
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE_CLUSTER,
+                             OUTFILE_CLUSTER_FAST_UC,
+                             CLUSTER_FAST_PARAMS, dry_run=True)
+    assert_equal(result.command, target)
 
 
-@with_setup(setup_outdir)
-def test_vsearch_exec():
-    """Run vsearch on test data
-
-    TODO: finer option could be passed??
-    """
-    cluster = vsearch.Vsearch_cluster("vsearch")
-    # results are defined in the class:
-    # factory class for vsearch class returned values
-    # Results = namedtuple("Results", "command fastaout " +
-    # "stdout stderr")
-    # fasta_in, outdir, prefix, db, threads, threshold=0.99
-    result = cluster.run(INFILE_CLUSTER,
-                         OUTDIR,
-                         PREFIX,
-                         DB,
-                         THREADS,
-                         THRESHOLD)
-    # use the named tuple to get the clustering results file
-    # compare the blast6 output, convert them to sorted lists first
-    target_blast = get_sorted_list(TARGET_BLAST6)
-    result_blast = get_sorted_list(result.blast6)
-    assert_equal(result_blast, target_blast)
-
-    # UC outfiles
-    target_uc = get_sorted_list(TARGET_UC_CLUSTERS)
-    result_us = get_sorted_list(result.uc_clusters)
-    assert_equal(result_us, target_uc)
+def test_vsearch_cluster_exec():
+    """VSEARCH cluster_fast clusters test data"""
+    mode = '--cluster_fast'
+    vsearch_exe = vsearch.Vsearch("vsearch")
+    result = vsearch_exe.run(mode, INFILE_CLUSTER, OUTFILE_CLUSTER_FAST_UC,
+                             CLUSTER_FAST_PARAMS)
+    compare_sorted_lines(TARGET_CLUSTER_FAST_UC, result.outfile_uc)
+    compare_sorted_lines(TARGET_CLUSTER_FAST_B6, result.outfile_b6)
+    compare_sorted_fasta(TARGET_CLUSTER_FAST_MSA, result.outfile_msa)
+    
 
 
 ###################################################################
 # Now to test conversion to another format
-
-@with_setup(setup_outdir)
+@nottest    
 def test_convert_vsearch_format():
     """ testing function in tools to convert blast6 format to format
     for R"""
     cat_out = os.path.join(OUTDIR, "db_and_reads.fasta")
     cat_cmd = ' '.join(["cat",
                         DB,
-                        INFILE_DEREP,
+                        INFILE,
                         ">",
                         cat_out])
     pipe = subprocess.run(cat_cmd, shell=True,
@@ -254,125 +229,3 @@ def test_convert_vsearch_format():
     result_R = get_sorted_list(os.path.join(OUTDIR, "tests.Rformat"))
     target_R = get_sorted_list(TARGET_R_FORMAT)
     assert_equal(result_R, target_R)
-
-
-###################################################################
-# Now to tests Vsearch_fastas
-
-
-def test_vsearch_fastas():
-    """Vsearch_fastas instantiates with cmd-line if cd-hit is in $PATH"""
-    cluster = vsearch.Vsearch_fastas("vsearch")
-
-
-def test_vsearch_fastas_cmd():
-    """Vsearch_fastas instantiates and returns correct form of cmd-line"""
-    cluster = vsearch.Vsearch_fastas("vsearch")
-    target = ' '.join(["vsearch",
-                       "--cluster_fast",
-                       INFILE_CLUSTER,
-                       "--id",
-                       THRESHOLD,
-                       "--centroids",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD +
-                                    '.centroids.fasta'),
-                       "--msaout",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD +
-                                    '.alignedclusters.fasta'),
-                       "--uc",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD +
-                                    '.fast.clusters.uc'),
-                       "--consout",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD +
-                                    '.consensus_cls_seq.fasta'),
-                       "--db",
-                       DB,
-                       "--threads",
-                       THREADS,
-                       "--blast6out",
-                       os.path.join(OUTDIR,
-                                    PREFIX +
-                                    THRESHOLD +
-                                    '.clusterfast.blast6')])
-    # fasta_in, outdir, prefix, db, threads, threshold)
-    assert_equal(cluster.run(INFILE_CLUSTER,
-                             OUTDIR,
-                             PREFIX,
-                             DB,
-                             THREADS,
-                             THRESHOLD,
-                             dry_run=True), target)
-
-
-def test_vsearch_fastas_exec_notexist():
-    """Error thrown if Vsearch_fastas executable does not exist"""
-    try:
-        cluster = vsearch.Vsearch_fastas(os.path.join(".", "vsearch"))
-    except NotExecutableError:
-        return True
-    else:
-        return False
-
-
-def test_vsearch_fastas_notexec():
-    """Error thrown if vsearch not executable"""
-    try:
-        cluster = vsearch.Vsearch_fastas("LICENSE")
-    except NotExecutableError:
-        return True
-    else:
-        return False
-
-
-@with_setup(setup_outdir)
-def test_vsearch_exec():
-    """Run vsearch on test data
-
-    TODO: finer option could be passed??
-    """
-    cluster = vsearch.Vsearch_fastas("vsearch")
-
-    # results are defined in the class:
-    # factory class for vsearch class returned values
-    # Results = namedtuple("Results", "command fastaout " +
-    # "stdout stderr")
-    # fasta_in, outdir, prefix, db, threads, threshold=0.99
-    result2 = cluster.run(INFILE_CLUSTER,
-                          OUTDIR,
-                          PREFIX,
-                          DB,
-                          THREADS,
-                          THRESHOLD)
-    # use the named tuple to get the clustering results file
-    # compare the blast6 output, convert them to sorted lists first
-    target_blast = get_sorted_list(TARGET_C_FAST_B6)
-    result_blast = get_sorted_list(result2.blast6)
-    assert_equal(result_blast, target_blast)
-
-    # UC outfiles
-    target_uc = get_sorted_list(TARGET_C_FAST_UC)
-    result_uc = get_sorted_list(result2.uc_clusters)
-    assert_equal(result_uc, target_uc)
-
-    # centroids outfiles
-    target_cent = get_sorted_fa(TARGET_CENTROIDS)
-    result_cent = get_sorted_fa(result2.centroids)
-    assert_equal(target_cent, result_cent)
-
-    # TARGET_ALIGNED
-    target_alig = get_sorted_fa(TARGET_ALIGNED)
-    result_alig = get_sorted_fa(result2.aligned)
-    assert_equal(target_alig, result_alig)
-
-    # TARGET_CONCENSUS
-    target_conc = get_sorted_fa(TARGET_CONCENSUS)
-    result_conc = get_sorted_fa(result2.consensus_cls)
-    assert_equal(target_conc, result_conc)
