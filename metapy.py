@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-# THIS IS currently under development.
 #
-# TODO - put this functionality under a proper test framework (e.g. nosetests
-#        or equivalent) - in progress
-# All modules used are subjected to nosetests
+# metapy.py
+#
+# Code for script to identify OTUs from metabarcoding reads.
+# run multiple clustering programs
+#
+# (c) The James Hutton Institute 2016-2017
+# Author: Leighton Pritchard, Peter Thorpe
 
 import sys
 import errno
@@ -30,15 +33,16 @@ from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
     cd_hit, blast, vsearch, samtools_index, muscle
 
 if sys.version_info[:2] != (3, 5):
-    # sys.version_info(major=3, minor=5, micro=2,
+    # e.g. sys.version_info(major=3, minor=5, micro=2,
     # releaselevel='final', serial=0)
     # break the program
     print ("currently using:", sys.version_info,
            "  version of python")
     raise ImportError("Python 3.5 is required for metapy.py")
+    print ("did you activate the virtual environment?")
     sys.exit(1)
 
-## TODO: This should be incorporated into the argument parser
+
 VERSION = "Pycits classify OTU: v0.0.2"
 if "--version" in sys.argv:
     print(VERSION)
@@ -50,7 +54,7 @@ if "--version" in sys.argv:
 def get_args():
     parser = argparse.ArgumentParser(description="Pipeline: cluster " +
                                      "data for metabarcoding " +
-                                     "This is currently a draft.  " ,
+                                     "This is currently a draft.  ",
                                      add_help=False)
     file_directory = os.path.realpath(__file__).split("METAPY")[0]
     optional = parser.add_argument_group('optional arguments')
@@ -59,9 +63,9 @@ def get_args():
                           type=str,
                           help="number of threads")
 
-    ## TODO: Why are these files being specified? They are not general.
-    ## DESIGN: Attempting to collate everything here into a single cmd-line
-    ##         interface is a bad idea. We need to restructure this.
+    # TODO: Why are these files being specified? They are not general.
+    # DESIGN: Attempting to collate everything here into a single cmd-line
+    #         interface is a bad idea. We need to restructure this.
     optional.add_argument("-l", "--left", dest='left',
                           action="store",
                           default=os.path.join(file_directory,
@@ -102,9 +106,9 @@ def get_args():
 
     optional.add_argument("--adaptors", dest='adaptors',
                           action="store",
-                          default= os.path.join(file_directory,
-                                                "adapters",
-                                                "TruSeq3-PE.fa"),
+                          default=os.path.join(file_directory,
+                                               "adapters",
+                                               "TruSeq3-PE.fa"),
                           type=str,
                           help="adaptors for trimming. Can supply custom " +
                           " file if desired")
@@ -118,7 +122,7 @@ def get_args():
 
     optional.add_argument("--right_trim", dest='right_trim',
                           action="store",
-                          default= 0,
+                          default=0,
                           type=int,
                           help="right_trim for primers or conserved " +
                           "regions.  Default 0")
@@ -144,14 +148,16 @@ def get_args():
                           help="the difference d value for clustering " +
                           "in swarm. Default 1")
 
-    optional.add_argument("--blastclust_threshold", dest='blastclust_threshold',
+    optional.add_argument("--blastclust_threshold",
+                          dest='blastclust_threshold',
                           action="store",
                           default=0.90,
                           type=float,
                           help="the threshold for blastclust clustering " +
                           " Default -S 0.90")
 
-    optional.add_argument("--vesearch_threshold", dest='vesearch_threshold',
+    optional.add_argument("--vesearch_threshold",
+                          dest='vesearch_threshold',
                           action="store",
                           default=0.99,
                           type=float,
@@ -175,7 +181,8 @@ def get_args():
                           help="to align clusters in the output " +
                           "you must have muscle in your PATH as muscle")
 
-    optional.add_argument("--percent_identity", dest="percent_identity",
+    optional.add_argument("--percent_identity",
+                          dest="percent_identity",
                           action="store_true",
                           default=False,
                           help="blast the cluster to return " +
@@ -188,23 +195,27 @@ def get_args():
                           help="min size of a cluster to consider as real " +
                           "anything smaller than this is ignored")
 
-    optional.add_argument("--logfile", dest="logfile",
-                          action="store", default="pipeline.log",
+    optional.add_argument("--logfile",
+                          dest="logfile",
+                          action="store",
+                          default="pipeline.log",
                           type=str,
                           help="Logfile name")
 
     optional.add_argument("-h", "--help",
-                          action="help", default=argparse.SUPPRESS,
+                          action="help",
+                          default=argparse.SUPPRESS,
                           help="Displays this help message"
                           " type --version for version")
-    optional.add_argument('--version', action='version',
+    optional.add_argument('--version',
+                          action='version',
                           version="%s: metapy.py " + VERSION)
     args = parser.parse_args()
     return args, file_directory
 
 
-## TODO: The PSL has the gzip library for this!!!!!
-##       https://docs.python.org/3/library/gzip.html#examples-of-usage
+# TODO: The PSL has the gzip library for this!!!!!
+#       https://docs.python.org/3/library/gzip.html#examples-of-usage
 def decompress(infile):
     """function to decompress gzipped reads"""
     cmd = ' '.join(["gunzip", infile])
@@ -243,8 +254,8 @@ PREFIX = READ_PREFIX
 ADAPTERS = args.adaptors
 OUTDIR_TRIM = "trimmed_reads"
 OUTFILES = [os.path.join(OUTDIR_TRIM, PREFIX + suffix) for suffix in
-           ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
-            "_paired_R2.fq.gz", "_unpaired_R2.fq.gz")]
+            ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
+             "_paired_R2.fq.gz", "_unpaired_R2.fq.gz")]
 OTU_DATABASE = args.OTU_DB
 WORKING_DIR = os.getcwd()
 # set this to false for now to not run it
@@ -268,14 +279,15 @@ CLUSTER_FILES_FOR_RAND_INDEX = []
 RESULTS = []
 #####################################################################
 
+# TODO: There is *a lot* of repeated code here.
+#       The many try-except structures
+#       should be making you think that you need a function
+# DESIGN: Why require that the command is in the $PATH? As a default
+#         assumption when collecting the argument above, sure - but if you
+#         allow for pointing to a different version you can also compare the
+#         pipeline as it runs with different software versions.
 
 
-## TODO: There is *a lot* of repeated code here. The many try-except structures
-##       should be making you think that you need a function
-## DESIGN: Why require that the command is in the $PATH? As a default
-##         assumption when collecting the argument above, sure - but if you
-##         allow for pointing to a different version you can also compare the
-##         pipeline as it runs with different software versions.
 def check_tools_exist():
     """function to check to see what tools are in the PATH,
     decide what we can use
@@ -346,8 +358,7 @@ def check_tools_exist():
     return tools_list, Warning_out
 
 
-## TODO: os.makedirs(dest_dir, exist_ok=True)!!!!!
-def make_folder(folder):
+def make_folder(folder, exist_ok=True):
     """function to make a folder with desired name"""
     dest_dir = os.path.join(WORKING_DIR, folder)
     try:
@@ -385,12 +396,12 @@ def covert_chop_read(infile):
              infile + ".bio.chopped.fasta",
              LEFT_TRIM, RIGHT_TRIM)
 
-## DESIGN: Why are you ignoring all the wrappers? This is hugely
-##         counterproductive!
-## DESIGN: If you write a Python script, and need to call code from another
-##         script, that should be telling you that you need to write
-##         a function in a module, and call it from both scripts. Using
-##         a shell call to Python in your Python script is *very bad*!
+# DESIGN: Why are you ignoring all the wrappers? This is hugely
+#         counterproductive!
+# DESIGN: If you write a Python script, and need to call code from another
+#         script, that should be telling you that you need to write
+#         a function in a module, and call it from both scripts. Using
+#         a shell call to Python in your Python script is *very bad*!
 
 #######################################################################
 # Run as script
@@ -466,7 +477,7 @@ if __name__ == '__main__':
     ####################################################################
     # error correction testing
     if "error_correction" in tools_list:
-        if ERROR_CORRECTION == True:
+        if ERROR_CORRECTION:
             # we will error correct the read and reasign LEFT_TRIMMED
             # with the EC reads
             EC_FOLDER = make_folder(PREFIX + "_EC")
@@ -491,7 +502,7 @@ if __name__ == '__main__':
     # PEAR testing - assemble
     if "pear" in tools_list and ASSEMBLE_PROG == "pear":
         logger.info("assembly using PEAR")
-        if ERROR_CORRECTION == True:
+        if ERROR_CORRECTION:
             suffix = "_PEAR_EC"
             logger.info("PEAR will use trimmed and error corrected reads")
         else:
@@ -517,7 +528,7 @@ if __name__ == '__main__':
     # FLASH testing - assemble
     if "flash" in tools_list and ASSEMBLE_PROG == "flash":
         logger.info("assembly using FLASH")
-        if ERROR_CORRECTION == True:
+        if ERROR_CORRECTION:
             suffix = "_FLASH_EC"
             logger.info("FLASH will use trimmed and error corrected reads")
         else:
@@ -541,7 +552,7 @@ if __name__ == '__main__':
 
     ####################################################################
     # convert format using seq_crumbs
-    if SEQ_CRUMBS == True:
+    if SEQ_CRUMBS:
         format_change = seq_crumbs.Convert_Format("convert_format",
                                                   logger)
         format_change.run(ASSEMBLED,
@@ -661,10 +672,10 @@ if __name__ == '__main__':
                                     (PREFIX, SWARM_D_VALUE))
         RESULTS.append("swarm\t%s" % swarm_result)
         cmd_s = ' '.join(cmd_s)
-        if args.align == True:
+        if args.align:
             logger.info("going to align the cluster. Will take ages!")
             cmd_s = cmd_s + " --align True"
-        if args.percent_identity == True:
+        if args.percent_identity:
             cmd_s = cmd_s + " --blast True"
         outstr = "%s = post analysis command" % cmd_s
         logger.info(outstr)
@@ -748,10 +759,10 @@ if __name__ == '__main__':
         RESULTS.append("cdhit\t%s" % cd_hit_result)
 
         cmd_c = ' '.join(cmd_c)
-        if args.align == True:
+        if args.align:
             logger.info("going to align the cluster. Will take ages!")
             cmd_c = cmd_c + " --align True"
-        if args.percent_identity == True:
+        if args.percent_identity:
             cmd_c = cmd_c + " --blast True"
         outstr = "%s = post analysis command" % cmd_c
         logger.info(outstr)
@@ -774,7 +785,6 @@ if __name__ == '__main__':
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
-
 
     ####################################################################
     # run vsearch
@@ -833,10 +843,10 @@ if __name__ == '__main__':
         RESULTS.append("vsearch\t%s" % v_result)
 
         cmd_v = ' '.join(cmd_v)
-        if args.align == True:
+        if args.align:
             logger.info("going to align the cluster. Will take ages!")
             cmd_v = cmd_v + " --align True"
-        if args.percent_identity == True:
+        if args.percent_identity:
             cmd_v = cmd_v + " --blast True"
         outstr = "%s = post analysis command" % cmd_v
         logger.info(outstr)
@@ -886,9 +896,9 @@ if __name__ == '__main__':
         outstr = "I cat these files %s" % cat_cmd
         logger.info(outstr)
         pipe = subprocess.run(cat_cmd, shell=True,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          check=True)
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
 
         # use vsearch to get concensus and aligned clusters
         clu_fasta = vsearch.Vsearch_fastas("vsearch")
@@ -938,10 +948,10 @@ if __name__ == '__main__':
         RESULTS.append("vse_faclus\t%s" % v_f_result)
 
         cmd_F = ' '.join(cmd_F)
-        if args.align == True:
+        if args.align:
             logger.info("going to align the cluster. Will take ages!")
             cmd_F = cmd_F + " --align True"
-        if args.percent_identity == True:
+        if args.percent_identity:
             cmd_F = cmd_F + " --blast True"
         outstr = "%s = post analysis command" % cmd_v
         logger.info(outstr)
@@ -1157,15 +1167,15 @@ if __name__ == '__main__':
                  "--old_to_new", "db_old_to_new_names.txt"]
 
         bc_result = os.path.join(BLASTCL_FOLDER,
-                                "%s_blastclust_results_%s.RESULTS" %
-                                (PREFIX, str(blastclust_threshold)))
+                                 "%s_blastclust_results_%s.RESULTS" %
+                                 (PREFIX, str(blastclust_threshold)))
         RESULTS.append("blastclust\t%s" % bc_result)
 
         cmd_b = ' '.join(cmd_b)
-        if args.align == True:
+        if args.align:
             logger.info("going to align the cluster. Will take ages!")
             cmd_b = cmd_b + " --align True"
-        if args.percent_identity == True:
+        if args.percent_identity:
             cmd_b = cmd_b + " --blast True"
         outstr = "%s = post analysis command" % cmd_b
         logger.info(outstr)
