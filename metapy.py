@@ -42,11 +42,10 @@ if sys.version_info[:2] != (3, 5):
     print ("did you activate the virtual environment?")
     sys.exit(1)
 
-
 VERSION = "Pycits classify OTU: v0.0.2"
 if "--version" in sys.argv:
     print(VERSION)
-    sys.exit()
+    sys.exit(1)
 
 #########################################################################
 
@@ -64,6 +63,7 @@ def get_args():
                           help="number of threads")
 
     # TODO: Why are these files being specified? They are not general.
+    # for now they are here for testing. Will removed later
     # DESIGN: Attempting to collate everything here into a single cmd-line
     #         interface is a bad idea. We need to restructure this.
     optional.add_argument("-l", "--left", dest='left',
@@ -194,6 +194,66 @@ def get_args():
                           default="2",
                           help="min size of a cluster to consider as real " +
                           "anything smaller than this is ignored")
+
+    optional.add_argument("--blastclust", dest="blastclust",
+                          action="store", default="blastclust",
+                          help="Path to blastclust ... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--muscle", dest="muscle",
+                          action="store", default="muscle",
+                          help="Path to MUSCLE... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--flash", dest="flash",
+                          action="store", default="flash",
+                          help="Path to flash... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--pear", dest="pear",
+                          action="store", default="pear",
+                          help="Path to pear... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--cd-hit-est", dest="cd-hit-est",
+                          action="store", default="cd-hit-est",
+                          help="Path to cd-hit-est... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--bowtie2", dest="bowtie2",
+                          action="store", default="bowtie2",
+                          help="Path to bowtie2... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--fastqc", dest="fastqc",
+                          action="store", default="fastqc",
+                          help="Path to fastqc... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--spades", dest="spades",
+                          action="store", default="spades.py",
+                          help="Path to spades.py... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--vsearch", dest="vsearch",
+                          action="store", default="vsearch",
+                          help="Path to vsearch... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--trimmomatic", dest="trimmomatic",
+                          action="store", default="trimmomatic",
+                          help="Path to trimmomatic... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--swarm", dest="swarm",
+                          action="store", default="swarm",
+                          help="Path to swarm... If version already" +
+                          "in PATH then leave blank")
+
+    optional.add_argument("--samtools", dest="samtools",
+                          action="store", default="samtools",
+                          help="Path to samtools... If version already" +
+                          "in PATH then leave blank")
 
     optional.add_argument("--logfile",
                           dest="logfile",
