@@ -294,6 +294,27 @@ def compress(infile):
                           stderr=subprocess.PIPE,
                           check=True)
 
+
+def metapy_trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
+    """Trims all FASTA sequences in infname by lclip and rclip on the
+    'left'- and 'right'-hand ends, respectively and writes the results to
+    outfname. Any clipped sequence with length < minlen is not written.
+
+    Defaults are equivalent to the default settings are for the current ITS1
+    phy primers and the development ITS1 Phy database. PLEASE DONT BLINDLY
+    USE THESE. The filenames, we now provide directly.
+    """
+    # ensure these are int, as they may have been passed as a string.
+    lclip = int(lclip)
+    rclip = int(rclip)
+    with open(infname, 'r') as fh:
+        # rclip needs to be set up to allow for zero values, using logic:
+        # rclip_coordinate = len(s) - rclip
+        # Use generators to save memory
+        s_trim = (s[lclip:(len(s) - rclip)] for s in SeqIO.parse(fh, 'fasta'))
+        return SeqIO.write((s for s in s_trim if len(s) >= minlen),
+                           outfname, 'fasta')
+
 ###################################################################
 # Global variables
 WARNINGS = ""
@@ -356,52 +377,52 @@ def check_tools_exist():
     tools_list = []
     Warning_out = WARNINGS + "Tool executable warning: "
     try:
-        flash.Flash("flash")
+        flash.Flash(args.flash)
         tools_list.append("flash")
     except ValueError:
         Warning_out = Warning_out + "Flash not in path"
     try:
-        error_correction.Error_Correction("spades.py")
+        error_correction.Error_Correction(agrs.spades)
         tools_list.append("error_correction")
     except ValueError:
         Warning_out = Warning_out + "spades.py not in path\n"
     try:
-        vsearch.Vsearch_derep("vsearch")
+        vsearch.Vsearch_derep(args.vsearch)
         tools_list.append("vsearch")
     except ValueError:
         Warning_out = Warning_out + "vsearch not in path\n"
     try:
-        trimmomatic.Trimmomatic("trimmomatic")
+        trimmomatic.Trimmomatic(args.trimmomatic)
         tools_list.append("trimmomatic")
     except ValueError:
         Warning_out = Warning_out + "trimmomatic not in path\n"
     try:
-        swarm.Swarm("swarm")
+        swarm.Swarm(args.swarm)
         tools_list.append("swarm")
     except ValueError:
         Warning_out = Warning_out + "swarm not in path\n"
     try:
-        samtools_index.Samtools_Index("samtools")
+        samtools_index.Samtools_Index(args.samtools)
         tools_list.append("samtools")
     except ValueError:
         Warning_out = Warning_out + "samtools not in path\n"
     try:
-        pear.Pear("pear")
+        pear.Pear(args.pear)
         tools_list.append("pear")
     except ValueError:
         Warning_out = Warning_out + "pear not in path\n"
     try:
-        muscle.Muscle("muscle")
+        muscle.Muscle(args.muscle)
         tools_list.append("muscle")
     except ValueError:
         Warning_out = Warning_out + "muscle not in path\n"
     try:
-        fastqc.FastQC("fastqc")
+        fastqc.FastQC(args.fastqc)
         tools_list.append("fastqc")
     except ValueError:
         Warning_out = Warning_out + "fastqc not in path\n"
     try:
-        fastqc.FastQC("cd-hit-est")
+        fastqc.FastQC(args.cd-hit-est)
         tools_list.append("cd-hit-est")
     except ValueError:
         Warning_out = Warning_out + "cd-hit-est not in path\n"
@@ -411,7 +432,7 @@ def check_tools_exist():
     except ValueError:
         Warning_out = Warning_out + "bowtie2 not in path\n"
     try:
-        blast.Blastclust("blastclust")
+        blast.Blastclust(args.blastclust)
         tools_list.append("blastclust")
     except ValueError:
         Warning_out = Warning_out + "blastclust not in path\n"
@@ -452,9 +473,10 @@ def covert_chop_read(infile):
     # use: trim_seq() from tools.
     # trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100)
     logger.info("chopping the reads %s" % infile)
-    trim_seq(infile + ".bio.fasta",
-             infile + ".bio.chopped.fasta",
-             LEFT_TRIM, RIGHT_TRIM)
+    # this function is now added to this script
+    metapy_trim_seq(infile + ".bio.fasta",
+                    infile + ".bio.chopped.fasta",
+                    LEFT_TRIM, RIGHT_TRIM)
 
 # DESIGN: Why are you ignoring all the wrappers? This is hugely
 #         counterproductive!
