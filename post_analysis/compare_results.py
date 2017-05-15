@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # title: compare what species were found using sets
 # in the cluster
 # author: Peter Thorpe and Leighton Pritchard
