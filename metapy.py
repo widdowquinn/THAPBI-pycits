@@ -29,16 +29,19 @@ from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
     flash, clean_up, swarm, seq_crumbs, bowtie_build, bowtie_map,\
     cd_hit, blast, vsearch, samtools_index, muscle
 
-## TODO: This code should be in the main process of the script
-# check this is running under python 3
-if sys.version_info !=  (3, 5):
+if sys.version_info[:2] != (3, 5):
+    # sys.version_info(major=3, minor=5, micro=2,
+    # releaselevel='final', serial=0)
     # break the program
+    print ("currently using:", sys.version_info,
+           "  version of python")
     raise ImportError("Python 3.5 is required for metapy.py")
     sys.exit(1)
 
 ## TODO: This should be incorporated into the argument parser
-if "-v" in sys.argv or "--version" in sys.argv:
-    print("Pycits classify OTU: v0.0.1")
+VERSION = "Pycits classify OTU: v0.0.2"
+if "--version" in sys.argv:
+    print(VERSION)
     sys.exit()
 
 #########################################################################
@@ -194,6 +197,8 @@ def get_args():
                           action="help", default=argparse.SUPPRESS,
                           help="Displays this help message"
                           " type --version for version")
+    optional.add_argument('--version', action='version',
+                          version="%s: metapy.py " + VERSION)
     args = parser.parse_args()
     return args, file_directory
 
@@ -409,8 +414,8 @@ if __name__ == '__main__':
         logger.error(outstr)
         sys.exit(1)
     # Report input arguments
-    outstr = "Command-line: %s" % ' '.join(sys.argv)
-    logger.info(outstr)
+    logger.info(sys.version_info)
+    logger.info("Command-line: %s" % ' '.join(sys.argv))
     outstr = "Starting testing: %s" % time.asctime()
     logger.info(outstr)
     # Get a list of tools in path!
