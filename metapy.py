@@ -20,6 +20,8 @@ import subprocess
 import sklearn
 import argparse
 import pysam
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
      dereplicate_name, check_OTU_db_abundance_val, \
@@ -55,7 +57,7 @@ def get_args():
                                      "data for metabarcoding " +
                                      "This is currently a draft.  ",
                                      add_help=False)
-    file_directory = os.path.realpath(__file__).split("METAPY")[0]
+    file_directory = os.path.realpath(__file__).split("metapy")[0]
     optional = parser.add_argument_group('optional arguments')
     optional.add_argument("--thread", dest='threads',
                           action="store", default="4",
@@ -91,8 +93,9 @@ def get_args():
                           action="store",
                           default=os.path.join(file_directory,
                                                "data",
-                                               "ITS_db_NOT_conf_correct" +
-                                               "_last14bp_removd.fasta"),
+                                               "ITS_database_NOT_" +
+                                               "confirmed_correct_last" +
+                                               "14bases_removed.fasta"),
                           type=str,
                           help="right illumina reads")
 
@@ -169,10 +172,10 @@ def get_args():
                           default=False,
                           help="Report verbose output")
 
-    optional.add_argument("--Error_correction",
+    optional.add_argument("-e", "--error_correction",
                           dest="Error_correction",
                           action="store_true",
-                          default=True,
+                          default=False,
                           help="to perform Illumina error correction ")
 
     optional.add_argument("--align", dest="align",
@@ -215,7 +218,7 @@ def get_args():
                           help="Path to pear... If version already" +
                           "in PATH then leave blank")
 
-    optional.add_argument("--cd-hit-est", dest="cd-hit-est",
+    optional.add_argument("--cd-hit-est", dest="cd_hit",
                           action="store", default="cd-hit-est",
                           help="Path to cd-hit-est... If version already" +
                           "in PATH then leave blank")
@@ -382,12 +385,12 @@ def check_tools_exist():
     except ValueError:
         Warning_out = Warning_out + "Flash not in path"
     try:
-        error_correction.Error_Correction(agrs.spades)
+        error_correction.Error_Correction(args.spades)
         tools_list.append("error_correction")
     except ValueError:
         Warning_out = Warning_out + "spades.py not in path\n"
     try:
-        vsearch.Vsearch_derep(args.vsearch)
+        vsearch.Vsearch(args.vsearch)
         tools_list.append("vsearch")
     except ValueError:
         Warning_out = Warning_out + "vsearch not in path\n"
@@ -422,12 +425,12 @@ def check_tools_exist():
     except ValueError:
         Warning_out = Warning_out + "fastqc not in path\n"
     try:
-        fastqc.FastQC(args.cd-hit-est)
+        cd_hit.Cd_hit(args.cd_hit)
         tools_list.append("cd-hit-est")
     except ValueError:
         Warning_out = Warning_out + "cd-hit-est not in path\n"
     try:
-        bowtie_build.Bowtie2_Build("bowtie2-build")
+        bowtie_map.Bowtie2_Map(args.bowtie2)
         tools_list.append("bowtie2")
     except ValueError:
         Warning_out = Warning_out + "bowtie2 not in path\n"
@@ -472,7 +475,7 @@ def covert_chop_read(infile):
     # cluster with the database.
     # use: trim_seq() from tools.
     # trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100)
-    logger.info("chopping the reads %s" % infile)
+    logger.info("chopping the reads %s", infile)
     # this function is now added to this script
     metapy_trim_seq(infile + ".bio.fasta",
                     infile + ".bio.chopped.fasta",
@@ -508,9 +511,8 @@ if __name__ == '__main__':
         sys.exit(1)
     # Report input arguments
     logger.info(sys.version_info)
-    logger.info("Command-line: %s" % ' '.join(sys.argv))
-    outstr = "Starting testing: %s" % time.asctime()
-    logger.info(outstr)
+    logger.info("Command-line: %s", ' '.join(sys.argv))
+    logger.info("Starting testing: %s", time.asctime())
     # Get a list of tools in path!
     logger.info("checking which programs are in PATH")
     tools_list, Warning_out = check_tools_exist()
@@ -521,14 +523,11 @@ if __name__ == '__main__':
     if "fastqc" in tools_list:
         FASTQC_FOLDER = make_folder(PREFIX + "_fastqc")
         logger.info("starting fastqc")
-        outstr = "made folder  %s" % FASTQC_FOLDER
-        logger.info(outstr)
-        qc = fastqc.FastQC("fastqc")
+        logger.info("made folder  %s",  FASTQC_FOLDER)
+        qc = fastqc.FastQC(args.fastqc)
         qc_results = qc.run(LEFT_READS, PREFIX + FASTQC_FOLDER)
-        outstr = "fastqc output: %s" % qc_results.command
-        logger.info(outstr)
-        outstr = "fastqc stderr: %s" % qc_results.stderr
-        logger.info(outstr)
+        logger.info("fastqc output: %s", qc_results.command)
+        logger.info("fastqc stderr: %s", qc_results.stderr)
 
     ####################################################################
     # trimmomatic trm reads
@@ -536,9 +535,8 @@ if __name__ == '__main__':
         TRIM_FOLDER = make_folder(PREFIX + "_timmomatic")
 
         logger.info("starting trimmomatic testing")
-        outstr = "made folder %s" % TRIM_FOLDER
-        logger.info(outstr)
-        trim = trimmomatic.Trimmomatic("trimmomatic")
+        logger.info("made folder %s", TRIM_FOLDER)
+        trim = trimmomatic.Trimmomatic(args.trimmomatic)
 
         logger.info("Trim reads by quality")
         parameters = trimmomatic.Parameters(threads=4)
@@ -548,11 +546,9 @@ if __name__ == '__main__':
                            PHREDSCORE, parameters,
                            steps)
         logger.info("Trimming returned:", results)
-        outstr = "Trimming command: %s" % results.command
-        logger.info(outstr)
+        logger.info("Trimming command: %s", results.command)
         # get these exact file names from the named tuple
-        outstr = "Trimming output: %s" % results.stderr
-        logger.info(outstr)
+        logger.info("Trimming output: %s", results.stderr)
         LEFT_TRIMMED = results.outfileR1paired
         RIGHT_TRIMMED = results.outfileR2paired
 
@@ -563,17 +559,15 @@ if __name__ == '__main__':
             # we will error correct the read and reasign LEFT_TRIMMED
             # with the EC reads
             EC_FOLDER = make_folder(PREFIX + "_EC")
-            error_corr = error_correction.Error_Correction("spades.py")
+            error_corr = error_correction.Error_Correction(args.spades)
             logger.info("error correction using Bayes hammer")
-            outstr = "made folder %s" % EC_FOLDER
-            logger.info(outstr)
+            logger.info("made folder %s", EC_FOLDER)
             EC_results = error_corr.run(LEFT_TRIMMED,
                                         RIGHT_TRIMMED,
                                         THREADS,
                                         EC_FOLDER)
             # get these exact file names from the named tuple
-            outstr = "error correc output: %s" % EC_results.stderr
-            logger.info(outstr)
+            logger.info("error correc output: %s", EC_results.stderr)
             # assign the EC to the LEFT and RIGHT trimmed variable
             LEFT_TRIMMED = EC_results.Left_read_correct
             RIGHT_TRIMMED = EC_results.right_read_correct
@@ -591,17 +585,15 @@ if __name__ == '__main__':
             suffix = "_PEAR"
         ASSEMBLY_FOLDER = make_folder(PREFIX + suffix)
         # call the class
-        assemble = pear.Pear("pear")
+        assemble = pear.Pear(args.pear)
         results_pear = assemble.run(LEFT_TRIMMED,
                                     RIGHT_TRIMMED,
                                     THREADS,
                                     ASSEMBLY_FOLDER,
                                     PREFIX)
-        logger.info("\n\nPEAR returned:", results_pear)
-        outstr = "PEAR command: %s" % results_pear.command
-        logger.info(outstr)
-        outstr = "PEAR output: %s" % results_pear.stderr
-        logger.info(outstr)
+        logger.info("PEAR returned:", results_pear)
+        logger.info("PEAR command: %s", results_pear.command)
+        logger.info("PEAR output: %s", results_pear.stderr)
         ASSEMBLED = results_pear.outfileassembled
         # call the function
         covert_chop_read(ASSEMBLED)
@@ -616,20 +608,18 @@ if __name__ == '__main__':
         else:
             suffix = "_FLASH"
         ASSEMBLY_FOLDER = make_folder(PREFIX + suffix)
-        assemble = flash.Flash("flash")
+        assemble = flash.Flash(args.flash)
         logger.info("assembly using Flash")
         results_flash = assemble.run(LEFT_TRIMMED,
                                      RIGHT_TRIMMED,
                                      THREADS,
                                      ASSEMBLY_FOLDER,
                                      PREFIX)
-        logger.info("\n\nFlash returned:", results_flash)
-        outstr = "Flash command: %s" % results_flash.command
-        logger.info(outstr)
-        outstr = "Flash output: %s" % results_flash.stderr
-        logger.info(outstr)
+        logger.info("Flash returned:", results_flash)
+        logger.info("Flash command: %s", results_flash.command)
+        logger.info("Flash output: %s", results_flash.stderr)
         ASSEMBLED = results_flash.outfileextended
-        # call the function
+        # call the function from tools
         covert_chop_read(ASSEMBLED)
 
     ####################################################################
@@ -646,8 +636,7 @@ if __name__ == '__main__':
                ">",
                "assembled_fa_and_OTU_db.fasta"]
     cat_cmd = ' '.join(cat_cmd)
-    outstr = "I going to cat these files %s" % cat_cmd
-    logger.info(outstr)
+    logger.info("combine these files %s", cat_cmd)
     pipe = subprocess.run(cat_cmd, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
@@ -668,16 +657,14 @@ if __name__ == '__main__':
     if "swarm" in tools_list:
         swarm_parameters = swarm.Parameters(t=1, d=SWARM_D_VALUE)
         SWARM_FOLDER = make_folder(PREFIX + "_Swarm_d%d" % SWARM_D_VALUE)
-        cluster = swarm.Swarm("swarm")
+        cluster = swarm.Swarm(args.swarm)
         assembled_fa_reads = ASSEMBLED + "for_swarm.fasta"
         logger.info("clustering with Swarm")
         # need to check the OTU database has abundance value
         # call the function from tools
-        outstr = "OTU was %s" % OTU_DATABASE
-        logger.info(outstr)
+        logger.info("OTU was %s", OTU_DATABASE)
         OTU_DATABASE_SWARM = check_OTU_db_abundance_val(OTU_DATABASE)
-        outstr = "OTU is %s" % OTU_DATABASE_SWARM
-        logger.info(outstr)
+        logger.info("OTU is %s", OTU_DATABASE_SWARM)
         # need to cat the assembled_fasta with the database
         cat_cmd = ["cat",
                    OTU_DATABASE_SWARM,
@@ -685,8 +672,7 @@ if __name__ == '__main__':
                    ">",
                    "assembled_reads_and_OTU_db.fasta"]
         cat_cmd = ' '.join(cat_cmd)
-        outstr = "I cat these files %s" % cat_cmd
-        logger.info(outstr)
+        logger.info("combine these files %s" % cat_cmd)
         pipe = subprocess.run(cat_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -697,12 +683,10 @@ if __name__ == '__main__':
         # use named tuple to get the outpfile name
         SWARM_OUT = cluster_outdata.outfilename
 
-        logger.info("swarm returned using error corrected reads:",
+        logger.info("swarm returned using error corrected reads: ",
                     cluster_outdata)
-        outstr = "swarm command: %s" % cluster_outdata.command
-        logger.info(outstr)
-        outstr = "swarm output: %s" % cluster_outdata.stderr
-        logger.info(outstr)
+        logger.info("swarm command: %s", cluster_outdata.command)
+        logger.info("swarm output: %s", cluster_outdata.stderr)
 
         ################################################################
         # recode cluster output
@@ -759,8 +743,7 @@ if __name__ == '__main__':
             cmd_s = cmd_s + " --align True"
         if args.percent_identity:
             cmd_s = cmd_s + " --blast True"
-        outstr = "%s = post analysis command" % cmd_s
-        logger.info(outstr)
+        logger.info("%s = post analysis command", cmd_s)
         pipe = subprocess.run(cmd_s, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -775,7 +758,7 @@ if __name__ == '__main__':
                     " --db",
                     OTU_DATABASE_SWARM]
         plot_cmd = ' '.join(plot_cmd)
-        logger.info("plotting command = %s" % plot_cmd)
+        logger.info("plotting command = %s", plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -783,28 +766,26 @@ if __name__ == '__main__':
 
     #####################################################################
     # run cd hit
-    # first cat the db and EC, trimmed reads.
+    # first cat the db and EC (if done with ec), trimmed reads.
     cat_cmd = ["cat", OTU_DATABASE,
                ASSEMBLED + ".bio.chopped.fasta",
                ">",
                "assembled_fa_and_OTU_db.fasta"]
     cat_cmd = ' '.join(cat_cmd)
-    outstr = "I cat these files %s" % cat_cmd
-    logger.info(outstr)
+    logger.info("combine these files: %s", cat_cmd)
     pipe = subprocess.run(cat_cmd, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
                           check=True)
     if "cd-hit-est" in tools_list:
         CDHIT_FOLDER = make_folder(PREFIX + "_cd_hit_%s" % CDHIT_THRESHOLD)
-        cluster = cd_hit.Cd_hit("cd-hit-est")
+        cluster = cd_hit.Cd_hit(args.cd_hit)
         results = cluster.run("assembled_fa_and_OTU_db.fasta",
                               THREADS,
                               CDHIT_THRESHOLD,
                               CDHIT_FOLDER,
                               PREFIX)
-        outstr = "cdhit: %s" % results.command
-        logger.info(outstr)
+        logger.info("cdhit: %s", results.command)
         logger.info("reformatting cd hit output")
         reformat_cdhit_clustrs(results.clusters,
                                results.clusters + "_1_line_per",
@@ -846,8 +827,7 @@ if __name__ == '__main__':
             cmd_c = cmd_c + " --align True"
         if args.percent_identity:
             cmd_c = cmd_c + " --blast True"
-        outstr = "%s = post analysis command" % cmd_c
-        logger.info(outstr)
+        logger.info("%s = post analysis command", cmd_c)
         pipe = subprocess.run(cmd_c, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -862,7 +842,7 @@ if __name__ == '__main__':
                     " --db",
                     OTU_DATABASE]
         plot_cmd = ' '.join(plot_cmd)
-        logger.info("plotting command = %s" % plot_cmd)
+        logger.info("plotting command = %s", plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -873,13 +853,51 @@ if __name__ == '__main__':
     if "vsearch" in tools_list:
         VSEARCH_FOLDER = make_folder(PREFIX + "_Vsearch_%.2f" %
                                      VSEARCH_THRESHOLD)
+        OUTFILE_DEREP = os.path.join(VSEARCH_FOLDER,
+                                     "vsearch_derep.fasta")
+        OUTFILE_CLUSTER_UC = os.path.join(VSEARCH_FOLDER,
+                                          "vsearch_cluster.uc")
+        OUTFILE_CLUSTER_B6 = os.path.join(VSEARCH_FOLDER,
+                                          "vsearch_cluster.blast6")
+        OUTFILE_CLUSTER_FAST_UC = os.path.join(VSEARCH_FOLDER,
+                                               "vsearch_cluster_fast.uc")
+        OUTFILE_CLUSTER_FAST_B6 = os.path.join(VSEARCH_FOLDER,
+                                               "vsearch_cluster_fast." +
+                                               "blast6")
+        OUTFILE_CLUSTER_FAST_MSA = os.path.join(VSEARCH_FOLDER,
+                                                "vsearch_cluster_fast" +
+                                                "_msa.fasta")
+        OUTFILE_CLUSTER_FAST_CENTROIDS = os.path.join(VSEARCH_FOLDER,
+                                                      "vsearch_cluster" +
+                                                      "_fast_centroids." +
+                                                      "fasta")
+        OUTFILE_CLUSTER_FAST_CONSENSUS = os.path.join(VSEARCH_FOLDER,
+                                                      "vsearch_cluster" +
+                                                      "_fast_consensus." +
+                                                      "fasta")
+        # PARAMETERS
+        CLUSTER_PARAMS = {'--blast6out': OUTFILE_CLUSTER_B6,
+                          '--id': VSEARCH_THRESHOLD,
+                          '--db': OTU_DATABASE,
+                          '--threads': THREADS}
+        CLUSTER_FAST_PARAMS = {"--id": VSEARCH_THRESHOLD,
+                               "--centroids": OUTFILE_CLUSTER_FAST_CENTROIDS,
+                               "--msaout": OUTFILE_CLUSTER_FAST_MSA,
+                               "--consout": OUTFILE_CLUSTER_FAST_CONSENSUS,
+                               "--db": OTU_DATABASE,
+                               "--threads": THREADS,
+                               "--blast6out": OUTFILE_CLUSTER_FAST_B6}
+
+        mode = '--derep_fulllength'
+        vsearch_exe = vsearch.Vsearch(args.vsearch)
+        Result_derep = vsearch_exe.run(mode, ASSEMBLED + ".bio.chopped.fasta",
+                                       ASSEMBLED + "drep.vsearch.fasta"))
+        logger.info("vsearch derep: %s", Result_derep.command)
 
         V_derep = vsearch.Vsearch_derep("vsearch")
         derep_results = V_derep.run(ASSEMBLED + ".bio.chopped.fasta",
                                     VSEARCH_FOLDER,
                                     PREFIX)
-        outstr = "vsearch derep: %s" % derep_results.command
-        logger.info(outstr)
         logger.info("vsearch clustering")
         V_clst = vsearch.Vsearch_cluster("vsearch")
         vclu_rlts = V_clst.run(derep_results.fasta,
