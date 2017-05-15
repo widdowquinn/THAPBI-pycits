@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # THIS IS currently under development.
 #
 # TODO - put this functionality under a proper test framework (e.g. nosetests
