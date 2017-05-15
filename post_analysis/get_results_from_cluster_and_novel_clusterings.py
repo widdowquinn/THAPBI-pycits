@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # title: Parse clusters and find the database species
 # in the cluster
 # author: Peter Thorpe and Leighton Pritchard
