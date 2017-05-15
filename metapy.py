@@ -888,31 +888,24 @@ if __name__ == '__main__':
                                "--threads": THREADS,
                                "--blast6out": OUTFILE_CLUSTER_FAST_B6}
 
-        mode = '--derep_fulllength'
         vsearch_exe = vsearch.Vsearch(args.vsearch)
-        Result_derep = vsearch_exe.run(mode, ASSEMBLED + ".bio.chopped.fasta",
-                                       ASSEMBLED + "drep.vsearch.fasta"))
+        Result_derep = vsearch_exe.run('--derep_fulllength',
+                                       ASSEMBLED + ".bio.chopped.fasta",
+                                       ASSEMBLED + "drep.vsearch.fasta")
         logger.info("vsearch derep: %s", Result_derep.command)
-
-        V_derep = vsearch.Vsearch_derep("vsearch")
-        derep_results = V_derep.run(ASSEMBLED + ".bio.chopped.fasta",
-                                    VSEARCH_FOLDER,
-                                    PREFIX)
         logger.info("vsearch clustering")
-        V_clst = vsearch.Vsearch_cluster("vsearch")
-        vclu_rlts = V_clst.run(derep_results.fasta,
-                               VSEARCH_FOLDER,
-                               PREFIX,
-                               OTU_DATABASE,
-                               THREADS,
-                               VSEARCH_THRESHOLD)
-        outstr = "vsearch cluster: %s" % vclu_rlts.command
-        logger.info(outstr)
-        reformat_blast6_clusters(vclu_rlts.blast6,
+        v_cluster = vsearch_exe.run('--usearch_global',
+                                    ASSEMBLED + ".bio.chopped.fasta",
+                                    OUTFILE_CLUSTER_UC,
+                                    CLUSTER_PARAMS)
+        
+
+        logger.info("vsearch cluster: %s" % v_cluster.command)
+        reformat_blast6_clusters(v_cluster.outfile_b6,
                                  "assembled_fa_and_OTU_db.fasta",
-                                 vclu_rlts.blast6 + "for_R")
+                                 v_cluster.outfile_b6 + "for_R")
         # add this file for Rand index comparison later
-        CLUSTER_FILES_FOR_RAND_INDEX.append(vclu_rlts.blast6 + "for_R")
+        CLUSTER_FILES_FOR_RAND_INDEX.append(v_cluster.outfile_b6 + "for_R")
 
         cmd_v = ["python",
                  os.path.join(FILE_DIRECTORY,
@@ -929,7 +922,7 @@ if __name__ == '__main__':
                  "--Name_of_project",
                  os.path.join(VSEARCH_FOLDER, "clusters"),
                  "--in",
-                 vclu_rlts.blast6 + "for_R_1_line",
+                 v_cluster.outfile_b6 + "for_R_1_line",
                  "--difference", str(VSEARCH_THRESHOLD),
                  "-o",
                  os.path.join(VSEARCH_FOLDER,
@@ -948,8 +941,7 @@ if __name__ == '__main__':
             cmd_v = cmd_v + " --align True"
         if args.percent_identity:
             cmd_v = cmd_v + " --blast True"
-        outstr = "%s = post analysis command" % cmd_v
-        logger.info(outstr)
+        logger.info("%s = post analysis command", cmd_v)
         pipe = subprocess.run(cmd_v, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -960,12 +952,11 @@ if __name__ == '__main__':
                                  "bin",
                                  "draw_bar_chart_of_clusters.py"),
                     "-i",
-                    vclu_rlts.blast6 + "for_R_1_line",
+                    v_cluster.outfile_b6 + "for_R_1_line",
                     " --db",
                     OTU_DATABASE]
         plot_cmd = ' '.join(plot_cmd)
-        outstr = "plotting command = %s" % plot_cmd
-        logger.info(outstr)
+        logger.info("plotting command = %s" % plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
