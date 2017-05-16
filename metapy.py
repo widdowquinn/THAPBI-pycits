@@ -28,6 +28,9 @@ from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
      parse_tab_file_get_clusters, filter_sam_file, reformat_cdhit_clustrs,\
      reformat_sam_clusters, reformat_swarm_cls, reformat_blast6_clusters
 
+from pycits.metapy_tools import decompress, compress,\
+     last_exception, metapy_trim_seq
+
 from pycits.Rand_index import pairwise_comparison_Rand
 
 from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
@@ -54,8 +57,7 @@ if "--version" in sys.argv:
 
 def get_args():
     parser = argparse.ArgumentParser(description="Pipeline: cluster " +
-                                     "data for metabarcoding " +
-                                     "This is currently a draft.  ",
+                                     "data for metabarcoding ",
                                      add_help=False)
     file_directory = os.path.realpath(__file__).split("metapy")[0]
     optional = parser.add_argument_group('optional arguments')
@@ -277,46 +279,24 @@ def get_args():
     return args, file_directory
 
 
-# TODO: The PSL has the gzip library for this!!!!!
-#       https://docs.python.org/3/library/gzip.html#examples-of-usage
-def decompress(infile):
-    """function to decompress gzipped reads"""
-    cmd = ' '.join(["gunzip", infile])
-    pipe = subprocess.run(cmd, shell=True,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          check=True)
-    return infile.split(".gz")[0]  # os.splitext(infile)[0]!!!!!
+def covert_chop_read(infile):
+    """function to reduce repetive code:
+    Take in an assembled fq file, either PEAR or FLASH
+    outfile. Converts this to Fasta, then chops the seq
+    at LEFT and RIGHT
+    write out: infile + '.bio.fasta'
+    infile + '.bio.chopped.fasta """
+    convert_fq_to_fa(infile,
+                     infile + ".bio.fasta")
+    # need to trim the left and right assembled seq so they
+    # cluster with the database.
+    # use: trim_seq() from tools.
+    # trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100)
+    # this function is now added to this script
+    metapy_trim_seq(infile + ".bio.fasta",
+                    infile + ".bio.chopped.fasta",
+                    LEFT_TRIM, RIGHT_TRIM)
 
-
-def compress(infile):
-    """function to compress reads, make them .gz"""
-    cmd = ' '.join(["gzip", infile])
-    pipe = subprocess.run(cmd, shell=True,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          check=True)
-
-
-def metapy_trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
-    """Trims all FASTA sequences in infname by lclip and rclip on the
-    'left'- and 'right'-hand ends, respectively and writes the results to
-    outfname. Any clipped sequence with length < minlen is not written.
-
-    Defaults are equivalent to the default settings are for the current ITS1
-    phy primers and the development ITS1 Phy database. PLEASE DONT BLINDLY
-    USE THESE. The filenames, we now provide directly.
-    """
-    # ensure these are int, as they may have been passed as a string.
-    lclip = int(lclip)
-    rclip = int(rclip)
-    with open(infname, 'r') as fh:
-        # rclip needs to be set up to allow for zero values, using logic:
-        # rclip_coordinate = len(s) - rclip
-        # Use generators to save memory
-        s_trim = (s[lclip:(len(s) - rclip)] for s in SeqIO.parse(fh, 'fasta'))
-        return SeqIO.write((s for s in s_trim if len(s) >= minlen),
-                           outfname, 'fasta')
 
 ###################################################################
 # Global variables
@@ -372,7 +352,18 @@ RESULTS = []
 #         pipeline as it runs with different software versions.
 
 
-def check_tools_exist():
+def make_folder(folder, exist_ok=True):
+    """function to make a folder with desired name"""
+    dest_dir = os.path.join(WORKING_DIR, folder)
+    try:
+        os.makedirs(dest_dir)
+    except OSError:
+        print ("folder already exists " +
+               "I will write over what is in there!!")
+    return dest_dir
+
+
+def check_tools_exist(WARNINGS):
     """function to check to see what tools are in the PATH,
     decide what we can use
     Returns a list of programs that were exectable and a warning string.
@@ -442,45 +433,6 @@ def check_tools_exist():
     return tools_list, Warning_out
 
 
-def make_folder(folder, exist_ok=True):
-    """function to make a folder with desired name"""
-    dest_dir = os.path.join(WORKING_DIR, folder)
-    try:
-        os.makedirs(dest_dir)
-    except OSError:
-        print ("folder already exists " +
-               "I will write over what is in there!!")
-    return dest_dir
-
-
-# Report last exception as string
-def last_exception():
-    """Returns last exception as a string, or use in logging."""
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    return ''.join(traceback.format_exception(exc_type,
-                                              exc_value,
-                                              exc_traceback))
-
-
-def covert_chop_read(infile):
-    """function to reduce repetive code:
-    Take in an assembled fq file, either PEAR or FLASH
-    outfile. Converts this to Fasta, then chops the seq
-    at LEFT and RIGHT
-    write out: infile + '.bio.fasta'
-    infile + '.bio.chopped.fasta """
-    convert_fq_to_fa(infile,
-                     infile + ".bio.fasta")
-    # need to trim the left and right assembled seq so they
-    # cluster with the database.
-    # use: trim_seq() from tools.
-    # trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100)
-    logger.info("chopping the reads %s", infile)
-    # this function is now added to this script
-    metapy_trim_seq(infile + ".bio.fasta",
-                    infile + ".bio.chopped.fasta",
-                    LEFT_TRIM, RIGHT_TRIM)
-
 # DESIGN: Why are you ignoring all the wrappers? This is hugely
 #         counterproductive!
 # DESIGN: If you write a Python script, and need to call code from another
@@ -492,7 +444,7 @@ def covert_chop_read(infile):
 # Run as script
 if __name__ == '__main__':
     # Set up logging
-    logger = logging.getLogger('METAPY.py: %s' % time.asctime())
+    logger = logging.getLogger('metapy.py: %s' % time.asctime())
     logger.setLevel(logging.DEBUG)
     err_handler = logging.StreamHandler(sys.stderr)
     err_formatter = logging.Formatter('%(levelname)s: %(message)s')
@@ -513,9 +465,10 @@ if __name__ == '__main__':
     logger.info(sys.version_info)
     logger.info("Command-line: %s", ' '.join(sys.argv))
     logger.info("Starting testing: %s", time.asctime())
+    logger.info("using databse: %s", OTU_DATABASE)
     # Get a list of tools in path!
     logger.info("checking which programs are in PATH")
-    tools_list, Warning_out = check_tools_exist()
+    tools_list, Warning_out = check_tools_exist(WARNINGS)
     logger.info(Warning_out)
 
     ####################################################################
@@ -596,6 +549,7 @@ if __name__ == '__main__':
         logger.info("PEAR output: %s", results_pear.stderr)
         ASSEMBLED = results_pear.outfileassembled
         # call the function
+        logger.info("chopping the reads %s", ASSEMBLED)
         covert_chop_read(ASSEMBLED)
 
     ####################################################################
@@ -620,6 +574,7 @@ if __name__ == '__main__':
         logger.info("Flash output: %s", results_flash.stderr)
         ASSEMBLED = results_flash.outfileextended
         # call the function from tools
+        logger.info("chopping the reads %s", ASSEMBLED)
         covert_chop_read(ASSEMBLED)
 
     ####################################################################
@@ -851,7 +806,7 @@ if __name__ == '__main__':
     ####################################################################
     # run vsearch
     if "vsearch" in tools_list:
-        VSEARCH_FOLDER = make_folder(PREFIX + "_Vsearch_%.2f" %
+        VSEARCH_FOLDER = make_folder(PREFIX + "_Vsearch_usearch_global_%.2f" %
                                      VSEARCH_THRESHOLD)
         OUTFILE_DEREP = os.path.join(VSEARCH_FOLDER,
                                      "vsearch_derep.fasta")
@@ -880,13 +835,6 @@ if __name__ == '__main__':
                           '--id': VSEARCH_THRESHOLD,
                           '--db': OTU_DATABASE,
                           '--threads': THREADS}
-        CLUSTER_FAST_PARAMS = {"--id": VSEARCH_THRESHOLD,
-                               "--centroids": OUTFILE_CLUSTER_FAST_CENTROIDS,
-                               "--msaout": OUTFILE_CLUSTER_FAST_MSA,
-                               "--consout": OUTFILE_CLUSTER_FAST_CONSENSUS,
-                               "--db": OTU_DATABASE,
-                               "--threads": THREADS,
-                               "--blast6out": OUTFILE_CLUSTER_FAST_B6}
 
         vsearch_exe = vsearch.Vsearch(args.vsearch)
         Result_derep = vsearch_exe.run('--derep_fulllength',
@@ -898,9 +846,7 @@ if __name__ == '__main__':
                                     ASSEMBLED + ".bio.chopped.fasta",
                                     OUTFILE_CLUSTER_UC,
                                     CLUSTER_PARAMS)
-        
-
-        logger.info("vsearch cluster: %s" % v_cluster.command)
+        logger.info("vsearch cluster: %s", v_cluster.command)
         reformat_blast6_clusters(v_cluster.outfile_b6,
                                  "assembled_fa_and_OTU_db.fasta",
                                  v_cluster.outfile_b6 + "for_R")
@@ -956,7 +902,7 @@ if __name__ == '__main__':
                     " --db",
                     OTU_DATABASE]
         plot_cmd = ' '.join(plot_cmd)
-        logger.info("plotting command = %s" % plot_cmd)
+        logger.info("plotting command = %s", plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -967,46 +913,49 @@ if __name__ == '__main__':
     # use the function in tools dereplicate_name()
     # run vsearch
     if "vsearch" in tools_list:
+        # PARAMETERS
+        VSEARCH_FOLDER = make_folder(PREFIX + "_Vsearch_clustfast_%.2f" %
+                                     VSEARCH_THRESHOLD)
+        CLUSTER_FAST_PARAMS = {"--id": VSEARCH_THRESHOLD,
+                               "--centroids": OUTFILE_CLUSTER_FAST_CENTROIDS,
+                               "--msaout": OUTFILE_CLUSTER_FAST_MSA,
+                               "--consout": OUTFILE_CLUSTER_FAST_CONSENSUS,
+                               "--db": OTU_DATABASE,
+                               "--threads": THREADS,
+                               "--blast6out": OUTFILE_CLUSTER_FAST_B6}
         logger.info("deduplicating reads")
-        # dereplicate_name (infasta, db_out, out_fasta)
-        # derep the databse for vsearch
-        derep_db = V_derep.run(OTU_DATABASE,
-                               VSEARCH_FOLDER,
-                               PREFIX)
+        # derep the database for vsearch
+        db_derep = os.path.join(VSEARCH_FOLDER, PREFIX + "for_vsearch.fasta")
+        derep_db = vsearch_exe.run('--derep_fulllength',
+                                   OTU_DATABASE,
+                                   db_derep)
+        # derep the name, True means it is for vsearch
         dereplicate_name(ASSEMBLED + ".bio.chopped.fasta",
                          "db_old_to_new_names_vsearch.txt",
                          ASSEMBLED + "for_vsearch.fasta",
                          True)
         # cat the derep reads and derep db together
-
-        cat_cmd = ["cat", derep_db.fasta,
+        cat_cmd = ["cat", derep_db.outfilename,
                    ASSEMBLED + "for_vsearch.fasta",
                    ">",
                    "assembled_fa_and_OTU_db_vesearch.fasta"]
         cat_cmd = ' '.join(cat_cmd)
-        outstr = "I cat these files %s" % cat_cmd
-        logger.info(outstr)
+        logger.info("merge these files %s", cat_cmd)
         pipe = subprocess.run(cat_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
-
         # use vsearch to get concensus and aligned clusters
-        clu_fasta = vsearch.Vsearch_fastas("vsearch")
-        fasta_results = clu_fasta.run("assembled_fa_and_OTU_db" +
-                                      "_vesearch.fasta",
-                                      VSEARCH_FOLDER,
-                                      PREFIX,
-                                      OTU_DATABASE,
-                                      THREADS,
-                                      VSEARCH_THRESHOLD)
+        fast_clust = vsearch_exe.run("--cluster_fast",
+                                     "assembled_fa_and_OTU_db_vesearch.fasta",
+                                     OUTFILE_CLUSTER_FAST_UC,
+                                     CLUSTER_FAST_PARAMS)
 
-        reformat_blast6_clusters(fasta_results.blast6,
+        reformat_blast6_clusters(fast_clust.outfile_b6,
                                  "assembled_fa_and_OTU_db.fasta",
-                                 fasta_results.blast6 + "for_R")
-        outstr = "vsearch cluster: %s" % vclu_rlts.command
-        logger.info(outstr)
-        CLUSTER_FILES_FOR_RAND_INDEX.append(fasta_results.blast6 + "for_R")
+                                 fast_clust.outfile_b6 + "for_R")
+        logger.info("vsearch cluster: %s", fast_clust.command)
+        CLUSTER_FILES_FOR_RAND_INDEX.append(fast_clust.outfile_b6 + "for_R")
 
         cmd_F = ["python",
                  os.path.join(FILE_DIRECTORY,
@@ -1023,7 +972,7 @@ if __name__ == '__main__':
                  "--Name_of_project",
                  os.path.join(VSEARCH_FOLDER, "clusters_clusterfast"),
                  "--in",
-                 fasta_results.blast6 + "for_R_1_line",
+                 fast_clust.outfile_b6 + "for_R_1_line",
                  "--difference", str(VSEARCH_THRESHOLD),
                  "-o",
                  os.path.join(VSEARCH_FOLDER,
@@ -1044,8 +993,7 @@ if __name__ == '__main__':
             cmd_F = cmd_F + " --align True"
         if args.percent_identity:
             cmd_F = cmd_F + " --blast True"
-        outstr = "%s = post analysis command" % cmd_v
-        logger.info(outstr)
+        logger.info("%s = post analysis command", cmd_v)
         pipe = subprocess.run(cmd_F, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1056,12 +1004,11 @@ if __name__ == '__main__':
                                  "bin",
                                  "draw_bar_chart_of_clusters.py"),
                     "-i",
-                    fasta_results.blast6 + "for_R_1_line",
+                    fast_clust.outfile_b6 + "for_R_1_line",
                     " --db",
                     OTU_DATABASE]
         plot_cmd = ' '.join(plot_cmd)
-        outstr = "plotting command = %s" % plot_cmd
-        logger.info(outstr)
+        logger.info("plotting command = %s", plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1073,18 +1020,15 @@ if __name__ == '__main__':
         BOWTIE_FOLDER = make_folder(PREFIX + "_bowtie")
         obj = bowtie_build.Bowtie2_Build("bowtie2-build")
         results = obj.run(OTU_DATABASE, "OTU")
-        outstr = "bowtie build %s" % results.command
-        logger.info(outstr)
+        logger.info("bowtie build %s", results.command)
         obj = bowtie_map.Bowtie2_Map("bowtie2")
         results = obj.run(ASSEMBLED + ".bio.chopped.fasta",
                           "OTU",
                           BOWTIE_FOLDER,
                           THREADS)
-        outstr = "bowtie map %s" % results.command
-        logger.info(outstr)
+        logger.info("bowtie map %s", results.command)
         logger.info("pysam to filter the mapping")
         samfile = pysam.AlignmentFile(results.sam, "r")
-
         # call the function from tools
         # this return matches with zero mismatches, but not to be interpreted
         # as a perfect match?!?!
@@ -1092,8 +1036,7 @@ if __name__ == '__main__':
                                             (os.path.join(BOWTIE_FOLDER,
                                                           "pysam_perfect_" +
                                                           "cigar.txt")))
-        outstr = "pysam found %d perfect(?) cigar MATCHES" % len(cig_list)
-        logger.info(outstr)
+        logger.info("pysam found %d perfect(?) cigar MATCHES" % len(cig_list))
         # using grep to get perfect matches:
         grep_cmd = ' '.join(['cat',
                              results.sam,
@@ -1102,8 +1045,7 @@ if __name__ == '__main__':
                              '"AS:i:0"',
                              '>',
                              results.sam + "perfect_map"])
-        outstr = "grep for perfect reads %s" % grep_cmd
-        logger.info(outstr)
+        logger.info("grep for perfect reads %s" % grep_cmd)
         pipe = subprocess.run(grep_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1123,8 +1065,7 @@ if __name__ == '__main__':
                              'uniq'
                              '>',
                              results.sam + "perfect_map_name"])
-        outstr = "grep for perfect reads %s" % grep_cmd
-        logger.info(outstr)
+        logger.info("grep for perfect reads %s" % grep_cmd)
         pipe = subprocess.run(grep_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1134,8 +1075,8 @@ if __name__ == '__main__':
             data = perfect_names.read().split("\n")
             for name in data:
                 perfect_count = perfect_count + 1
-                logger.info("%s = perfect match" % name)
-        logger.info("%d = number perfect match" % perfect_count)
+                logger.info("%s = perfect match", name)
+        logger.info("%d = number perfect match", perfect_count)
         reformat_sam_clusters(results.sam + "perfect_map",
                               "assembled_fa_and_OTU_db.fasta",
                               results.sam +
@@ -1185,8 +1126,7 @@ if __name__ == '__main__':
                     " --db",
                     OTU_DATABASE]
         plot_cmd = ' '.join(plot_cmd)
-        outstr = "plotting command = %s" % plot_cmd
-        logger.info(outstr)
+        logger.info("plotting command = %s", plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1227,8 +1167,7 @@ if __name__ == '__main__':
                     " --db",
                     OTU_DATABASE]
         plot_cmd = ' '.join(plot_cmd)
-        outstr = "plotting command = %s" % plot_cmd
-        logger.info(outstr)
+        logger.info("plotting command = %s", plot_cmd)
         pipe = subprocess.run(plot_cmd, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1268,8 +1207,7 @@ if __name__ == '__main__':
             cmd_b = cmd_b + " --align True"
         if args.percent_identity:
             cmd_b = cmd_b + " --blast True"
-        outstr = "%s = post analysis command" % cmd_b
-        logger.info(outstr)
+        logger.info("%s = post analysis command", cmd_b)
         pipe = subprocess.run(cmd_b, shell=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -1278,8 +1216,7 @@ if __name__ == '__main__':
                                             PREFIX +
                                             "_Rand_comparison.txt")
     for comp in result:
-        outstr = "Rand comparison: %s" % comp
-        logger.info(outstr)
+        logger.info("Rand comparison: %s", comp)
 
     # compress the reads to save space
     # compress(LEFT_READS)
@@ -1300,8 +1237,8 @@ if __name__ == '__main__':
     # write the result file name to file. Easier to get these for the
     # next part - compare_prog
     f_out = open("temp.txt", "w")
-    for i in RESULTS:
-        f_out.write(i + "\n")
+    for result in RESULTS:
+        f_out.write(result + "\n")
     f_out.close()
     cmd_r = " ".join(["python",
                       compare_prog,
@@ -1309,12 +1246,31 @@ if __name__ == '__main__':
                       comp,
                       " --in_list",
                       "temp.txt"])
-    outstr = "%s = comparison comment" % cmd_r
-    logger.info(outstr)
+    logger.info("%s = comparison comment", cmd_r)
     pipe = subprocess.run(cmd_r, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
                           check=True)
-    outstr = "Pipeline complete: %s" % time.asctime()
-    logger.info(outstr)
-    os.remove("temp.txt")
+    if args.cleanup:
+        # remove load of files for the user
+        remove_list = [ASSEMBLED + "for_swarm.fasta",
+                       ASSEMBLED + ".bio.chopped.fasta",
+                       "temp.txt",
+                       "assembled_fa_and_OTU_db.fasta",
+                       "assembled_reads_and_OTU_db.fasta",
+                       "db_old_to_new_names.txt",
+                       "db_old_to_new_names_vsearch.txt",
+                       "assembled_fa_and_OTU_db_vesearch.fasta",
+                       db_derep,
+                       (os.path.join(TRIM_FOLDER,
+                                     PREFIX + "_unpaired_R1.fq.gz")),
+                       (os.path.join(TRIM_FOLDER,
+                                     PREFIX + "_unpaired_R2.fq.gz")),
+                       ASSEMBLED + "drep.vsearch.fasta"]
+
+        for unwanted in remove_list:
+            try:
+                os.remove(unwanted)
+            except:
+                logger.info("could not find %s", unwanted)
+    logger.info("Pipeline complete: %s", time.asctime())
