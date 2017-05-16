@@ -3,7 +3,7 @@
 # metapy.py
 #
 # Code for script to identify OTUs from metabarcoding reads.
-# run multiple clustering programs
+# runs multiple clustering programs
 #
 # (c) The James Hutton Institute 2016-2017
 # Author: Leighton Pritchard, Peter Thorpe
