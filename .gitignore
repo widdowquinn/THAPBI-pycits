@@ -24,3 +24,6 @@ error.log
 
 # Exclude OSX files
 .DS_Store
+
+# Excludes metapy testing output
+DNAMIX_S95_L001_RESULTS/
