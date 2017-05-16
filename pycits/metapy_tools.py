@@ -8,7 +8,7 @@
 
 import os
 import gzip
-from pycits.tools import convert_fq_to_fa
+from .tools import convert_fq_to_fa
 import sys
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -26,6 +26,17 @@ def decompress(infile):
     return infile.split(".gz")[0]  # os.splitext(infile)[0]!!!!!
 
 
+def make_folder(folder, WORKING_DIR, exist_ok=True):
+    """function to make a folder with desired name"""
+    dest_dir = os.path.join(WORKING_DIR, folder)
+    try:
+        os.makedirs(dest_dir)
+    except OSError:
+        print ("folder already exists " +
+               "I will write over what is in there!!")
+    return dest_dir
+
+
 def compress(infile):
     """function to compress reads, make them .gz"""
     cmd = ' '.join(["gzip", infile])
@@ -33,6 +44,25 @@ def compress(infile):
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
                           check=True)
+
+
+def covert_chop_read(infile, LEFT_TRIM, RIGHT_TRIM):
+    """function to reduce repetive code:
+    Take in an assembled fq file, either PEAR or FLASH
+    outfile. Converts this to Fasta, then chops the seq
+    at LEFT and RIGHT
+    write out: infile + '.bio.fasta'
+    infile + '.bio.chopped.fasta """
+    convert_fq_to_fa(infile,
+                     infile + ".bio.fasta")
+    # need to trim the left and right assembled seq so they
+    # cluster with the database.
+    # use: trim_seq() from tools.
+    # trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100)
+    # this function is now added to this script
+    metapy_trim_seq(infile + ".bio.fasta",
+                    infile + ".bio.chopped.fasta",
+                    LEFT_TRIM, RIGHT_TRIM)
 
 # Report last exception as string
 

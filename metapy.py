@@ -9,6 +9,7 @@
 # Author: Leighton Pritchard, Peter Thorpe
 
 import sys
+import shutil
 import errno
 import logging
 import logging.handlers
@@ -29,7 +30,7 @@ from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
      reformat_sam_clusters, reformat_swarm_cls, reformat_blast6_clusters
 
 from pycits.metapy_tools import decompress, compress,\
-     last_exception, metapy_trim_seq
+     last_exception, metapy_trim_seq, covert_chop_read, make_folder
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
@@ -267,6 +268,12 @@ def get_args():
                           type=str,
                           help="Logfile name")
 
+    optional.add_argument("--cleanup",
+                          dest="cleanup",
+                          action="store_true",
+                          default=False,
+                          help="deletes most files the program creates ")
+
     optional.add_argument("-h", "--help",
                           action="help",
                           default=argparse.SUPPRESS,
@@ -277,26 +284,6 @@ def get_args():
                           version="%s: metapy.py " + VERSION)
     args = parser.parse_args()
     return args, file_directory
-
-
-def covert_chop_read(infile):
-    """function to reduce repetive code:
-    Take in an assembled fq file, either PEAR or FLASH
-    outfile. Converts this to Fasta, then chops the seq
-    at LEFT and RIGHT
-    write out: infile + '.bio.fasta'
-    infile + '.bio.chopped.fasta """
-    convert_fq_to_fa(infile,
-                     infile + ".bio.fasta")
-    # need to trim the left and right assembled seq so they
-    # cluster with the database.
-    # use: trim_seq() from tools.
-    # trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100)
-    # this function is now added to this script
-    metapy_trim_seq(infile + ".bio.fasta",
-                    infile + ".bio.chopped.fasta",
-                    LEFT_TRIM, RIGHT_TRIM)
-
 
 ###################################################################
 # Global variables
@@ -338,7 +325,8 @@ ASSEMBLE_PROG = args.assemble
 LEFT_TRIM = args.left_trim
 RIGHT_TRIM = args.right_trim
 assert(READ_PREFIX == os.path.split(RIGHT_READS)[-1].split("_R")[0])
-
+RESULT_FOLDER = PREFIX + "_RESULTS"
+make_folder(RESULT_FOLDER, WORKING_DIR)
 CLUSTER_FILES_FOR_RAND_INDEX = []
 RESULTS = []
 #####################################################################
@@ -350,17 +338,6 @@ RESULTS = []
 #         assumption when collecting the argument above, sure - but if you
 #         allow for pointing to a different version you can also compare the
 #         pipeline as it runs with different software versions.
-
-
-def make_folder(folder, exist_ok=True):
-    """function to make a folder with desired name"""
-    dest_dir = os.path.join(WORKING_DIR, folder)
-    try:
-        os.makedirs(dest_dir)
-    except OSError:
-        print ("folder already exists " +
-               "I will write over what is in there!!")
-    return dest_dir
 
 
 def check_tools_exist(WARNINGS):
@@ -474,7 +451,9 @@ if __name__ == '__main__':
     ####################################################################
     # fastqc QC of raw reads
     if "fastqc" in tools_list:
-        FASTQC_FOLDER = make_folder(PREFIX + "_fastqc")
+        FASTQC_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                 PREFIX + "_fastqc"),
+                                    WORKING_DIR)
         logger.info("starting fastqc")
         logger.info("made folder  %s",  FASTQC_FOLDER)
         qc = fastqc.FastQC(args.fastqc)
@@ -485,8 +464,9 @@ if __name__ == '__main__':
     ####################################################################
     # trimmomatic trm reads
     if "trimmomatic" in tools_list:
-        TRIM_FOLDER = make_folder(PREFIX + "_timmomatic")
-
+        TRIM_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                               PREFIX + "_timmomatic"),
+                                  WORKING_DIR)
         logger.info("starting trimmomatic testing")
         logger.info("made folder %s", TRIM_FOLDER)
         trim = trimmomatic.Trimmomatic(args.trimmomatic)
@@ -511,7 +491,9 @@ if __name__ == '__main__':
         if ERROR_CORRECTION:
             # we will error correct the read and reasign LEFT_TRIMMED
             # with the EC reads
-            EC_FOLDER = make_folder(PREFIX + "_EC")
+            EC_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                 PREFIX + "_EC"),
+                                    WORKING_DIR)
             error_corr = error_correction.Error_Correction(args.spades)
             logger.info("error correction using Bayes hammer")
             logger.info("made folder %s", EC_FOLDER)
@@ -536,7 +518,9 @@ if __name__ == '__main__':
             logger.info("PEAR will use trimmed and error corrected reads")
         else:
             suffix = "_PEAR"
-        ASSEMBLY_FOLDER = make_folder(PREFIX + suffix)
+        ASSEMBLY_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                   PREFIX + suffix),
+                                      WORKING_DIR)
         # call the class
         assemble = pear.Pear(args.pear)
         results_pear = assemble.run(LEFT_TRIMMED,
@@ -550,7 +534,7 @@ if __name__ == '__main__':
         ASSEMBLED = results_pear.outfileassembled
         # call the function
         logger.info("chopping the reads %s", ASSEMBLED)
-        covert_chop_read(ASSEMBLED)
+        covert_chop_read(ASSEMBLED, LEFT_TRIM, RIGHT_TRIM)
 
     ####################################################################
     # FLASH testing - assemble
@@ -561,7 +545,9 @@ if __name__ == '__main__':
             logger.info("FLASH will use trimmed and error corrected reads")
         else:
             suffix = "_FLASH"
-        ASSEMBLY_FOLDER = make_folder(PREFIX + suffix)
+        ASSEMBLY_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                   PREFIX + suffix),
+                                      WORKING_DIR)
         assemble = flash.Flash(args.flash)
         logger.info("assembly using Flash")
         results_flash = assemble.run(LEFT_TRIMMED,
@@ -575,7 +561,7 @@ if __name__ == '__main__':
         ASSEMBLED = results_flash.outfileextended
         # call the function from tools
         logger.info("chopping the reads %s", ASSEMBLED)
-        covert_chop_read(ASSEMBLED)
+        covert_chop_read(ASSEMBLED, LEFT_TRIM, RIGHT_TRIM)
 
     ####################################################################
     # convert format using seq_crumbs
@@ -610,8 +596,11 @@ if __name__ == '__main__':
     ####################################################################
     # SWARM testing - assemble
     if "swarm" in tools_list:
+        swarm_folder_name = PREFIX + "_Swarm_d%d" % SWARM_D_VALUE
         swarm_parameters = swarm.Parameters(t=1, d=SWARM_D_VALUE)
-        SWARM_FOLDER = make_folder(PREFIX + "_Swarm_d%d" % SWARM_D_VALUE)
+        SWARM_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                swarm_folder_name),
+                                   WORKING_DIR)
         cluster = swarm.Swarm(args.swarm)
         assembled_fa_reads = ASSEMBLED + "for_swarm.fasta"
         logger.info("clustering with Swarm")
@@ -733,7 +722,10 @@ if __name__ == '__main__':
                           stderr=subprocess.PIPE,
                           check=True)
     if "cd-hit-est" in tools_list:
-        CDHIT_FOLDER = make_folder(PREFIX + "_cd_hit_%s" % CDHIT_THRESHOLD)
+        cd_folder_name = PREFIX + "_cd_hit_%s" % CDHIT_THRESHOLD
+        CDHIT_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                cd_folder_name),
+                                   WORKING_DIR)
         cluster = cd_hit.Cd_hit(args.cd_hit)
         results = cluster.run("assembled_fa_and_OTU_db.fasta",
                               THREADS,
@@ -806,30 +798,18 @@ if __name__ == '__main__':
     ####################################################################
     # run vsearch
     if "vsearch" in tools_list:
-        VSEARCH_FOLDER = make_folder(PREFIX + "_Vsearch_usearch_global_%.2f" %
-                                     VSEARCH_THRESHOLD)
+        v_n = PREFIX + "_Vsearch_us_global_%.2f" % VSEARCH_THRESHOLD
+        VSEARCH_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                  v_n),
+                                     WORKING_DIR)
         OUTFILE_DEREP = os.path.join(VSEARCH_FOLDER,
                                      "vsearch_derep.fasta")
         OUTFILE_CLUSTER_UC = os.path.join(VSEARCH_FOLDER,
-                                          "vsearch_cluster.uc")
+                                          PREFIX + "vsearch_cluster.uc")
         OUTFILE_CLUSTER_B6 = os.path.join(VSEARCH_FOLDER,
+                                          PREFIX +
                                           "vsearch_cluster.blast6")
-        OUTFILE_CLUSTER_FAST_UC = os.path.join(VSEARCH_FOLDER,
-                                               "vsearch_cluster_fast.uc")
-        OUTFILE_CLUSTER_FAST_B6 = os.path.join(VSEARCH_FOLDER,
-                                               "vsearch_cluster_fast." +
-                                               "blast6")
-        OUTFILE_CLUSTER_FAST_MSA = os.path.join(VSEARCH_FOLDER,
-                                                "vsearch_cluster_fast" +
-                                                "_msa.fasta")
-        OUTFILE_CLUSTER_FAST_CENTROIDS = os.path.join(VSEARCH_FOLDER,
-                                                      "vsearch_cluster" +
-                                                      "_fast_centroids." +
-                                                      "fasta")
-        OUTFILE_CLUSTER_FAST_CONSENSUS = os.path.join(VSEARCH_FOLDER,
-                                                      "vsearch_cluster" +
-                                                      "_fast_consensus." +
-                                                      "fasta")
+
         # PARAMETERS
         CLUSTER_PARAMS = {'--blast6out': OUTFILE_CLUSTER_B6,
                           '--id': VSEARCH_THRESHOLD,
@@ -914,8 +894,31 @@ if __name__ == '__main__':
     # run vsearch
     if "vsearch" in tools_list:
         # PARAMETERS
-        VSEARCH_FOLDER = make_folder(PREFIX + "_Vsearch_clustfast_%.2f" %
-                                     VSEARCH_THRESHOLD)
+        vn2 = PREFIX + "_Vsearch_clustfast_%.2f" % VSEARCH_THRESHOLD
+        VSEARCH_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                  vn2),
+                                     WORKING_DIR)
+        OUTFILE_CLUSTER_FAST_UC = os.path.join(VSEARCH_FOLDER,
+                                               PREFIX +
+                                               "vsearch_cluster_fast.uc")
+        OUTFILE_CLUSTER_FAST_B6 = os.path.join(VSEARCH_FOLDER,
+                                               PREFIX +
+                                               "vsearch_cluster_fast." +
+                                               "blast6")
+        OUTFILE_CLUSTER_FAST_MSA = os.path.join(VSEARCH_FOLDER,
+                                                PREFIX +
+                                                "vsearch_cluster_fast" +
+                                                "_msa.fasta")
+        OUTFILE_CLUSTER_FAST_CENTROIDS = os.path.join(VSEARCH_FOLDER,
+                                                      PREFIX +
+                                                      "vsearch_cluster" +
+                                                      "_fast_centroids." +
+                                                      "fasta")
+        OUTFILE_CLUSTER_FAST_CONSENSUS = os.path.join(VSEARCH_FOLDER,
+                                                      PREFIX +
+                                                      "vsearch_cluster" +
+                                                      "_fast_consensus." +
+                                                      "fasta")
         CLUSTER_FAST_PARAMS = {"--id": VSEARCH_THRESHOLD,
                                "--centroids": OUTFILE_CLUSTER_FAST_CENTROIDS,
                                "--msaout": OUTFILE_CLUSTER_FAST_MSA,
@@ -1017,15 +1020,24 @@ if __name__ == '__main__':
     #####################################################################
     # MAP THE READS WITH BOWTIE
     if "bowtie2" in tools_list:
-        BOWTIE_FOLDER = make_folder(PREFIX + "_bowtie")
-        obj = bowtie_build.Bowtie2_Build("bowtie2-build")
-        results = obj.run(OTU_DATABASE, "OTU")
+        BOWTIE_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                 PREFIX + "_bowtie"),
+                                    WORKING_DIR)
+        index = bowtie_build.Bowtie2_Build("bowtie2-build")
+        results = index.run(OTU_DATABASE, "OTU")
         logger.info("bowtie build %s", results.command)
-        obj = bowtie_map.Bowtie2_Map("bowtie2")
-        results = obj.run(ASSEMBLED + ".bio.chopped.fasta",
-                          "OTU",
-                          BOWTIE_FOLDER,
-                          THREADS)
+        mapper = bowtie_map.Bowtie2_Map("bowtie2")
+        otu = os.path.split(OTU_DATABASE)[-1]
+        bowtie_out = os.path.join(BOWTIE_FOLDER,
+                                  "_vs_".join([PREFIX,
+                                               otu.split(".f")[0]]) + ".sam")
+        # e.g.  result = bt2_map.run(READS, FA_INDEX,
+        #  outfilename, THREADS, fasta=True)
+        results = mapper.run(ASSEMBLED + ".bio.chopped.fasta",
+                             "OTU",
+                             bowtie_out,
+                             THREADS,
+                             fasta=True)
         logger.info("bowtie map %s", results.command)
         logger.info("pysam to filter the mapping")
         samfile = pysam.AlignmentFile(results.sam, "r")
@@ -1136,9 +1148,11 @@ if __name__ == '__main__':
     # run BLASTCLUST
     if "blastclust" in tools_list:
         blastclust_threshold = args.blastclust_threshold  # for now
-        BLASTCL_FOLDER = make_folder(PREFIX + "_blastclust_%s" %
-                                     str(blastclust_threshold))
-        logger.info("running blastclust")
+        bc = PREFIX + "_blastclust_%s" % str(blastclust_threshold)
+        BLASTCL_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                  bc),
+                                     WORKING_DIR)
+        logger.info("running blastclust. This is slow")
         bc = blast.Blastclust("blastclust")
         result = bc.run("assembled_fa_and_OTU_db.fasta", BLASTCL_FOLDER,
                         THREADS)
@@ -1213,8 +1227,10 @@ if __name__ == '__main__':
                               stderr=subprocess.PIPE,
                               check=True)
     Rand_results = pairwise_comparison_Rand(CLUSTER_FILES_FOR_RAND_INDEX,
-                                            PREFIX +
-                                            "_Rand_comparison.txt")
+                                            os.path.join(RESULT_FOLDER,
+                                                         PREFIX +
+                                                         "_Rand_compar" +
+                                                         "ison.txt"))
     for comp in result:
         logger.info("Rand comparison: %s", comp)
 
@@ -1243,7 +1259,7 @@ if __name__ == '__main__':
     cmd_r = " ".join(["python",
                       compare_prog,
                       " -o",
-                      comp,
+                      os.path.join(RESULT_FOLDER, comp),
                       " --in_list",
                       "temp.txt"])
     logger.info("%s = comparison comment", cmd_r)
@@ -1252,9 +1268,12 @@ if __name__ == '__main__':
                           stderr=subprocess.PIPE,
                           check=True)
     if args.cleanup:
-        # remove load of files for the user
+        # remove loads of files for the user
+        # as previously having other files confused people
         remove_list = [ASSEMBLED + "for_swarm.fasta",
                        ASSEMBLED + ".bio.chopped.fasta",
+                       OTU_DATABASE_SWARM,
+                       SWARM_OUT,
                        "temp.txt",
                        "assembled_fa_and_OTU_db.fasta",
                        "assembled_reads_and_OTU_db.fasta",
@@ -1266,11 +1285,34 @@ if __name__ == '__main__':
                                      PREFIX + "_unpaired_R1.fq.gz")),
                        (os.path.join(TRIM_FOLDER,
                                      PREFIX + "_unpaired_R2.fq.gz")),
-                       ASSEMBLED + "drep.vsearch.fasta"]
+                       ASSEMBLED + "drep.vsearch.fasta",
+                       "OTU.1.bt2",
+                       "OTU.2.bt2",
+                       "OTU.3.bt2",
+                       "OTU.4.bt2",
+                       "OTU.rev.1.bt2",
+                       "OTU.rev.2.bt2",
+                       "error.log",
+                       results_pear.outfilediscarded,
+                       results_pear.outfileunassmbledfwd,
+                       results_pear.outfileunassembledrev,
+                       (os.path.join(EC_FOLDER, "spades.log")),
+                       (os.path.join(EC_FOLDER, "params.txt")),
+                       (os.path.join(EC_FOLDER, "input_dataset.yaml")),
+                       (os.path.join(EC_FOLDER,
+                                     "corrected", "corrected.yaml")),
+                       (os.path.join(EC_FOLDER,
+                                     "corrected",
+                                     PREFIX + "_paired_R_unpaired" +
+                                     ".00.0_0.cor.fastq.gz"))]
 
         for unwanted in remove_list:
             try:
                 os.remove(unwanted)
+                logger.info("deleting: %s", unwanted)
             except:
                 logger.info("could not find %s", unwanted)
+    shutil.rmtree(PREFIX)
+    shutil.rmtree(os.path.join(EC_FOLDER, "tmp"))
+    shutil.rmtree(os.path.join(EC_FOLDER, "corrected", "configs"))
     logger.info("Pipeline complete: %s", time.asctime())
