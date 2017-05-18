@@ -141,8 +141,8 @@ def test_database(filename, outfile="temp.fasta"):
             name_set.add(seq_record.id)
         else:
             return "Duplicate names found", seq_record
-        if seq_record.seq not in seq_set:
-            seq_set.add(seq_record.seq)
+        if str(seq_record.seq) not in seq_set:
+            seq_set.add(str(seq_record.seq))
         else:
             return "Duplicate sequence found", seq_record
         try:
