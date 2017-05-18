@@ -30,7 +30,8 @@ from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
      reformat_sam_clusters, reformat_swarm_cls, reformat_blast6_clusters
 
 from pycits.metapy_tools import decompress, compress,\
-     last_exception, metapy_trim_seq, covert_chop_read, make_folder
+     last_exception, metapy_trim_seq, covert_chop_read, make_folder,\
+     test_reads_exist_and_suffix, test_database
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
@@ -292,12 +293,8 @@ args, FILE_DIRECTORY = get_args()
 # setting up some test variables
 THREADS = args.threads
 # test read set are defaults
-LEFT_READS = args.left
-if LEFT_READS.endswith(".gz"):
-    LEFT_READS = decompress(LEFT_READS)
-RIGHT_READS = args.right
-if RIGHT_READS.endswith(".gz"):
-    RIGHT_READS = decompress(RIGHT_READS)
+LEFT_READS = test_reads_exist_and_suffix(args.left)
+RIGHT_READS = test_reads_exist_and_suffix(args.right)
 assert(LEFT_READS != RIGHT_READS)
 READ_PREFIX = os.path.split(LEFT_READS)[-1].split("_R")[0]
 PHREDSCORE = args.phred
@@ -307,7 +304,20 @@ OUTDIR_TRIM = "trimmed_reads"
 OUTFILES = [os.path.join(OUTDIR_TRIM, PREFIX + suffix) for suffix in
             ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
              "_paired_R2.fq.gz", "_unpaired_R2.fq.gz")]
+
+# set up the DB and check if this is formatted correctly
 OTU_DATABASE = args.OTU_DB
+# function returns "ok", "ok" if passed.
+# else it returns:"Duplicate names found", seq_record
+# or "Duplicate sequence found", seq_record
+# or "Ill formatted fasta file", seq_record
+# depending on the problem
+value1, value2 = test_database(OTU_DATABASE)
+if value1 != "ok":
+    print ("DATABASE CHECK FAILED.\n Problem was: %s with %s" % (value1,
+                                                                 value2))
+    sys.exit("check you database file")
+
 WORKING_DIR = os.getcwd()
 # set this to false for now to not run it
 SEQ_CRUMBS = False
@@ -427,6 +437,8 @@ if __name__ == '__main__':
     err_formatter = logging.Formatter('%(levelname)s: %(message)s')
     err_handler.setFormatter(err_formatter)
     logger.addHandler(err_handler)
+    if args.logfile == "pipeline.log":
+        args.logfile = PREFIX + "_pipeline.log"
     try:
         logstream = open(args.logfile, 'w')
         err_handler_file = logging.StreamHandler(logstream)
@@ -1274,6 +1286,7 @@ if __name__ == '__main__':
                        ASSEMBLED + ".bio.chopped.fasta",
                        OTU_DATABASE_SWARM,
                        SWARM_OUT,
+                       "temp.fasta",
                        "temp.txt",
                        "assembled_fa_and_OTU_db.fasta",
                        "assembled_reads_and_OTU_db.fasta",
