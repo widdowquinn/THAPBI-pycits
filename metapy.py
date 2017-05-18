@@ -1235,8 +1235,8 @@ if __name__ == '__main__':
         logger.info("Rand comparison: %s", comp)
 
     # compress the reads to save space
-    # compress(LEFT_READS)
-    # compress(RIGHT_READS)
+    compress(LEFT_READS)
+    compress(RIGHT_READS)
     logger.info("compressed the reads")
 
     #####################################################################
