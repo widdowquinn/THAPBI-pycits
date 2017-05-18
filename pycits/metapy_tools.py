@@ -10,6 +10,7 @@ import os
 import gzip
 from .tools import convert_fq_to_fa
 import sys
+import subprocess
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
