@@ -12,6 +12,7 @@ from .tools import convert_fq_to_fa
 import sys
 import subprocess
 from Bio import SeqIO
+from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 
@@ -25,6 +26,29 @@ def decompress(infile):
                           stderr=subprocess.PIPE,
                           check=True)
     return os.path.splitext(infile)[0]
+
+
+def test_reads_exist_and_suffix(reads):
+    """function to test if the reads exist and if there
+    are compressed or not.
+    Take in a read file.
+    This is required, if a run is cancelled then re-run
+    with the same command and the reads have been decompresssed,
+    it will fail.
+    return the proper name the reads will have"""
+    if not os.path.isfile(reads):
+        # there is something wrong ...
+        # this file doesnt exist. Maybe already decompressed
+        # but not what the user is asking for
+        if os.path.isfile(os.path.splitext(reads)[0]):
+            # the reads have already been decompressed
+            return os.path.splitext(reads)[0]
+    if os.path.isfile(reads):
+        if reads.endswith(".gz"):
+            new_name = decompress(reads)
+            return new_name
+    else:
+        return reads
 
 
 def make_folder(folder, WORKING_DIR, exist_ok=True):
@@ -95,3 +119,27 @@ def metapy_trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
         s_trim = (s[lclip:(len(s) - rclip)] for s in SeqIO.parse(fh, 'fasta'))
         return SeqIO.write((s for s in s_trim if len(s) >= minlen),
                            outfname, 'fasta')
+
+
+def test_database(filename, outfile="temp.fasta"):
+    """this function re-write a file as a fasta file.
+    I am using this to test if the DB is ill formatted.
+    Biopython should detect this if it is badly formatted"""
+    f = open(outfile, 'w')
+    name_set = set([])
+    seq_set = set([])
+    for seq_record in SeqIO.parse(filename, "fasta"):
+        if seq_record.id not in name_set:
+            name_set.add(seq_record.id)
+        else:
+            return "Duplicate names found", seq_record
+        if seq_record.seq not in seq_set:
+            seq_set.add(seq_record.seq)
+        else:
+            return "Duplicate sequence found", seq_record
+        try:
+            SeqIO.write(seq_record, f, "fasta")
+        except ValueError:
+            return "Ill formatted fasta file", seq_record
+    f.close()
+    return "ok", "ok"
