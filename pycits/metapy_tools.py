@@ -40,7 +40,7 @@ def make_folder(folder, WORKING_DIR, exist_ok=True):
 
 def compress(infile):
     """function to compress reads, make them .gz"""
-    cmd = ' '.join(["gzip", infile])
+    cmd = ' '.join(["gzip", "-f", infile])
     pipe = subprocess.run(cmd, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
