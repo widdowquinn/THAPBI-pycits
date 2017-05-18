@@ -124,7 +124,15 @@ def metapy_trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
 def test_database(filename, outfile="temp.fasta"):
     """this function re-write a file as a fasta file.
     I am using this to test if the DB is ill formatted.
-    Biopython should detect this if it is badly formatted"""
+    Biopython should detect this if it is badly formatted.
+    No duplicate name or sequences are allowed.
+    These are detected by sets.
+
+    Returns: error, problem seqrecord
+
+    or
+
+    return "ok", "ok" if passed checks"""
     f = open(outfile, 'w')
     name_set = set([])
     seq_set = set([])
