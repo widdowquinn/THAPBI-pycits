@@ -24,7 +24,7 @@ def decompress(infile):
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
                           check=True)
-    return infile.split(".gz")[0]  # os.splitext(infile)[0]!!!!!
+    return os.path.splitext(infile)[0]
 
 
 def make_folder(folder, WORKING_DIR, exist_ok=True):
