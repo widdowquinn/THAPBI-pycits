@@ -93,7 +93,7 @@ def get_args():
                           type=str,
                           help="right illumina reads")
 
-    optional.add_argument("--OTU_DB", dest='OTU_DB',
+    optional.add_argument("-d", "--OTU_DB", dest='OTU_DB',
                           action="store",
                           default=os.path.join(file_directory,
                                                "data",
@@ -1308,16 +1308,7 @@ if __name__ == '__main__':
                        "error.log",
                        results_pear.outfilediscarded,
                        results_pear.outfileunassmbledfwd,
-                       results_pear.outfileunassembledrev,
-                       (os.path.join(EC_FOLDER, "spades.log")),
-                       (os.path.join(EC_FOLDER, "params.txt")),
-                       (os.path.join(EC_FOLDER, "input_dataset.yaml")),
-                       (os.path.join(EC_FOLDER,
-                                     "corrected", "corrected.yaml")),
-                       (os.path.join(EC_FOLDER,
-                                     "corrected",
-                                     PREFIX + "_paired_R_unpaired" +
-                                     ".00.0_0.cor.fastq.gz"))]
+                       results_pear.outfileunassembledrev]
 
         for unwanted in remove_list:
             try:
@@ -1326,8 +1317,7 @@ if __name__ == '__main__':
             except:
                 logger.info("could not find %s", unwanted)
     shutil.rmtree(PREFIX)
-    if ERROR_CORRECTION:
-        # these filders will only be there is EC was run
-        shutil.rmtree(os.path.join(EC_FOLDER, "tmp"))
-        shutil.rmtree(os.path.join(EC_FOLDER, "corrected", "configs"))
+    if ERROR_CORRECTION and args.cleanup:
+        # this folders will only be there is EC was run
+        shutil.rmtree(os.path.join(EC_FOLDER))
     logger.info("Pipeline complete: %s", time.asctime())

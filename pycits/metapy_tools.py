@@ -142,6 +142,9 @@ def test_database(filename, outfile="temp.fasta"):
     name_set = set([])
     seq_set = set([])
     nt_set = set("ATCG")
+    if not os.path.isfile(filename):
+        error = "%s does not exist. Check the correct name " % filename
+        sys.exit(error + " and PATH")
     for seq_record in SeqIO.parse(filename, "fasta"):
         seq = str(seq_record.seq)
         # check for illegal characters
