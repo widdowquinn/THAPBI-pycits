@@ -1326,6 +1326,8 @@ if __name__ == '__main__':
             except:
                 logger.info("could not find %s", unwanted)
     shutil.rmtree(PREFIX)
-    shutil.rmtree(os.path.join(EC_FOLDER, "tmp"))
-    shutil.rmtree(os.path.join(EC_FOLDER, "corrected", "configs"))
+    if ERROR_CORRECTION:
+        # these filders will only be there is EC was run
+        shutil.rmtree(os.path.join(EC_FOLDER, "tmp"))
+        shutil.rmtree(os.path.join(EC_FOLDER, "corrected", "configs"))
     logger.info("Pipeline complete: %s", time.asctime())
