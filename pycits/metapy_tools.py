@@ -43,12 +43,15 @@ def test_reads_exist_and_suffix(reads):
         if os.path.isfile(os.path.splitext(reads)[0]):
             # the reads have already been decompressed
             return os.path.splitext(reads)[0]
-    if os.path.isfile(reads):
-        if reads.endswith(".gz"):
+    if os.path.isfile(reads):  # file is real
+        if reads.endswith(".gz"):  # decompress them
             new_name = decompress(reads)
             return new_name
+        else:
+            return reads
     else:
-        return reads
+        error = "\nERROR: %s   FILE DOES NOT EXIT" % reads
+        sys.exit(error + ". Check your input file path and name\n")
 
 
 def make_folder(folder, WORKING_DIR, exist_ok=True):
@@ -127,6 +130,8 @@ def test_database(filename, outfile="temp.fasta"):
     Biopython should detect this if it is badly formatted.
     No duplicate name or sequences are allowed.
     These are detected by sets.
+    Now checks for illegal characters. Only allowed:
+    ATCG
 
     Returns: error, problem seqrecord
 
@@ -136,11 +141,21 @@ def test_database(filename, outfile="temp.fasta"):
     f = open(outfile, 'w')
     name_set = set([])
     seq_set = set([])
+    nt_set = set("ATCG")
     for seq_record in SeqIO.parse(filename, "fasta"):
+        seq = str(seq_record.seq)
+        # check for illegal characters
+        if set(seq.upper()).difference(nt_set):
+            illegal = set(str(seq_record.seq)).difference(nt_set)
+            error_str = "Illegal nucleotide found %s. " % illegal
+            err = error_str + "Only %s are allowed. " % (str(nt_set))
+            return err + " Problem in: ", seq_record
+        # check for duplicate names. Should be unique
         if seq_record.id not in name_set:
             name_set.add(seq_record.id)
         else:
             return "Duplicate names found", seq_record
+        # check duplicate sequences. should be unique
         if str(seq_record.seq) not in seq_set:
             seq_set.add(str(seq_record.seq))
         else:
