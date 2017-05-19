@@ -143,7 +143,7 @@ def test_database(filename, outfile="temp.fasta"):
     seq_set = set([])
     nt_set = set("ATCG")
     if not os.path.isfile(filename):
-        error = "\ndatabase %s does NOT EXIST. Check " % filename
+        error = "\nDATABASE: %s does NOT EXIST. Check " % filename
         sys.exit(error + " the correct name  and PATH\n")
     for seq_record in SeqIO.parse(filename, "fasta"):
         seq = str(seq_record.seq)
