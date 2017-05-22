@@ -333,7 +333,7 @@ if args.qc:
     if value1 != "ok":
         print ("DATABASE CHECK FAILED.\nProblem was: %s with %s" % (value1,
                                                                     value2))
-    sys.exit("check you database file")
+        sys.exit("check you database file")
 
 WORKING_DIR = os.getcwd()
 # set this to false for now to not run it
@@ -618,20 +618,21 @@ if __name__ == '__main__':
                                                           str(db_sd))
             stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
                                                             str(assemb_sd))
-            terminate = "The assembled size of your reads is " +
-            "significantly different to your database. You " +
-            "need to adjust your DB sequences to that of the " +
-            "region you sequenced. \n"
+            terminate = " ".join(["The assembled size of your reads is",
+                                  "significantly different to your",
+                                  "database. You need to adjust your",
+                                  "DB sequences to that of the region",
+                                  "you sequenced. \n"])
             if errtype == "-":
-                shorter = "ERROR: your assembled sequences are  " +\
-                          "significantly shorter than database \n"
+                shorter = " ".join(["ERROR: your assembled sequences are",
+                                    "significantly shorter than db\n"])
                 error_out = "%s%s%s%s" % (shorter, terminate, dbstats, stats)
                 logger.info("KILLING the prog: %s", error_out)
                 # KILL the program
                 sys.exit(error_out)
             else:
-                longer = "ERROR your assemebled sequences are  " +\
-                          "significantly longer than database \n"
+                longer = " ".join(["ERROR your assemebled sequences are",
+                                  "significantly longer than db\n"])
                 error_out = "%s%s%s%s" % (longer, terminate, dbstats, stats)
                 logger.info("KILLING the prog: %s", error_out)
                 # KILL the program
