@@ -25,20 +25,20 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
 from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
-     dereplicate_name, check_OTU_db_abundance_val, \
+     dereplicate_name, check_OTU_db_abundance_val,\
      parse_tab_file_get_clusters, filter_sam_file, reformat_cdhit_clustrs,\
      reformat_sam_clusters, reformat_swarm_cls, reformat_blast6_clusters
 
 from pycits.metapy_tools import decompress, compress,\
      last_exception, metapy_trim_seq, covert_chop_read, make_folder,\
-     test_reads_exist_and_suffix, database_checker, \
+     test_reads_exist_and_suffix, database_checker,\
      db_len_assembled_len_reasonable
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
 from pycits import tools, fastqc, trimmomatic, pear, error_correction,\
-    flash, clean_up, swarm, seq_crumbs, bowtie_build, bowtie_map,\
-    cd_hit, blast, vsearch, samtools_index, muscle
+     flash, clean_up, swarm, seq_crumbs, bowtie_build, bowtie_map,\
+     cd_hit, blast, vsearch, samtools_index, muscle
 
 if sys.version_info[:2] != (3, 5):
     # e.g. sys.version_info(major=3, minor=5, micro=2,
@@ -611,13 +611,13 @@ if __name__ == '__main__':
                                                            ".bio.chopp" +
                                                            "ed.fasta",
                                                            args.std)
+        errtype, db_mean, db_sd, assemb_mean, assemb_sd = error.split("\t")
+        dbstats = "db_mean = %s , db_stdev = %s  " % (str(db_mean),
+                                                      str(db_sd))
+
+        stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
+                                                        str(assemb_sd))
         if size_test == "fail":
-            errtype, db_mean, db_sd, \
-                     assemb_mean, assemb_sd = error.split("\t")
-            dbstats = "db_mean = %s , db_stdev = %s  " % (str(db_mean),
-                                                          str(db_sd))
-            stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
-                                                            str(assemb_sd))
             terminate = " ".join(["The assembled size of your reads is",
                                   "significantly different to your",
                                   "database. You need to adjust your",

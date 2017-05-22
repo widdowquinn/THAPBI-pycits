@@ -18,7 +18,8 @@ OUTDIR = os.path.join("tests", "test_out_deduplicate_hash")
 TEST_FILE = "swarm.out"
 TEST_DB = "db_old_to_new_names.txt"
 TEST_OUT = "swarm_test_nemaed.out"
-OTU_DATABASE = "./data/ITS_db_NOT_conf_correct_last14bp_removd.fasta"
+OTU_DATABASE = os.path.join(INDIR, "ITS_database_NOT_confirmed" +
+                            "_correct_last14bases_removed.fasta")
 
 
 # folder checking
@@ -46,7 +47,8 @@ def test_convert_exec():
         with open(result_file, "r") as test_fh:
             assert_equal(target_fh.read(), test_fh.read())
 
-
+OTU_DATABASE = os.path.join(INDIR, "ITS_database_NOT_confirmed_correct" +
+                            "_last14bases_removedabundance.fasta")
 OTU_DATABASE = "./data/ITS_db_NOT_confirmed_for_swarm.fasta"
 # run this again with another formatted db with abundance values.
 
