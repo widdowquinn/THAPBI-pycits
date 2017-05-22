@@ -124,7 +124,7 @@ def metapy_trim_seq(infname, outfname, lclip=53, rclip=0, minlen=100):
                            outfname, 'fasta')
 
 
-def test_database(filename, outfile="temp.fasta"):
+def database_checker(filename, outfile="temp.fasta"):
     """this function re-write a file as a fasta file.
     I am using this to test if the DB is ill formatted.
     Biopython should detect this if it is badly formatted.

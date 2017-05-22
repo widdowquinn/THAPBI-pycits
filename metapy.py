@@ -31,7 +31,7 @@ from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
 
 from pycits.metapy_tools import decompress, compress,\
      last_exception, metapy_trim_seq, covert_chop_read, make_folder,\
-     test_reads_exist_and_suffix, test_database
+     test_reads_exist_and_suffix, database_checker
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
@@ -312,7 +312,7 @@ OTU_DATABASE = args.OTU_DB
 # or "Duplicate sequence found", seq_record
 # or "Ill formatted fasta file", seq_record
 # depending on the problem
-value1, value2 = test_database(OTU_DATABASE)
+value1, value2 = database_checker(OTU_DATABASE)
 if value1 != "ok":
     print ("DATABASE CHECK FAILED.\n Problem was: %s with %s" % (value1,
                                                                  value2))
