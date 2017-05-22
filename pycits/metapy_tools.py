@@ -11,6 +11,7 @@ import gzip
 from .tools import convert_fq_to_fa
 import sys
 import subprocess
+import numpy
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -52,6 +53,73 @@ def test_reads_exist_and_suffix(reads):
     else:
         error = "\nERROR: %s   FILE DOES NOT EXIT" % reads
         sys.exit(error + ". Check your input file path and name\n")
+
+
+def average_standard_dev(lengths):
+    """function to return the avaerage and stadard deviation
+    for a list of number.
+    Uses Numpy to do the calculations.
+    Take in a list of lens
+    returns the mean and standard deviation of the list"""
+    the_mean = sum(lengths) / float(len(lengths))
+    standard_dev = numpy.std(lengths)
+    return the_mean, standard_dev
+
+
+def get_sizes(infasta):
+    """function to return a list of sequences sizes for a fasta file"""
+    minlength = 10
+    with open(infasta, 'r') as seq:
+        sizes = [len(record.seq) for record in SeqIO.parse(seq, 'fasta')
+                 if len(record.seq) >= minlength]
+    return sizes
+
+
+def db_len_assembled_len_reasonable(db_fa, assembled_fa, sd=2):
+    """func compare the avergase of and the standard deviations
+    of the database file used for clustering and the assembled reads.
+    Basically, I have been given ITS clustering database from two
+    projects, both published, which have the full ribosomal region in.
+    This is not correct for Swarm clustering.
+    This func compares:
+    database sequence mean
+    assembled fasta mean.
+    If database sequence mean < or > assembled fasta mean +- sd
+    then we whave a problem.
+    takes in:
+    -   db_fa    the databse used for classifying OTU (I hate that phrase)
+    -   assembled_fa    generated in scripts from the reads data
+    -   sd, the number of stadard deviations which is a reasonable threshold
+    returns (str), (str)
+    returns: ok, ok\tSTATS
+    returns: fail, -/+.    the second string is an indication of
+    what is wrong. e.g.:
+    if assemb_mean < (db_mean - sd * db_sd)
+    reruns fail, -. The - means, assembled mean is much lower than expected.
+    If + then assembled mean is greater than expected.
+    """
+    sd = int(sd)
+    # call the function get_sizes(infasta)
+    db_lens = get_sizes(db_fa)
+    assemb_lens = get_sizes(assembled_fa)
+    # call the functtion average_standard_dev(lengths)
+    db_mean, db_sd = average_standard_dev(db_lens)
+    assemb_mean, assemb_sd = average_standard_dev(assemb_lens)
+    info = "%.3f\t%.3f\t%.3f\t%.3f" % (db_mean,
+                                       db_sd,
+                                       assemb_mean,
+                                       assemb_sd)
+    # test assembled mean is within db_mean +- sd=3 * db_sd
+    if assemb_mean < (db_mean - (sd * db_sd)):
+        error_str = "-\t%s" % (info)
+        return "fail", error_str
+    # check it is not significantly longer sequences
+    if assemb_mean > (db_mean + (sd * db_sd)):
+        error_str = "+\t%s" % (info)
+        return "fail", error_str
+    else:
+        pass_str = "ok\t%s" % (info)
+        return "ok", pass_str
 
 
 def make_folder(folder, WORKING_DIR, exist_ok=True):

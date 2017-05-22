@@ -31,7 +31,8 @@ from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
 
 from pycits.metapy_tools import decompress, compress,\
      last_exception, metapy_trim_seq, covert_chop_read, make_folder,\
-     test_reads_exist_and_suffix, database_checker
+     test_reads_exist_and_suffix, database_checker, \
+     db_len_assembled_len_reasonable
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
@@ -78,7 +79,7 @@ def get_args():
                                                "data",
                                                "reads",
                                                "DNAMIX_S95_" +
-                                               "L001_R1_001.fastq"),
+                                               "L001_R1_001.fastq.gz"),
                           type=str,
                           help="left illumina reads, " +
                           "default is for tests")
@@ -89,7 +90,7 @@ def get_args():
                                                "data",
                                                "reads",
                                                "DNAMIX_S95_" +
-                                               "L001_R2_001.fastq"),
+                                               "L001_R2_001.fastq.gz"),
                           type=str,
                           help="right illumina reads")
 
@@ -268,12 +269,27 @@ def get_args():
                           default="pipeline.log",
                           type=str,
                           help="Logfile name")
+    optional.add_argument("--standard_deviation",
+                          dest="std",
+                          action="store",
+                          default=2,
+                          type=int,
+                          help="standard_deviation threshold for " +
+                          "comparing the assembled size versus the " +
+                          "database sequence sizes. This is to check " +
+                          "database is sensible for the data input")
 
     optional.add_argument("--cleanup",
                           dest="cleanup",
                           action="store_true",
                           default=False,
                           help="deletes most files the program creates ")
+    optional.add_argument("--qc",
+                          dest="qc",
+                          action="store_true",
+                          default=True,
+                          help="performs QC at various stages. " +
+                          " Turn off by: --qc False")
 
     optional.add_argument("-h", "--help",
                           action="help",
@@ -313,9 +329,10 @@ OTU_DATABASE = args.OTU_DB
 # or "Ill formatted fasta file", seq_record
 # depending on the problem
 value1, value2 = database_checker(OTU_DATABASE)
-if value1 != "ok":
-    print ("DATABASE CHECK FAILED.\n Problem was: %s with %s" % (value1,
-                                                                 value2))
+if args.qc:
+    if value1 != "ok":
+        print ("DATABASE CHECK FAILED.\nProblem was: %s with %s" % (value1,
+                                                                    value2))
     sys.exit("check you database file")
 
 WORKING_DIR = os.getcwd()
@@ -454,7 +471,7 @@ if __name__ == '__main__':
     logger.info(sys.version_info)
     logger.info("Command-line: %s", ' '.join(sys.argv))
     logger.info("Starting testing: %s", time.asctime())
-    logger.info("using databse: %s", OTU_DATABASE)
+    logger.info("using database: %s", OTU_DATABASE)
     # Get a list of tools in path!
     logger.info("checking which programs are in PATH")
     tools_list, Warning_out = check_tools_exist(WARNINGS)
@@ -583,6 +600,44 @@ if __name__ == '__main__':
         format_change.run(ASSEMBLED,
                           ASSEMBLY_FOLDER,
                           logger)
+    ####################################################################
+    # check the assembled sizes are sensible against the db sizes.
+    # are the db sequences significantly longer than the assembled sizes?
+    # (db_fa, assembled_fa, sd=3)
+    if args.qc:
+        logger.info("QC: Checking your assembled seq sizes against db")
+        size_test, error = db_len_assembled_len_reasonable(OTU_DATABASE,
+                                                           ASSEMBLED +
+                                                           ".bio.chopp" +
+                                                           "ed.fasta",
+                                                           args.std)
+        if size_test == "fail":
+            errtype, db_mean, db_sd, \
+                     assemb_mean, assemb_sd = error.split("\t")
+            dbstats = "db_mean = %s , db_stdev = %s  " % (str(db_mean),
+                                                          str(db_sd))
+            stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
+                                                            str(assemb_sd))
+            terminate = "The assembled size of your reads is " +
+            "significantly different to your database. You " +
+            "need to adjust your DB sequences to that of the " +
+            "region you sequenced. \n"
+            if errtype == "-":
+                shorter = "ERROR: your assembled sequences are  " +\
+                          "significantly shorter than database \n"
+                error_out = "%s%s%s%s" % (shorter, terminate, dbstats, stats)
+                logger.info("KILLING the prog: %s", error_out)
+                # KILL the program
+                sys.exit(error_out)
+            else:
+                longer = "ERROR your assemebled sequences are  " +\
+                          "significantly longer than database \n"
+                error_out = "%s%s%s%s" % (longer, terminate, dbstats, stats)
+                logger.info("KILLING the prog: %s", error_out)
+                # KILL the program
+                sys.exit(error_out)
+        logger.info("QC passed on sequence size: %s\t%s", dbstats, stats)
+
     # first cat the db and EC, trimmed reads.
     cat_cmd = ["cat", OTU_DATABASE,
                ASSEMBLED + ".bio.chopped.fasta",
