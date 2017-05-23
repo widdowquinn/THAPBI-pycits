@@ -15,6 +15,10 @@ import numpy
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+# for tests
+# https://docs.scipy.org/doc/scipy/reference/
+# tutorial/stats.html#t-test-and-ks-test
+from scipy import stats
 
 
 # TODO: The PSL has the gzip library for this!!!!!
@@ -102,6 +106,12 @@ def db_len_assembled_len_reasonable(db_fa, assembled_fa, sd=2):
     # call the function get_sizes(infasta)
     db_lens = get_sizes(db_fa)
     assemb_lens = get_sizes(assembled_fa)
+    print ('normal skewtest teststat assemb_lens = %6.3f pvalue = %6.4f' %
+           stats.skewtest(assemb_lens))
+    print ('normal skewtest teststat db_lens = %6.3f pvalue = %6.4f' %
+           stats.skewtest(db_lens))
+    print ('\n\nt-statistic = %6.3f pvalue = %6.4f\n\n' %
+           stats.ttest_ind(db_lens, assemb_lens))
     # call the functtion average_standard_dev(lengths)
     db_mean, db_sd = average_standard_dev(db_lens)
     assemb_mean, assemb_sd = average_standard_dev(assemb_lens)

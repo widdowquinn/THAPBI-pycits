@@ -289,7 +289,7 @@ def get_args():
                           action="store_true",
                           default=True,
                           help="performs QC at various stages. " +
-                          " Turn off by: --qc False")
+                          "Turn off by: --qc False")
 
     optional.add_argument("-h", "--help",
                           action="help",
@@ -624,19 +624,19 @@ if __name__ == '__main__':
                                   "DB sequences to that of the region",
                                   "you sequenced. \n"])
             if errtype == "-":
-                shorter = " ".join(["ERROR: your assembled sequences are",
+                shorter = " ".join(["Warning: your assembled sequences are",
                                     "significantly shorter than db\n"])
                 error_out = "%s%s%s%s" % (shorter, terminate, dbstats, stats)
-                logger.info("KILLING the prog: %s", error_out)
-                # KILL the program
-                sys.exit(error_out)
+                logger.warning("%s", error_out)
+                # KILL the program?
+                # sys.exit(error_out)
             else:
-                longer = " ".join(["ERROR your assemebled sequences are",
+                longer = " ".join(["Warning your assemebled sequences are",
                                   "significantly longer than db\n"])
                 error_out = "%s%s%s%s" % (longer, terminate, dbstats, stats)
-                logger.info("KILLING the prog: %s", error_out)
-                # KILL the program
-                sys.exit(error_out)
+                logger.warning("Warning: %s", error_out)
+                # KILL the program?
+                # sys.exit(error_out)
         logger.info("QC passed on sequence size: %s\t%s", dbstats, stats)
 
     # first cat the db and EC, trimmed reads.

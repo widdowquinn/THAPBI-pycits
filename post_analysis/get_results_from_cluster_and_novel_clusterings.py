@@ -71,12 +71,12 @@ def count_reads(in_name, current_read_count):
     reads = in_name.split("_")[-1]
     try:
         reads = reads.split("abundance=")[1]
-    except:
-        ValueError
+    except ValueError:
+        # dont brake this
         # this is a database entry
-        reads = reads
+        reads = 1
     return current_read_count + int(reads)
-    
+
 
 def parse_line(line):
     """finction to parse line"""
@@ -98,28 +98,6 @@ def parse_line(line):
     db_species = 0
     return cluster_line, number_of_reads_hitting_species,\
            species, db_species
-
-
-def make_blastdb(infile):
-    """function to make a nucl blastdb"""
-    cmd = 'makeblastdb -in %s -dbtype nucl' % (infile)
-    # print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """blast makedb says NO!! -
-            something went wrong. Is your fa file correct?"""
-
- 
-def run_blastn(infile, cluster_count):
-    """function to run blastn using"""
-    cmd = 'blastn -db %s -query %s -outfmt 6 -out %s.tab' % (infile,
-                                  infile, infile.split(".fasta")[0])
-    # print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """blastn says NO!! -
-    something went wrong. Is your fa file correct?"""
-    cmds = 'rm %s.n*' % (infile)
-    # print("Running %s" % cmds)
-    return_code = os.system(cmds)
 
 
 def align_cluster(infile):
@@ -155,42 +133,11 @@ def align_cluster(infile):
     return aligned_file_name
 
 
-def perc_iden_matrix(aligned_file_name):
-    """function to return a percentage identity matrix for
-    each cluster. This requires R and seqinr package, which
-    is hard to install """
-    cmd = 'R'
-    print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """R says NO!! -
-                             is R in your PATH?"""
-    cmd = 'library(seqinr)'
-    print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """seqinr says NO!! -
-                             is seqinr installed?"""
-    cmd = 'myseqs <- read.alignment("%s", format = "fasta")' % (aligned_file_name)
-    print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """read.alignmnet says NO!! -
-                             is R and seqinr ?"""
-    cmd = 'mat <- dist.alignment(myseqs, matrix = "identity")'
-    print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """matrix says NO!! -
-                             is R and seqinr ?"""
-    cmd = 'write(mat, file = "%s_dist_matrix.out", ncolumns = 1, append = FALSE, sep = " ")' % (aligned_file_name)
-    print("Running %s" % cmd)
-    return_code = os.system(cmd)
-    assert return_code == 0, """matrix says NO!! -
-                             is R and seqinr ?"""
-
-
 def get_names_from_Seq_db(seq_db):
     """function to get a list of name in the seq db"""
     names = []
     names_abudance_removed = []
-    db = open(seq_db, "r") 
+    db = open(seq_db, "r")
     for seq_record in SeqIO.parse(db, "fasta"):
         if seq_record.id.endswith("_1"):
             names.append(seq_record.id)
@@ -200,6 +147,7 @@ def get_names_from_Seq_db(seq_db):
             names_abudance_removed.append(seq_record.id)
             names.append(seq_record.id + "_1")
     db.close()
+    # print (names_abudance_removed)
     return names, names_abudance_removed
 
 
@@ -207,8 +155,8 @@ def coded_name_to_species(database_file):
     """functiong takes the already generated tab separated
     database of coded name to species file. Returns a dic
     of coded_name to species"""
-    with open(database_file) as file:
-        data = file.read().split("\n")
+    with open(database_file) as fh:
+        data = fh.read().split("\n")
     coded_name_to_species_dict = dict()
     coded_species_to_name_dict = dict()
     for line in data:
@@ -222,6 +170,7 @@ def coded_name_to_species(database_file):
         coded_name_to_species_dict[coded_name.rstrip()] = species
         for i in species:
             coded_species_to_name_dict[i] = coded_name
+    # print (coded_name_to_species_dict)
     return coded_name_to_species_dict, coded_species_to_name_dict
 
 
@@ -233,7 +182,7 @@ def write_out_cluster_as_fa(member, all_sequences,
                             coded_species_to_name_dict,
                             cluster_fasta):
     """function to write out the cluster as
-    a fasta file"""         
+    a fasta file"""
     member = member.rstrip()
     db_name = ("_").join(member.split("_")[:-1])
     abundance = member.split("_")[-1]
@@ -245,7 +194,7 @@ def write_out_cluster_as_fa(member, all_sequences,
             seq_record = all_sequences_no_abundance[db_name]
         SeqIO.write(seq_record, cluster_fasta, "fasta")
         return True
-    else:    
+    else:
         hex_name = coded_species_to_name_dict[db_name]
         #print ("mem= ", member, "db=", db_name, "hex =", hex_name)
         #print (coded_species_to_name_dict[db_name])
@@ -264,8 +213,8 @@ def write_out_cluster_as_fa(member, all_sequences,
                     fasta file?\n\n""" % member)
     try:
         SeqIO.write(seq_record, cluster_fasta, "fasta")
-    except:
-        ValueError
+    except ValueError:
+        print ("could not write record for %s" % member)
     return True
 
 
@@ -275,13 +224,13 @@ def strip_to_match_db_name(identifier):
     return ("_").join(identifier.split("_")[:-1])
 
 
+# main function
 def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                                 in_file, old_to_new,
                                 min_novel_cluster_threshold,
-                                show_me_the_reads,
                                 right_total_reads,
-                                working_directory, v, blast,
-                                align, perc_matrix, out_file):
+                                working_directory, v,
+                                align, out_file):
     """script to open up a tab separeted clustering output
     and identify the species in the clustering"""
 
@@ -297,7 +246,8 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
     all_sequences =  SeqIO.index(all_fasta, "fasta")
 
     # call function to get old to new name:
-    coded_name_to_read_dict, coded_species_to_name_dict = coded_name_to_species(old_to_new)
+    coded_name_to_read_dict, \
+        coded_species_to_name_dict = coded_name_to_species(old_to_new)
     # call the function to get fasta stats
     min_contig, max_contig, avg_contig, \
                 num_contig = get_fasta_stats(fasta)
@@ -311,26 +261,27 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
     summary_out_file.write(title)
     cluster_number = 0
     for line in cluster_file:
-        cluster_number +=1
+        cluster_number += 1
         # call function to parse line
         if not parse_line(line):
             continue
         reads_of_interest = ""
         cluster_line, number_of_reads_hitting_species, \
                       species, db_species = parse_line(line)
-        #print ("cluster_number = ", cluster_number,
-               #"number_of_reads_hitting_species = ",
-               #number_of_reads_hitting_species)
+        # print ("cluster_number = ", cluster_number,
+               # "number_of_reads_hitting_species = ",
+               # number_of_reads_hitting_species)
         # basically not a singleton cluster
-        if len(cluster_line) >1:        
-            #open a file to put seq into
-            out_name = "%s/clusters_d%s/cluster%d_len%d.fasta" %(working_directory,
-                                                 str(v), cluster_number,
-                                                 len(cluster_line))
+        if len(cluster_line) > 1:
+            # open a file to put seq into
+            out_name = os.path.join(working_directory,
+                                    "clusters_d%s" % str(v),
+                                    "cluster%d_len%d.fasta" % (cluster_number,
+                                                               len(cluster_line)))
             cluster_fasta = open(out_name, "w")
         for member in cluster_line:
             # write out the cluster members to a fasta file
-            if len(cluster_line) >1:
+            if len(cluster_line) > 1:
                 write_out_cluster_as_fa(member, all_sequences,
                                         all_sequences_no_abundance,
                                         names,
@@ -343,8 +294,8 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             temp_name = ("_").join(member.split("_")[:-1])
             if temp_name in names or temp_name in names_abudance_removed:
                 # yes we are interested in this cluster
-                db_species = db_species+1
-                species = species+member+" "
+                db_species = db_species + 1
+                species = species + member + " "
                 # remove all the memebr which are database memebers
                 number_of_reads_hitting_species = number_of_reads_hitting_species - 1
 
@@ -357,7 +308,7 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                     continue
                 # we do not add the reads that hit the database
                 reads_of_interest = reads_of_interest + member + " "
-  
+
             ITS_hitting_db_species = ITS_hitting_db_species + \
                                      number_of_reads_hitting_species
             # format the data
@@ -368,7 +319,7 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             else:
                 data_output = "%d\t%s\t%d\n" %(cluster_number, species.rstrip(), \
                                                number_of_reads_hitting_species)
-                
+
             # write out the data
             summary_out_file.write(data_output)
             db_reads_perc = (float(ITS_hitting_db_species)/ num_contig)*100
@@ -376,13 +327,12 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             if len(cluster_line) > min_novel_cluster_threshold:
                 # open a file to put seq into
                 if db_species < 1:
-                    out_novel = "%s/novel_d%d/novel%d_len%d.fasta" %(working_directory,
-                                                                     v,
-                                                                     cluster_number,
-                                                                     len(cluster_line))
+                    out_novel = os.path.join(working_directory,
+                                             "novel_d%s" % str(v),
+                                             "novel%d_len%d.fasta" % (cluster_number,
+                                                                      len(cluster_line)))
+
                     novel_fasta = open(out_novel, "w")
-
-
                     for member in cluster_line:
                         write_out_cluster_as_fa(member, all_sequences,
                                                 all_sequences_no_abundance,
@@ -391,45 +341,23 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                                                 coded_name_to_read_dict,
                                                 coded_species_to_name_dict,
                                                 novel_fasta)
-                    
-        # close the open files, makeblastdb run blastn on individual
-        # clusters to get % identify
+
         try:
             cluster_fasta.close()
-            # call functions to run blast on the cluster
-            if blast:
-                make_blastdb(out_name)
-                # run blast and remove db files
-                run_blastn(out_name, cluster_number)
             if align:
                 # align the cluster
                 # print ("I am about to align the cluster: %s" % out_name)
                 aligned_file_name = align_cluster(out_name)
-            if perc_matrix:
-                # return a percentage identity matrix file for the cluster
-                # print ("I am about to analyse the cluster: %s" % out_novel)
-                perc_iden_matrix(aligned_file_name)
-        except:
-            ValueError # singleton cluster - no file generated
+        except ValueError: # singleton cluster - no file generated
+            pass
         try:
             novel_fasta.close()
-            # call functions to run blast on the cluster
-            if blast:
-                make_blastdb(out_novel)
-                # run blast and remove db files
-                run_blastn(out_novel, cluster_number)
             if align:
                 # align the cluster
                 # print ("I am about to align the cluster: %s" % out_novel)
                 aligned_file_name = align_cluster(out_novel)
-            if perc_matrix:
-                # return a percentage identity matrix file for the cluster
-                # print ("I am about to analyse the cluster: %s" % out_novel)
-                perc_iden_matrix(aligned_file_name)
-                
-            
-        except:
-            ValueError # no novel files to close
+        except ValueError:  # no novel files to close
+            pass
     db_reads_perc = (float(ITS_hitting_db_species)/ num_contig)*100
 
     fasta_file_summary = """    # Fasta file assembled seq summary:
@@ -437,7 +365,7 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
     # Total number of assembled sequences = %d
     # number of assembled-reads clustering with database = %d
     # number of starting reads = %d
-    # percent of assembled-reads clustering with database = %.2f\n""" %(min_contig, 
+    # percent of assembled-reads clustering with database = %.2f\n""" %(min_contig,
                                                     max_contig, avg_contig,
                                                     num_contig,
                                                     ITS_hitting_db_species,
@@ -456,10 +384,9 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
 
     cluster_file.close()
     summary_out_file.close()
-    return True
 
 #############################################################################
-# to run the script       
+# to run the script
 
 usage = """usage :
 
@@ -469,7 +396,7 @@ and aligns it.
 
 WARNING: THIS WILL PRODUCE 10 000S OF THOUSANDS OF FILES WHICH WILL SLOW
 YOU COMPUTER DOWN, AND MAKE YOU UNPOPULAR WITH SYS ADMIN. YOU ASKED FOR
-THIS FEATURE!!! The BLAST and alignment also makes it very slow. 
+THIS FEATURE!!! The BLAST and alignment also makes it very slow.
 
 
 $ python parse_clusters.py -i clustering_outfile_already_decoded_from_temp_names
@@ -517,7 +444,7 @@ parser.add_option("--Name_of_project", dest="Name_of_project",
 parser.add_option("-i","--in", dest="in_file", default=None,
                   help="clustering out file")
 
-parser.add_option("-v","--difference", dest="v", default=None,
+parser.add_option("-v","--difference", dest="v", default="1",
                   help="current swarm v value")
 
 parser.add_option("-r", "--right", dest="right",
@@ -530,42 +457,12 @@ parser.add_option("--old_to_new", dest="old_to_new", default=None,
                   help="file with the old and new names tab separated.",
                   metavar="FILE")
 
-parser.add_option("-s", "--show_me_the_reads",
-                  dest="show_me_the_reads", default=False,
-                  help="show_me_the_reads in the output file for "
-                  " those that hit the Phy species. "
-                  " by default this is off, as the file could get very "
-                  " large. -s True if you want ...",
-                  metavar="FILE")
-
-parser.add_option("-t", "--threads", dest="threads", default="4",
-                  help="number of threads for blast - threads ",
-                  metavar="FILE")
-
-parser.add_option("--blast", dest="blast", default=False,
-                  help="this option performs BLAST on itself. default off "
-                  " for faster results."
-                  " To turn on --blast True "
-                  " BLASTn must be in your PATH")
-
 parser.add_option("--align", dest="align",
                   default=False,
                   help="this option performs alignment on a cluster. "
                   " Turn off for faster results."
                   " To turn off --align False"
                   " muscle must be in your PATH called muscle")
-
-parser.add_option("--perc_matrix", dest="perc_matrix",
-                  default=False,
-                  help="this option performs percentage identity "
-                  " matrix on the members of the cluster. default off "
-                  " for faster results."
-                  " To turn on --perc_matrix True , must be used with"
-                  " --align True "
-                  " This invokes R, therefore R is required with "
-                  " package seqinr.  To install; "
-                  " R ; install.packages('ade4') ; "
-                  " install.packages('seqinr') ; ) ")
 
 parser.add_option("-o", "--out_prefix", dest="out_file",
                   default="summarise_clusters.out",
@@ -585,20 +482,12 @@ in_file = options.in_file
 left = options.left
 # -r
 right = options.right
-# -s
-show_me_the_reads = options.show_me_the_reads
-# -t
-threads = options.threads
 # -n
 min_novel_cluster_threshold = options.min_novel_cluster_threshold
 # -o
 out_file = options.out_file
-# --blast
-blast = options.blast
 # --align
 align = options.align
-# --perc_matrix
-perc_matrix = options.perc_matrix                 
 # -- old_to_new
 old_to_new = options.old_to_new
 # -v
@@ -610,7 +499,7 @@ Name_of_project = options.Name_of_project
 ###################################################################
 # start of program
 
-# call the function to count the trimmed reads 
+# call the function to count the trimmed reads
 right_total_reads = count_fq_reads(right)
 left_total_reads = count_fq_reads(left)
 
@@ -621,19 +510,19 @@ left and right file do not match.
 Something has gone wrong before here! These should
 be the same. Are you giving me the the correct files?\n\n"""
 
-fasta, seq_db, all_fasta,#make sure this is an int
+#fasta, seq_db, all_fasta,
+# make sure this is an int
 min_novel_cluster_threshold = int(min_novel_cluster_threshold)
 v = int(v)
 
 ###################################################################
-# make folders to put the cluster fasta files. 
-file_name = 'test.txt'
+# make folders to put the cluster fasta files.
 make_folder_list = ["clusters", "novel"]
 working_dir = os.getcwd()
 for name in make_folder_list:
     name = name + "_d%s" % (v)
     working_directory = os.path.join(working_dir,
-                                     Name_of_project + "_results")    
+                                     Name_of_project + "_results")
     dest_dir = os.path.join(working_dir,
                             Name_of_project + "_results", name)
     try:
@@ -646,8 +535,7 @@ for name in make_folder_list:
 parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                             in_file, old_to_new,
                             min_novel_cluster_threshold,
-                            show_me_the_reads,
                             right_total_reads,
-                            working_directory, v, blast,
-                            align, perc_matrix, out_file)
+                            working_directory, v,
+                            align, out_file)
 
