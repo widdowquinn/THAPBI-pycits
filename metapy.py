@@ -32,7 +32,8 @@ from pycits.tools import convert_fq_to_fa, NotExecutableError, trim_seq,\
 from pycits.metapy_tools import decompress, compress,\
      last_exception, metapy_trim_seq, covert_chop_read, make_folder,\
      test_reads_exist_and_suffix, database_checker,\
-     db_len_assembled_len_reasonable
+     get_sizes, db_len_assembled_len_ok, stats_on_list_of_sizes,\
+     plot_seq_len_histograms
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
@@ -321,20 +322,7 @@ OUTFILES = [os.path.join(OUTDIR_TRIM, PREFIX + suffix) for suffix in
             ("_paired_R1.fq.gz", "_unpaired_R1.fq.gz",
              "_paired_R2.fq.gz", "_unpaired_R2.fq.gz")]
 
-# set up the DB and check if this is formatted correctly
 OTU_DATABASE = args.OTU_DB
-# function returns "ok", "ok" if passed.
-# else it returns:"Duplicate names found", seq_record
-# or "Duplicate sequence found", seq_record
-# or "Ill formatted fasta file", seq_record
-# depending on the problem
-value1, value2 = database_checker(OTU_DATABASE)
-if args.qc:
-    if value1 != "ok":
-        print ("DATABASE CHECK FAILED.\nProblem was: %s with %s" % (value1,
-                                                                    value2))
-        sys.exit("check you database file")
-
 WORKING_DIR = os.getcwd()
 # set this to false for now to not run it
 SEQ_CRUMBS = False
@@ -472,6 +460,22 @@ if __name__ == '__main__':
     logger.info("Command-line: %s", ' '.join(sys.argv))
     logger.info("Starting testing: %s", time.asctime())
     logger.info("using database: %s", OTU_DATABASE)
+    db_error = False
+    # set up the DB and check if this is formatted correctly
+    # function returns "ok", "ok" if passed.
+    # else it returns:"Duplicate names found", seq_record
+    # or "Duplicate sequence found", seq_record
+    # or "Ill formatted fasta file", seq_record
+    # depending on the problem
+    value1, value2 = database_checker(OTU_DATABASE)
+    if args.qc:
+        if value1 != "ok":
+            logger.warning("DATABASE CHECK FAILED.")
+            logger.warning("Problem was: %s with %s" % (value1,
+                                                        value2))
+            logger.warning("check you database file")
+            db_error = True
+            # os._exit(0)  # should be kill here?
     # Get a list of tools in path!
     logger.info("checking which programs are in PATH")
     tools_list, Warning_out = check_tools_exist(WARNINGS)
@@ -606,38 +610,59 @@ if __name__ == '__main__':
     # (db_fa, assembled_fa, sd=3)
     if args.qc:
         logger.info("QC: Checking your assembled seq sizes against db")
-        size_test, error = db_len_assembled_len_reasonable(OTU_DATABASE,
-                                                           ASSEMBLED +
-                                                           ".bio.chopp" +
-                                                           "ed.fasta",
-                                                           args.std)
-        errtype, db_mean, db_sd, assemb_mean, assemb_sd = error.split("\t")
-        dbstats = "db_mean = %s , db_stdev = %s  " % (str(db_mean),
-                                                      str(db_sd))
+        # call fucntion from metapy_tools to get seq lens as list
+        db_lens = get_sizes(OTU_DATABASE)
+        assemb_lens = get_sizes(ASSEMBLED + ".bio.chopp" + "ed.fasta")
+        # plot the seq len distributions
+        plot_seq_len_histograms(db_lens, assemb_lens)
+        # call stats function to compare these:
+        stats_data = stats_on_list_of_sizes(db_lens, assemb_lens)
+        # metabarcoding will always have a skew. Especially if one
+        # species is highly present.
+        as_skew, db_skew, ttest, Man_u_value,\
+                 Man_p_value = stats_data.split("\t")
+        skew_t = "\t".join(["assembled_skew: %s" % as_skew,
+                            "database_skew: %s" % db_skew,
+                            "Mann_whitney U test: %s" % Man_p_value])
+        logger.info("Assembled seq lengths versus database lengths")
+        logger.info("%s", skew_t)
+        if float(Man_p_value) < 0.00001:
+            # call the function to perform a simple mean versus
+            # number of std test to find the problem
+            size_test, error = db_len_assembled_len_ok(db_lens,
+                                                       assemb_lens,
+                                                       args.std)
+            errtype, db_mean, db_sd, assemb_mean,\
+                     assemb_sd = error.split("\t")
 
-        stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
-                                                        str(assemb_sd))
-        if size_test == "fail":
-            terminate = " ".join(["The assembled size of your reads is",
-                                  "significantly different to your",
-                                  "database. You need to adjust your",
-                                  "DB sequences to that of the region",
-                                  "you sequenced. \n"])
-            if errtype == "-":
-                shorter = " ".join(["Warning: your assembled sequences are",
-                                    "significantly shorter than db\n"])
-                error_out = "%s%s%s%s" % (shorter, terminate, dbstats, stats)
-                logger.warning("%s", error_out)
-                # KILL the program?
-                # sys.exit(error_out)
-            else:
-                longer = " ".join(["Warning your assemebled sequences are",
-                                  "significantly longer than db\n"])
-                error_out = "%s%s%s%s" % (longer, terminate, dbstats, stats)
-                logger.warning("Warning: %s", error_out)
-                # KILL the program?
-                # sys.exit(error_out)
-        logger.info("QC passed on sequence size: %s\t%s", dbstats, stats)
+            dbstats = skew_t + "\tdb_mean= %s\tdb_stdev= %s\t" % (str(db_mean),
+                                                                  str(db_sd))
+
+            stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
+                                                            str(assemb_sd))
+            if size_test == "fail":
+                terminate = " ".join(["The assembled size of your reads is",
+                                      "significantly different to your",
+                                      "database. You need to adjust your",
+                                      "DB sequences to that of the region",
+                                      "you sequenced. \n"])
+                if errtype == "-":
+                    shorter = " ".join(["your assembled sequences are",
+                                        "significantly shorter than db\n"])
+                    error_out = "%s%s%s%s" % (shorter, terminate,
+                                              dbstats, stats)
+                    logger.warning("%s", error_out)
+                    # KILL the program?
+                    # sys.exit(error_out)
+                else:
+                    longer = " ".join(["your assemebled sequences are",
+                                      "significantly longer than db\n"])
+                    error_out = "%s%s%s%s" % (longer, terminate,
+                                              dbstats, stats)
+                    logger.warning("Warning: %s", error_out)
+                    # KILL the program?
+                    # sys.exit(error_out)
+        logger.info("QC passed on sequences: %s\t%s", dbstats, stats)
 
     # first cat the db and EC, trimmed reads.
     cat_cmd = ["cat", OTU_DATABASE,
@@ -664,6 +689,10 @@ if __name__ == '__main__':
     ####################################################################
     # SWARM testing - assemble
     if "swarm" in tools_list:
+        if db_error:
+            logger.warning("error was found in your database. " +
+                           "Swarm will most likely fail here. \n" +
+                           "Look at the log file to find error")
         swarm_folder_name = PREFIX + "_Swarm_d%d" % SWARM_D_VALUE
         swarm_parameters = swarm.Parameters(t=1, d=SWARM_D_VALUE)
         SWARM_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
