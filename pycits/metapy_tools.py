@@ -19,6 +19,17 @@ from Bio.SeqRecord import SeqRecord
 # https://docs.scipy.org/doc/scipy/reference/
 # tutorial/stats.html#t-test-and-ks-test
 from scipy import stats
+from scipy.stats import mannwhitneyu
+import matplotlib
+# this code added to prevent this error:
+# self.tk = _tkinter.create(screenName, baseName,
+# className, interactive, wantobjects, useTk, sync, use)
+# _tkinter.TclError: no display name and
+# no $DISPLAY environment variable
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import pylab
 
 
 # TODO: The PSL has the gzip library for this!!!!!
@@ -71,7 +82,8 @@ def average_standard_dev(lengths):
 
 
 def get_sizes(infasta):
-    """function to return a list of sequences sizes for a fasta file"""
+    """function to return a list of sequences sizes for a fasta file.
+    """
     minlength = 10
     with open(infasta, 'r') as seq:
         sizes = [len(record.seq) for record in SeqIO.parse(seq, 'fasta')
@@ -79,7 +91,57 @@ def get_sizes(infasta):
     return sizes
 
 
-def db_len_assembled_len_reasonable(db_fa, assembled_fa, sd=2):
+def stats_on_list_of_sizes(db_lens, assemb_lens):
+    """function to perform stats on two lists of seq lens.
+    Returns as a tab separeated string:
+    as_skew,
+    db_skew,
+    ttest,
+    Man_u_value,
+    Man_p_value"""
+    as_skew = ('normal skewtest assemb_lens = %6.3f pvalue = %6.4f' %
+               stats.skewtest(assemb_lens))
+    db_skew = ('normal skewtest db_lens = %6.3f pvalue = %6.4f' %
+               stats.skewtest(db_lens))
+    ttest = ('t-statistic = %6.3f pvalue = %6.4f' %
+             stats.ttest_ind(db_lens, assemb_lens))
+    Man_u_value, Man_p_value = mannwhitneyu(db_lens, assemb_lens,
+                                            alternative="two-sided")
+    outdata = "\t".join([as_skew,
+                         db_skew,
+                         ttest,
+                         str(Man_u_value),
+                         str(Man_p_value)])
+    return outdata
+
+
+def plot_seq_len_histograms(db, assembled):
+    """takes in a 2 lists of number and plots a histogram.
+    Plots two histograms on a graph """
+    # the histogram of the data
+    fig = plt.figure(figsize=(10, 8), dpi=1200)
+    ax1 = fig.add_subplot(1, 2, 1)  # 1x2 grid, position 1
+    ax2 = fig.add_subplot(1, 2, 2)  # 1x2 grid, position 2
+    # graph1
+    rects1 = ax1.hist(db, facecolor='green', alpha=0.6)
+    ax1.set_xlabel('database sequence lengths')
+    ax1.set_ylabel('count')
+    ax1.grid(True)
+    ax1.set_title("Histogram of database sequence lengths")
+    # graph 2
+    rects2 = ax2.hist(assembled, facecolor='green', alpha=0.6)
+    ax2.set_xlabel('assembled sequence lengths')
+    ax2.set_ylabel('count')
+    ax2.grid(True)
+    ax2.set_title("Histogram of assembled sequence lengths")
+    fig.tight_layout()
+    fig
+    pylab.savefig("database_Vs_assembled_seq_lengths_histogram.png")
+    pylab.close()
+
+
+
+def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
     """func compare the avergase of and the standard deviations
     of the database file used for clustering and the assembled reads.
     Basically, I have been given ITS clustering database from two
@@ -103,15 +165,6 @@ def db_len_assembled_len_reasonable(db_fa, assembled_fa, sd=2):
     If + then assembled mean is greater than expected.
     """
     sd = int(sd)
-    # call the function get_sizes(infasta)
-    db_lens = get_sizes(db_fa)
-    assemb_lens = get_sizes(assembled_fa)
-    print ('normal skewtest teststat assemb_lens = %6.3f pvalue = %6.4f' %
-           stats.skewtest(assemb_lens))
-    print ('normal skewtest teststat db_lens = %6.3f pvalue = %6.4f' %
-           stats.skewtest(db_lens))
-    print ('\n\nt-statistic = %6.3f pvalue = %6.4f\n\n' %
-           stats.ttest_ind(db_lens, assemb_lens))
     # call the functtion average_standard_dev(lengths)
     db_mean, db_sd = average_standard_dev(db_lens)
     assemb_mean, assemb_sd = average_standard_dev(assemb_lens)
