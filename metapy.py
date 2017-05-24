@@ -270,6 +270,16 @@ def get_args():
                           default="pipeline.log",
                           type=str,
                           help="Logfile name")
+
+    optional.add_argument("--pvalue",
+                          dest="pvalue",
+                          action="store",
+                          default=0.0000001,
+                          type=float,
+                          help="pvalue for comparing the database " +
+                          "lengths versus the assembled lengths. At " +
+                          "which point are the different?")
+    
     optional.add_argument("--standard_deviation",
                           dest="std",
                           action="store",
@@ -626,7 +636,7 @@ if __name__ == '__main__':
                             "Mann_whitney U test: %s" % Man_p_value])
         logger.info("Assembled seq lengths versus database lengths")
         logger.info("%s", skew_t)
-        if float(Man_p_value) < 0.00001:
+        if float(Man_p_value) < args.pvalue:
             # call the function to perform a simple mean versus
             # number of std test to find the problem
             size_test, error = db_len_assembled_len_ok(db_lens,
@@ -634,10 +644,8 @@ if __name__ == '__main__':
                                                        args.std)
             errtype, db_mean, db_sd, assemb_mean,\
                      assemb_sd = error.split("\t")
-
             dbstats = skew_t + "\tdb_mean= %s\tdb_stdev= %s\t" % (str(db_mean),
                                                                   str(db_sd))
-
             stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
                                                             str(assemb_sd))
             if size_test == "fail":
