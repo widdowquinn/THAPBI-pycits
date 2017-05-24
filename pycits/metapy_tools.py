@@ -115,7 +115,7 @@ def stats_on_list_of_sizes(db_lens, assemb_lens):
     return outdata
 
 
-def plot_seq_len_histograms(db, assembled):
+def plot_seq_len_histograms(folder, db, assembled):
     """takes in a 2 lists of number and plots a histogram.
     Plots two histograms on a graph """
     # the histogram of the data
@@ -124,21 +124,22 @@ def plot_seq_len_histograms(db, assembled):
     ax2 = fig.add_subplot(1, 2, 2)  # 1x2 grid, position 2
     # graph1
     rects1 = ax1.hist(db, facecolor='green', alpha=0.6)
-    ax1.set_xlabel('database sequence lengths')
-    ax1.set_ylabel('count')
+    ax1.set_xlabel('Database sequence lengths')
+    ax1.set_ylabel('Count')
     ax1.grid(True)
     ax1.set_title("Histogram of database sequence lengths")
     # graph 2
     rects2 = ax2.hist(assembled, facecolor='green', alpha=0.6)
-    ax2.set_xlabel('assembled sequence lengths')
-    ax2.set_ylabel('count')
+    ax2.set_xlabel('Assembled sequence lengths')
+    ax2.set_ylabel('Count')
     ax2.grid(True)
     ax2.set_title("Histogram of assembled sequence lengths")
     fig.tight_layout()
     fig
-    pylab.savefig("database_Vs_assembled_seq_lengths_histogram.png")
+    outpng = os.path.join(folder, "database_Vs_assembled" +
+                          "_seq_lengths_histogram.png")
+    pylab.savefig(outpng)
     pylab.close()
-
 
 
 def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):

@@ -279,7 +279,7 @@ def get_args():
                           help="pvalue for comparing the database " +
                           "lengths versus the assembled lengths. At " +
                           "which point are the different?")
-    
+
     optional.add_argument("--standard_deviation",
                           dest="std",
                           action="store",
@@ -624,7 +624,7 @@ if __name__ == '__main__':
         db_lens = get_sizes(OTU_DATABASE)
         assemb_lens = get_sizes(ASSEMBLED + ".bio.chopp" + "ed.fasta")
         # plot the seq len distributions
-        plot_seq_len_histograms(db_lens, assemb_lens)
+        plot_seq_len_histograms(RESULT_FOLDER, db_lens, assemb_lens)
         # call stats function to compare these:
         stats_data = stats_on_list_of_sizes(db_lens, assemb_lens)
         # metabarcoding will always have a skew. Especially if one
@@ -636,18 +636,18 @@ if __name__ == '__main__':
                             "Mann_whitney U test: %s" % Man_p_value])
         logger.info("Assembled seq lengths versus database lengths")
         logger.info("%s", skew_t)
-        if float(Man_p_value) < args.pvalue:
-            # call the function to perform a simple mean versus
-            # number of std test to find the problem
-            size_test, error = db_len_assembled_len_ok(db_lens,
-                                                       assemb_lens,
-                                                       args.std)
-            errtype, db_mean, db_sd, assemb_mean,\
+        # call the function to perform a simple mean versus
+        # number of std test to find the problem
+        size_test, error = db_len_assembled_len_ok(db_lens,
+                                                   assemb_lens,
+                                                   args.std)
+        errtype, db_mean, db_sd, assemb_mean,\
                      assemb_sd = error.split("\t")
-            dbstats = skew_t + "\tdb_mean= %s\tdb_stdev= %s\t" % (str(db_mean),
-                                                                  str(db_sd))
-            stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
-                                                            str(assemb_sd))
+        dbstats = skew_t + "\tdb_mean= %s\tdb_stdev= %s\t" % (str(db_mean),
+                                                              str(db_sd))
+        stats = "assem_mean = %s , assem_stdev = %s" % (str(assemb_mean),
+                                                        str(assemb_sd))
+        if float(Man_p_value) < args.pvalue:
             if size_test == "fail":
                 terminate = " ".join(["The assembled size of your reads is",
                                       "significantly different to your",
@@ -671,7 +671,7 @@ if __name__ == '__main__':
                     # KILL the program?
                     # sys.exit(error_out)
         logger.info("QC passed on sequences: %s\t%s", dbstats, stats)
-
+    #######################################################################
     # first cat the db and EC, trimmed reads.
     cat_cmd = ["cat", OTU_DATABASE,
                ASSEMBLED + ".bio.chopped.fasta",
