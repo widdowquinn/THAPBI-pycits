@@ -94,7 +94,7 @@ before_install:
   - export PATH=$HOME/blast-2.2.26/bin:$PATH
   - wget https://sco.h-its.org/exelixis/web/software/pear/files/pear-0.9.10-bin-64.tar.gz
   - tar -zxvf pear-0.9.10-bin-64.tar.gz
-  - ln -s pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
+  - mv pear-0.9.10-bin-64/pear-0.9.10-bin-64 pear-0.9.10-bin-64/pear
   - export PATH=$HOME/pear-0.9.10-bin-64:$PATH
   - cd $HOME
   - wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.36.zip
