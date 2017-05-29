@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 """Test program for a function in the module metapy_tools:
-db_len_assembled_len_reasonable
+db_len_assembled_len_ok
 """
 
 import os
 import shutil
 
 from nose.tools import nottest, assert_equal
-from pycits.metapy_tools import db_len_assembled_len_reasonable
+from pycits.metapy_tools import db_len_assembled_len_ok
 from pycits.tools import NotExecutableError
 
 from Bio import SeqIO
@@ -50,8 +50,8 @@ def setup():
 def test_assem_db_seq_len_short():
     """Run db_len_assem_len_ok too SHORT from metapy_tools
     """
-    error, msg = db_len_assembled_len_reasonable(DB,
-                                                 INFILE_TOO_SHORT)
+    error, msg = db_len_assembled_len_ok(DB,
+                                         INFILE_TOO_SHORT)
     errtype, db_mean, db_sd, assemb_mean, assemb_sd = msg.split("\t")
     assert error == "fail"
     # msg : -       196.139 18.997  21.636  8.391
@@ -65,8 +65,8 @@ def test_assem_db_seq_len_short():
 def test_assem_db_seq_len_long():
     """Run db_len_assem_len_ok too LONG from metapy_tools
     """
-    error, msg = db_len_assembled_len_reasonable(DB,
-                                                 INFILE_TOO_LONG)
+    error, msg = db_len_assembled_len_ok(DB,
+                                         INFILE_TOO_LONG)
     errtype, db_mean, db_sd, assemb_mean, assemb_sd = msg.split("\t")
     assert error == "fail"
     # msg : "+       196.139 18.997  1150.800        141.426"
@@ -80,9 +80,9 @@ def test_assem_db_seq_len_long():
 def test_assem_db_seq_len_ok():
     """Run db_len_assem_len_ok OK from metapy_tools
     """
-    error, msg = db_len_assembled_len_reasonable(DB,
-                                                 INFILE_GOOD,
-                                                 10)
+    error, msg = db_len_assembled_len_ok(DB,
+                                         INFILE_GOOD,
+                                         10)
     # ok   196.139 18.997  182.684 19.263
     assert error == "ok"
     errtype, db_mean, db_sd, assemb_mean, assemb_sd = msg.split("\t")
@@ -96,7 +96,7 @@ def test_assem_db_seq_len_ok():
 def test_assem_db_seq_len_ok_sd_0():
     """Run db_len_assem_len 0 sd threshold
     """
-    error, msg = db_len_assembled_len_reasonable(DB,
-                                                 INFILE_GOOD,
-                                                 0)
+    error, msg = db_len_assembled_len_ok(DB,
+                                         INFILE_GOOD,
+                                         0)
     assert error == "fail"
