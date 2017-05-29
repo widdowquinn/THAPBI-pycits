@@ -426,4 +426,48 @@ Description: 10Phytophthora_intercalaris_45B7_KT163268
 
 Description: 9Phytophthora_macrochlamydospora_GU993902
 
+# After trimming to just the ITS1 region, more duplciated seq have come out. The names have been fused to account for this
+34:
+duplicate seq : 6Phytophthora_gregata_CBS127952_HQ012942
 
+35:
+duplicated seq : 6Phytophthora_rosacearum_HSA1650_KJ372268
+
+36:
+duplicate seq: 3Phytophthora_sp._ohioensis_P1605_GU259291
+
+37:
+duplicate seq: 3Phytophthora_versiformis_TP13.46
+
+38:
+duplicated seq: 5Phytophthora_agathidicida_KP295308
+
+39:
+duplicated seq: 4Phytophthora_sp._banihashemiana_KP050544
+
+40:
+duplicated seq: 4Phytophthora_arenaria__CBS125800_HQ13215
+
+41:
+duplicated seq:  1Phytophthora_nicotianae_JX978447
+
+42:
+duplicate seq: 1Phytophthora_andina_KU728024_1Phytophthora_infestans_CBS36651_1Phytophthora_mirabilis_CBS67885
+
+43:
+duplicate seq: 2Phytophthora_sp._APC001_AB688421
+
+44:
+duplicate seq: 2Phytophthora_sp._emzansi_STEU6272_GU191220
+
+45:
+2Phytophthora_sp._MAFF_238158_AB688420
+
+46:
+duplicate seq: 8Phytophthora_primulae_CBS110162
+
+47:
+duplicate seq: 7Phytophthora_flexuosa_CBS_141201_KU517152
+
+48:
+dupliciate seq: 9Phytophthora_virginiana_46A2_KC295544
