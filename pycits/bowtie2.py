@@ -1,34 +1,36 @@
 #!/usr/bin/env python
 #
-# Tools for working with Bowtie2 map
-#
+# Wrapper code for the bowtie2 package, available from:
 # http://bowtie-bio.sourceforge.net/bowtie2/
 #
-# (c) The James Hutton Institute 2016
+# (c) The James Hutton Institute 2016-2017
 # Author: Leighton Pritchard and Peter Thorpe
 
 import os
 import subprocess
+
 from collections import namedtuple
+
 from .tools import is_exe, NotExecutableError
 
 # factory class for bowtie build class returned values
 # the order of the outfiles is defined in the build_command self._outfnames
 
 # command -  the command used for the mapping
-# sam - this is the outputed sam file.
-# stderr
+# outfilename - this is the outputed sam file.
+# stdout - STDOUT from bowtie2
+# stderr - STDERR from bowtie2
 Results = namedtuple("Results", "command sam stdout stderr")
 
 
-class Bowtie2_MapError(Exception):
-    """Exception raised when bowtie2-map fails"""
+class Bowtie2Error(Exception):
+    """Exception raised when bowtie2 fails"""
     def __init__(self, message):
         self.message = message
 
 
-class Bowtie2_Map(object):
-    """Class for working with Bowtie2_Map"""
+class Bowtie2(object):
+    """Class for working with Bowtie2"""
     def __init__(self, exe_path):
         """Instantiate with location of executable"""
         if not is_exe(exe_path):
@@ -51,7 +53,6 @@ class Bowtie2_Map(object):
         --score-min 'C,0,-1'
         """
         self.__build_cmd(reads, indexstem, outfilename, threads, fasta)
-        print(self._cmd)
         if dry_run:
             results = Results(self._cmd, self._outfname, None, None)
         else:
@@ -96,10 +97,10 @@ class Bowtie2_Map(object):
         else:
             filetype = '-q'
         cmd = ["bowtie2",
-               "--very-sensitive",
-               "--no-unal",
-               "-p", threads,
                "-x", indexstem,
                filetype, reads,
-               "-S", self._outfname]
-        self._cmd = ' '.join(cmd)
+               "-S", self._outfname,
+               "-p", threads,
+               "--very-sensitive",
+               "--no-unal"]
+        self._cmd = ' '.join([str(e) for e in cmd])

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tools for working with Bowtie2 build
+# Tools for working with bowtie2-build
 #
 # http://bowtie-bio.sourceforge.net/bowtie2/
 #
