@@ -260,6 +260,7 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             "number_of_reads_hitting_species\n"
     summary_out_file.write(title)
     cluster_number = 0
+    novel_count = 0
     for line in cluster_file:
         cluster_number += 1
         # call function to parse line
@@ -312,21 +313,19 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
             ITS_hitting_db_species = ITS_hitting_db_species + \
                                      number_of_reads_hitting_species
             # format the data
-            if show_me_the_reads:
-                data_output = "%d\t%s\t%d\t%s\n" %(cluster_number, species.rstrip(), \
-                                                   number_of_reads_hitting_species,\
-                                                   reads_of_interest)
-            else:
-                data_output = "%d\t%s\t%d\n" %(cluster_number, species.rstrip(), \
-                                               number_of_reads_hitting_species)
+
+            data_output = "%d\t%s\t%d\n" %(cluster_number, species.rstrip(), \
+                                           number_of_reads_hitting_species)
 
             # write out the data
             summary_out_file.write(data_output)
             db_reads_perc = (float(ITS_hitting_db_species)/ num_contig)*100
         else:
+            novel_count = 0
             if len(cluster_line) > min_novel_cluster_threshold:
                 # open a file to put seq into
                 if db_species < 1:
+                    novel_count = 1
                     out_novel = os.path.join(working_directory,
                                              "novel_d%s" % str(v),
                                              "novel%d_len%d.fasta" % (cluster_number,
@@ -341,6 +340,10 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
                                                 coded_name_to_read_dict,
                                                 coded_species_to_name_dict,
                                                 novel_fasta)
+                else:
+                    novel_fasta = False
+            else:
+                novel_count = 0
 
         try:
             cluster_fasta.close()
@@ -351,7 +354,8 @@ def parse_tab_file_get_clusters(fasta, seq_db, all_fasta,
         except ValueError: # singleton cluster - no file generated
             pass
         try:
-            novel_fasta.close()
+            if novel_count > 0:
+                novel_fasta.close()
             if align:
                 # align the cluster
                 # print ("I am about to align the cluster: %s" % out_novel)

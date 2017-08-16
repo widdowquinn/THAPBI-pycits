@@ -15,6 +15,8 @@ import numpy
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from Bio.SeqIO.FastaIO import SimpleFastaParser
+from Bio.Alphabet import IUPAC
 # for tests
 # https://docs.scipy.org/doc/scipy/reference/
 # tutorial/stats.html#t-test-and-ks-test
@@ -68,6 +70,14 @@ def test_reads_exist_and_suffix(reads):
     else:
         error = "\nERROR: %s   FILE DOES NOT EXIT" % reads
         sys.exit(error + ". Check your input file path and name\n")
+
+
+def convert_ab1_to_fq(in_file, out_file):
+    """ Function to convert ab1 sanger seq file
+    and convert to  fq
+    requires biopython
+    """
+    SeqIO.convert(in_file, "abi", out_file, "fastq")
 
 
 def average_standard_dev(lengths):
@@ -301,3 +311,25 @@ def database_checker(filename, outfile="temp.fasta"):
             return "Ill formatted fasta file", seq_record
     f.close()
     return "ok", "ok"
+
+
+def full_illegal_charac_check(in_fasta):
+    """this is a function check for illegal
+    characters in fasta. This is needed as it seems more errors
+    occur with other peoples data than I have previously feared"""
+    nucl = set("ATCG")
+    warnings = ""
+    name_seq = dict()
+    with open(in_fasta) as f_in:
+        for title, seq in SimpleFastaParser(f_in):
+            seq = seq.upper()
+            name_seq
+            if set(seq).difference(nucl):
+                out = ("Check:\t%s for %s\n%s\n" % (title,
+                                                  set(seq).difference(nucl),
+                                                  seq))
+                warnings = warnings + out
+                continue
+    print(warnings)
+    return warnings
+

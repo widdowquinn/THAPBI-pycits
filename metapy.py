@@ -33,7 +33,7 @@ from pycits.metapy_tools import decompress, compress,\
      last_exception, metapy_trim_seq, covert_chop_read, make_folder,\
      test_reads_exist_and_suffix, database_checker,\
      get_sizes, db_len_assembled_len_ok, stats_on_list_of_sizes,\
-     plot_seq_len_histograms
+     plot_seq_len_histograms, full_illegal_charac_check
 
 from pycits.Rand_index import pairwise_comparison_Rand
 
@@ -293,7 +293,7 @@ def get_args():
     optional.add_argument("--cleanup",
                           dest="cleanup",
                           action="store_true",
-                          default=False,
+                          default=True,
                           help="deletes most files the program creates ")
     optional.add_argument("--qc",
                           dest="qc",
@@ -359,11 +359,6 @@ RESULTS = []
 # TODO: There is *a lot* of repeated code here.
 #       The many try-except structures
 #       should be making you think that you need a function
-# DESIGN: Why require that the command is in the $PATH? As a default
-#         assumption when collecting the argument above, sure - but if you
-#         allow for pointing to a different version you can also compare the
-#         pipeline as it runs with different software versions.
-
 
 def check_tools_exist(WARNINGS):
     """function to check to see what tools are in the PATH,
@@ -470,7 +465,11 @@ if __name__ == '__main__':
     logger.info("Command-line: %s", ' '.join(sys.argv))
     logger.info("Starting testing: %s", time.asctime())
     logger.info("using database: %s", OTU_DATABASE)
+    db_warnings = full_illegal_charac_check(OTU_DATABASE)
     db_error = False
+    if db_warnings != "":
+        logger.warning("DBwarnings: %s ", db_warnings)
+        db_error = True
     # set up the DB and check if this is formatted correctly
     # function returns "ok", "ok" if passed.
     # else it returns:"Duplicate names found", seq_record
@@ -628,7 +627,7 @@ if __name__ == '__main__':
         # call stats function to compare these:
         stats_data = stats_on_list_of_sizes(db_lens, assemb_lens)
         # metabarcoding will always have a skew. Especially if one
-        # species is highly present.
+        # species is highly or only present.
         as_skew, db_skew, ttest, Man_u_value,\
                  Man_p_value = stats_data.split("\t")
         skew_t = "\t".join(["assembled_skew: %s" % as_skew,
@@ -1331,14 +1330,16 @@ if __name__ == '__main__':
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
-    Rand_results = pairwise_comparison_Rand(CLUSTER_FILES_FOR_RAND_INDEX,
-                                            os.path.join(RESULT_FOLDER,
-                                                         PREFIX +
-                                                         "_Rand_compar" +
-                                                         "ison.txt"))
-    for comp in result:
-        logger.info("Rand comparison: %s", comp)
-
+    try:
+        Rand_results = pairwise_comparison_Rand(CLUSTER_FILES_FOR_RAND_INDEX,
+                                                os.path.join(RESULT_FOLDER,
+                                                             PREFIX +
+                                                             "_Rand_compar" +
+                                                             "ison.txt"))
+        for comp in result:
+            logger.info("Rand comparison: %s", comp)
+    except ValueError:
+        logger.warning("Rand comparison failed.")
     # compress the reads to save space
     compress(LEFT_READS)
     compress(RIGHT_READS)
@@ -1368,10 +1369,13 @@ if __name__ == '__main__':
                       " --in_list",
                       "temp.txt"])
     logger.info("%s = comparison comment", cmd_r)
-    pipe = subprocess.run(cmd_r, shell=True,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          check=True)
+    try:
+        pipe = subprocess.run(cmd_r, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+    except ValueError:
+        logger.warning("overall comparison failed.")
     if args.cleanup:
         # remove loads of files for the user
         # as previously having other files confused people
