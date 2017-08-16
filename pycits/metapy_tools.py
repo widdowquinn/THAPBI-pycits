@@ -330,6 +330,4 @@ def full_illegal_charac_check(in_fasta):
                                                   seq))
                 warnings = warnings + out
                 continue
-    print(warnings)
     return warnings
-
