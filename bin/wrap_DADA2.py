@@ -68,17 +68,17 @@ def convert_file_to_tuple(infile):
     seqs = []
     abundance = []
     count = 1
-    for line in f_in:
-        line = line.replace('"', '')
-        line = line.split()
-        if count == 1:
-            for sequence in line:
-                seqs.append(sequence)
-            count = 2
-        if count == 2:
-            # first element if not wanted, as this is the read name.
-            for abunda in line.pop(0):
-                abundance.append(abunda)
+    lines = f_in.readlines()
+    seq_line = lines[0]
+    seq_line = seq_line.replace('"', '').rstrip()
+    seq_line = seq_line.split(" ")
+    for sequence in seq_line:
+        seqs.append(sequence)
+    abundances = lines[1]
+    abundances = abundances.split(" ")
+    # first element if not wanted, as this is the read name.
+    for abunda in abundances[1:]:
+        abundance.append(abunda.rstrip())
     abund_seq = zip(abundance, seqs)
     return abund_seq
 
@@ -238,7 +238,7 @@ if __name__ == '__main__':
     shell = open("dada2.Rscript", "w")
     make_folder(working_dir, "dada2")
     file_directory = os.path.split(old_left)[:-1][0]
-    shell.write("#!/usr/bin/env Rscript\n")
+    shell.write("#!/usr/bin/Rscript\n")
     shell.write('library(dada2); packageVersion("dada2")\n')
     r_path = 'path <- "%s"' % (file_directory)
     shell.write(r_path)
@@ -306,9 +306,9 @@ if __name__ == '__main__':
                                                          "tax_final.rds"))
     shell.write(final_table)
     run_sub_pro("chmod 777 ./dada2.Rscript")
-    command = "Rscript dada2.Rscript"
+    command = "/usr/bin/Rscript dada2.Rscript"
     print("I CANT RUN RSCRIPT!!!")
-    pipe = subprocess.call(["/usr/bin/env/Rscript", "dada2.Rscript"],shell=True)
+    run_sub_pro(command)
     write_as_fasta("sequence_table.txt", "DADA2.fasta")
 
 
