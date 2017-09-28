@@ -95,7 +95,7 @@ def write_as_fasta(infile, outfile):
         count = count + 1
         abundance = entry[0]
         seq = entry[1]
-        name = "seq_%d_abundance_%s" % (count, abundance)
+        name = "seq%d_%s" % (count, abundance)
         seq_record = SeqRecord(Seq(seq),
                                id=name, name="",
                    description="")
@@ -107,8 +107,7 @@ def decompress(infile):
     cmd = ' '.join(["gunzip", infile])
     pipe = subprocess.run(cmd, shell=True,
                           stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          check=True)
+                          stderr=subprocess.PIPE)
     return os.path.splitext(infile)[0]
 
 
@@ -117,8 +116,7 @@ def compress(infile):
     cmd = ' '.join(["gzip", "-f", infile])
     pipe = subprocess.run(cmd, shell=True,
                           stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          check=True)
+                          stderr=subprocess.PIPE)
 
 
 def filter_my_fastq_file (in_fastq, trim_len, out_fastq):
@@ -208,17 +206,11 @@ if __name__ == '__main__':
     read_directory = os.path.split(old_left)[:-1][0]
     # decompress these for biopython
     if old_left.endswith(".gz"):
-        # already decompressed?
-        if os.path.isfile(old_left):
-            old_left = decompress(old_left)
-        else:
-            old_left = os.path.splitext(old_left)[0]
+        old_left = decompress(old_left)
+        old_left = old_left.split(".gz")[0]
     if old_right.endswith(".gz"):
-        # already decompressed?
-        if os.path.isfile(old_right):
-            old_right = decompress(old_right)
-        else:
-            old_right = os.path.splitext(old_right)[0]
+        old_right = decompress(old_right)
+        old_right = old_right.split(".gz")[0]
     # remove primers
     left = "%s_primers_trimmed.fastq" % (os.path.split(old_left)[-1].split(".fastq")[0])
     right = "%s_primers_trimmed.fastq" % (os.path.split(old_right)[-1].split(".fastq")[0])
@@ -235,7 +227,7 @@ if __name__ == '__main__':
     for member in uncompressed:
         compress(member)
     # Set up Rscript file
-    shell = open("dada2.Rscript", "w")
+    shell = open("dada2.R", "w")
     make_folder(working_dir, "dada2")
     file_directory = os.path.split(old_left)[:-1][0]
     shell.write("#!/usr/bin/Rscript\n")
@@ -292,31 +284,33 @@ if __name__ == '__main__':
     shell.write(seq_out)
     shell.write("\n")
     # Assign taxonomy
-    tax_out = 'tax <- assignTaxonomy(seqtab, "%s", multithread=TRUE)' % database
-    shell.write(tax_out)
-    shell.write("\n")
+    # tax_out = 'tax <- assignTaxonomy(seqtab, "%s", multithread=TRUE)' % database
+    # shell.write(tax_out)
+    # shell.write("\n")
 
     # Write to disk
-    table_out = 'saveRDS(seqtab, "%s")\n' % (os.path.join(working_dir,
-                                                          "dada2",
-                                                          "seqtab_final.rds"))
-    shell.write(table_out)
-    final_table = 'saveRDS(tax, "%s")\n' % (os.path.join(working_dir,
-                                                         "dada2",
-                                                         "tax_final.rds"))
-    shell.write(final_table)
-    run_sub_pro("chmod 777 ./dada2.Rscript")
-    command = "/usr/bin/Rscript dada2.Rscript"
-    print("I CANT RUN RSCRIPT!!!")
-    run_sub_pro(command)
-    write_as_fasta("sequence_table.txt", "DADA2.fasta")
+    # table_out = 'saveRDS(seqtab, "%s")\n' % (os.path.join(working_dir,
+                                                          # "dada2",
+                                                          # "seqtab_final.rds"))
+    # shell.write(table_out)
+    # final_table = 'saveRDS(tax, "%s")\n' % (os.path.join(working_dir,
+                                                        # "dada2",
+                                                        # "tax_final.rds"))
+    # shell.write(final_table)
+    # run the rscript
+    # shell.write("dev.off()\n")
+    shell.write('quit(save = "no", status = 0, runLast = TRUE)\n')
 
-
-
-
-
-
-
-
-
+    chmod_cmd = " ".join(["chmod",
+                          "777",
+                          os.path.join(os.getcwd(),
+                                       "dada2.R")])
+    run_sub_pro(chmod_cmd)
+    command = " ".join([os.path.join("/usr", "bin",
+                                     "Rscript"),
+                        os.path.join(os.getcwd(), "dada2.R")])
+    print("we have problems here with subprocess hanging")
+    subprocess.Popen(command, stdin=None, stdout=None, stderr=None,
+                     shell=True)
+    write_as_fasta("sequence_table.txt", READ_PREFIX + "_DADA2.fasta")
 
