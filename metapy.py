@@ -811,7 +811,123 @@ if __name__ == '__main__':
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               check=True)
+    #####################################################################
+    #####################################################################
+    # DADA2 pipeline - put sequences through Swarm
+    if "swarm" in tools_list:
+        logger.info("Running DADA2 pipeline")
+        dada2_folder_name = PREFIX + "_DADA2_Swarm_d%d" % SWARM_D_VALUE
+        swarm_parameters = swarm.Parameters(t=1, d=SWARM_D_VALUE)
+        DADA2_FOLDER = make_folder(os.path.join(RESULT_FOLDER,
+                                                dada2_folder_name),
+                                   WORKING_DIR)
+        # run DADA2 pipeline by calling program from bin.
+        # This will produce a fasta will final QC seq in it
+        cmd_dada = ["python",
+                    os.path.join(FILE_DIRECTORY,
+                                 "bin",
+                                 "wrap_DADA2.py"),
+                    "-d", OTU_DATABASE_SWARM,
+                    "--left", LEFT_READS,
+                    "--right", RIGHT_READS]
+        cmd_dada = ' '.join(cmd_dada)
+        #pipe = subprocess.run(cmd_dada, shell=True,
+                              #stdout=subprocess.PIPE,
+                              #stderr=subprocess.PIPE,
+                              #check=True)
+        
+        
+        # set up an instance of swarm for clustering later
+        cluster = swarm.Swarm(args.swarm)
+        # call the function from tools
+        logger.info("OTU was %s", OTU_DATABASE)
+        OTU_DATABASE_SWARM = check_OTU_db_abundance_val(OTU_DATABASE)
+        logger.info("OTU is %s", OTU_DATABASE_SWARM)
+        # need to cat the assembled_fasta with the database
+        cat_cmd = ["cat",
+                   OTU_DATABASE_SWARM,
+                   READ_PREFIX + "_DADA2.fasta",
+                   ">",
+                   "dada2_seq_and_OTU_db.fasta"]
+        cat_cmd = ' '.join(cat_cmd)
+        logger.info("combine these files %s" % cat_cmd)
+        pipe = subprocess.run(cat_cmd, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+        cluster_outdata = cluster.run("dada2_seq_and_OTU_db.fasta",
+                                      DADA2_FOLDER,
+                                      swarm_parameters)
+        # use named tuple to get the outpfile name
+        SWARM_OUT = cluster_outdata.outfilename
 
+        logger.info("swarm command: %s", cluster_outdata.command)
+        logger.info("swarm output: %s", cluster_outdata.stderr)
+
+        ################################################################
+        # recode cluster output
+        logger.info("reformatting swarm output for post analysis")
+
+        reformat_swarm_cls(SWARM_OUT,
+                           OTU_DATABASE_SWARM,
+                           "dada2_seq_and_OTU_db.fasta",
+                           SWARM_OUT + "for_R",
+                           False)
+        # add this file for Rand index comparison later
+        CLUSTER_FILES_FOR_RAND_INDEX.append(SWARM_OUT + "for_R")
+        cmd_s = ["python",
+                 os.path.join(FILE_DIRECTORY,
+                              "post_analysis",
+                              "get_results_from_cluster_and_novel_" +
+                              "clusterings_dada2.py"),
+                 "-f", "dada2_seq_and_OTU_db.fasta",
+                 "--all_fasta", "dada2_seq_and_OTU_db.fasta",
+                 "--seq_db", OTU_DATABASE,
+                 "--min_novel_cluster_threshold",
+                 "0",
+                 "--left", LEFT_READS,
+                 "--right", RIGHT_READS,
+                 "--Name_of_project",
+                 os.path.join(DADA2_FOLDER, "clusters"),
+                 "--in",
+                 SWARM_OUT,
+                 "--difference", str(SWARM_D_VALUE),
+                 "-o",
+                 os.path.join(DADA2_FOLDER,
+                              "%s_swarm_results_%d.RESULTS" %
+                              (PREFIX, SWARM_D_VALUE))]
+        swarm_result = os.path.join(DADA2_FOLDER,
+                                    "%s_swarm_results_%d.RESULTS" %
+                                    (PREFIX, SWARM_D_VALUE))
+        RESULTS.append("swarm\t%s" % swarm_result)
+        cmd_s = ' '.join(cmd_s)
+        if args.align:
+            logger.info("going to align the cluster. Will take ages!")
+            cmd_s = cmd_s + " --align True"
+        if args.percent_identity:
+            cmd_s = cmd_s + " --blast True"
+        logger.info("%s = post analysis command", cmd_s)
+        pipe = subprocess.run(cmd_s, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+        logger.info("graphically represent swarm clusters")
+        plot_cmd = ["python",
+                    os.path.join(FILE_DIRECTORY,
+                                 "bin",
+                                 "draw_bar_chart_of_clusters.py"),
+                    "-i",
+                    SWARM_OUT,
+                    " --db",
+                    OTU_DATABASE_SWARM]
+        plot_cmd = ' '.join(plot_cmd)
+        logger.info("plotting command = %s", plot_cmd)
+        pipe = subprocess.run(plot_cmd, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+
+    #####################################################################
     #####################################################################
     # run cd hit
     # first cat the db and EC (if done with ec), trimmed reads.
