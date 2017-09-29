@@ -99,9 +99,8 @@ def get_args():
                           action="store",
                           default=os.path.join(file_directory,
                                                "data",
-                                               "ITS_database_NOT_" +
-                                               "confirmed_correct_last" +
-                                               "14bases_removed.fasta"),
+                                               "Phytophora_ITS_" +
+                                               "database_v0.001.fasta"),
                           type=str,
                           help="right illumina reads")
 
@@ -1519,10 +1518,11 @@ if __name__ == '__main__':
                        "OTU.rev.1.bt2",
                        "OTU.rev.2.bt2",
                        "error.log",
+                       "dada2_seq_and_OTU_db.fasta",
+                       "dada2.R",                       
                        results_pear.outfilediscarded,
                        results_pear.outfileunassmbledfwd,
                        results_pear.outfileunassembledrev]
-
         for unwanted in remove_list:
             try:
                 os.remove(unwanted)
