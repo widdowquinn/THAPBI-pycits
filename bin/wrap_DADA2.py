@@ -183,6 +183,13 @@ def get_args():
                           help="right_trim for primers or conserved " +
                           "regions.  Default 0")
 
+    optional.add_argument("--compress", dest='compress',
+                          action="store",
+                          default="No",
+                          type=str,
+                          help="compress the read files? " +
+                          " Default No")
+
     optional.add_argument("-h", "--help",
                           action="help",
                           default=argparse.SUPPRESS,
@@ -199,6 +206,7 @@ old_left = args.left
 working_dir = args.working_dir
 database = args.database
 READ_PREFIX = os.path.split(old_right)[-1].split("_R")[0]
+COMPRESS = args.compress
 
 # run the program
 if __name__ == '__main__':
@@ -224,8 +232,9 @@ if __name__ == '__main__':
     # TO DO use python gzip lib
     uncompressed = [old_left, old_right, os.path.join(read_directory,left),
                     os.path.join(read_directory, right)]
-    for member in uncompressed:
-        compress(member)
+    if COMPRESS == "Yes":
+        for member in uncompressed:
+            compress(member)
     # Set up Rscript file
     shell = open("dada2.R", "w")
     make_folder(working_dir, "dada2")
