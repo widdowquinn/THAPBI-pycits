@@ -82,7 +82,7 @@ def convert_file_to_tuple(infile):
     abund_seq = zip(abundance, seqs)
     return abund_seq
 
-    
+
 def write_as_fasta(infile, outfile):
     """func to open up the seq table and write out as fasta
     File is formated as two lines.
@@ -283,6 +283,9 @@ if __name__ == '__main__':
     seq_out = 'write.table(seqtab, "sequence_table.txt")'
     shell.write(seq_out)
     shell.write("\n")
+    ###############################################################################
+    # as we are not using SILVA for this project, this from here doesnt make sense
+    # to do.
     # Assign taxonomy
     # tax_out = 'tax <- assignTaxonomy(seqtab, "%s", multithread=TRUE)' % database
     # shell.write(tax_out)
@@ -299,18 +302,10 @@ if __name__ == '__main__':
     # shell.write(final_table)
     # run the rscript
     # shell.write("dev.off()\n")
-    shell.write('quit(save = "no", status = 0, runLast = TRUE)\n')
+    # shell.write('quit(save = "no", status = 0, runLast = TRUE)\n')
 
-    chmod_cmd = " ".join(["chmod",
-                          "777",
-                          os.path.join(os.getcwd(),
-                                       "dada2.R")])
-    run_sub_pro(chmod_cmd)
-    command = " ".join([os.path.join("/usr", "bin",
-                                     "Rscript"),
-                        os.path.join(os.getcwd(), "dada2.R")])
-    print("we have problems here with subprocess hanging")
-    subprocess.Popen(command, stdin=None, stdout=None, stderr=None,
-                     shell=True)
+    shell.close()  # MUST do this before try to run it!
+
+    subprocess.check_call([os.path.join("/usr", "bin", "Rscript"),
+                           os.path.join(os.getcwd(), "dada2.R")])
     write_as_fasta("sequence_table.txt", READ_PREFIX + "_DADA2.fasta")
-
