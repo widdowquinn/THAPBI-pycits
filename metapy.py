@@ -830,12 +830,11 @@ if __name__ == '__main__':
                     "--left", LEFT_READS,
                     "--right", RIGHT_READS]
         cmd_dada = ' '.join(cmd_dada)
-        #pipe = subprocess.run(cmd_dada, shell=True,
-                              #stdout=subprocess.PIPE,
-                              #stderr=subprocess.PIPE,
-                              #check=True)
-        
-        
+        pipe = subprocess.run(cmd_dada, shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              check=True)
+
         # set up an instance of swarm for clustering later
         cluster = swarm.Swarm(args.swarm)
         # call the function from tools
@@ -1519,7 +1518,7 @@ if __name__ == '__main__':
                        "OTU.rev.2.bt2",
                        "error.log",
                        "dada2_seq_and_OTU_db.fasta",
-                       "dada2.R",                       
+                       "dada2.R",
                        results_pear.outfilediscarded,
                        results_pear.outfileunassmbledfwd,
                        results_pear.outfileunassembledrev]
