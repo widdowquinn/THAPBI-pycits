@@ -201,8 +201,8 @@ def get_args():
 args = get_args()
 left_trim = args.left_trim
 right_trim = args.right_trim
-old_right = args.right
-old_left = args.left
+old_right = os.path.abspath(args.right)
+old_left = os.path.abspath(args.left)
 working_dir = args.working_dir
 database = args.database
 READ_PREFIX = os.path.split(old_right)[-1].split("_R")[0]
@@ -219,6 +219,9 @@ if __name__ == '__main__':
     if old_right.endswith(".gz"):
         old_right = decompress(old_right)
         old_right = old_right.split(".gz")[0]
+    # make the filtered fq files folder
+    file_directory = os.path.split(old_left)[:-1][0]
+    make_folder(file_directory, "filtered")
     # remove primers
     left = "%s_primers_trimmed.fastq" % (os.path.split(old_left)[-1].split(".fastq")[0])
     right = "%s_primers_trimmed.fastq" % (os.path.split(old_right)[-1].split(".fastq")[0])
@@ -230,31 +233,30 @@ if __name__ == '__main__':
                                       right))
     # compress these files.
     # TO DO use python gzip lib
-    uncompressed = [old_left, old_right, os.path.join(read_directory,left),
-                    os.path.join(read_directory, right)]
-    if COMPRESS == "Yes":
-        for member in uncompressed:
-            compress(member)
+    # uncompressed = [os.path.join(read_directory, left),
+                    # os.path.join(read_directory, right)]
+    compress(os.path.join(read_directory,
+                          left))
+    compress(os.path.join(read_directory,
+                          right))
     # Set up Rscript file
     shell = open("dada2.R", "w")
     make_folder(working_dir, "dada2")
-    file_directory = os.path.split(old_left)[:-1][0]
     shell.write("#!/usr/bin/Rscript\n")
     shell.write('library(dada2); packageVersion("dada2")\n')
-    r_path = 'path <- "%s"' % (file_directory)
+    print("read_directory = ", read_directory)
+    r_path = 'path <- "%s"' % (read_directory)
     shell.write(r_path)
     shell.write("\n")
     shell.write('filtpath <- file.path(path, "filtered")\n')
     shell.write('fns <- list.files(path, pattern="primers_trimmed.fastq.gz")\n')
-    f_and_t = " ".join(["filterAndTrim(file.path(path,fns), ",
-                        "file.path(filtpath,fns), ",
+    f_and_t = " ".join(["filterAndTrim(file.path(path,fns),",
+                        "file.path(filtpath,fns),",
                         "maxEE=2, truncQ=11, rm.phix=TRUE,",
                         "compress=TRUE, verbose=TRUE, multithread=TRUE)\n"])
     shell.write(f_and_t)
     # CHANGE if different file extensions
     filt_path = os.path.join(file_directory, "filtered")
-    # make the filtered fq files folder
-    make_folder(file_directory, "filtered")
     fil_out = 'filtpath <- "%s"' % filt_path
     shell.write(fil_out)
     shell.write("\n")
