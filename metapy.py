@@ -1521,7 +1521,9 @@ if __name__ == '__main__':
                        "dada2.R",
                        results_pear.outfilediscarded,
                        results_pear.outfileunassmbledfwd,
-                       results_pear.outfileunassembledrev]
+                       results_pear.outfileunassembledrev,
+                       PREFIX + "_R1_001_primers_trimmed.fastq",
+                       PREFIX + "_R2_001_primers_trimmed.fastq"]
         for unwanted in remove_list:
             try:
                 os.remove(unwanted)
@@ -1529,6 +1531,8 @@ if __name__ == '__main__':
             except:
                 logger.info("could not find %s", unwanted)
     shutil.rmtree(PREFIX)
+    shutil.rmtree("dada2")
+    shutil.rmtree("filtered")
     if ERROR_CORRECTION and args.cleanup:
         # this folders will only be there is EC was run
         shutil.rmtree(os.path.join(EC_FOLDER))
