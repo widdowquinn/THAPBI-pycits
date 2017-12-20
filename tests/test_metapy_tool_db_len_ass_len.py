@@ -18,9 +18,8 @@ from Bio.SeqRecord import SeqRecord
 
 # INPUT DATA LOCATION
 INDIR = os.path.join("tests", "test_data", "metapy_tools")
-DB = os.path.join("data", "ITS_database_NOT_confirmed_correct" +
-                  "_last14bases_removed.fasta")
 OUTDIR = os.path.join("tests", "test_out", "metapy_tools")
+DB = os.path.join(INDIR, "testdb.fasta")
 INFILE_TOO_SHORT = os.path.join(INDIR,
                                 "assembled_fa_too_short.fasta")
 INFILE_TOO_LONG = os.path.join(INDIR,
