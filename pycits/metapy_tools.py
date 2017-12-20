@@ -85,15 +85,6 @@ def convert_ab1_to_fq(in_file, out_file):
     SeqIO.convert(in_file, "abi", out_file, "fastq")
 
 
-def average_standard_dev(vals):
-    """return average and standard deviation for array of numbers.
-
-    TODO: Is a function really necessary for this, when the module
-          can be imported and functions called directly?
-    """
-    return numpy.mean(vals), numpy.std(vals)
-
-
 def get_sizes(infasta):
     """function to return a list of sequences sizes for a fasta file.
     """
@@ -192,9 +183,8 @@ def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
     If + then assembled mean is greater than expected.
     """
     sd = int(sd)
-    # call the functtion average_standard_dev(lengths)
-    db_mean, db_sd = average_standard_dev(db_lens)
-    assemb_mean, assemb_sd = average_standard_dev(assemb_lens)
+    db_mean, db_sd = numpy.mean(db_lens), numpy.std(db_lens)
+    assemb_mean, assemb_sd = numpy.mean(assemb_lens), numpy.std(assemb_lens)
     # No need to convert these values to strings, especially as they
     # will be compared numerically, later!
     # TODO: This may be better as a namedtuple!
