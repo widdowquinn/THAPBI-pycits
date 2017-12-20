@@ -147,11 +147,16 @@ def plot_seq_len_histograms(folder, db, assembled):
 
 
 def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
-    """func compare the averages and the standard deviations
-    of the database file used for clustering and the assembled reads.
+    """Compare lists of sequence lengths, return err status/summary stats
 
-    TODO: Describe the means/sdevs of what values? Not clear what this
-          function does!
+    This function compares average and standard deviations of two lists
+    of values. These represent sequence lengths from a reference sequence
+    and the lengths of sequences assembled from ITS reads.
+
+    It is expected that the lengths should be similar. If this is not
+    the case, then we assume that one or other sequence set has a problem.
+
+    PT's original notes:
 
     Basically, I have been given ITS clustering database from two
     projects, both published, which have the full ribosomal region in.
@@ -160,7 +165,7 @@ def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
     database sequence mean
     assembled fasta mean.
     If database sequence mean < or > assembled fasta mean +- sd
-    then we whave a problem.
+    then we have a problem.
     takes in:
 
     TODO: arguments do not correspond to documentation! I'm assuming that
@@ -170,26 +175,22 @@ def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
           As this function is never called other than in testing, it belongs
           in a module/file under the tests directory.
 
-    -   db_fa    the databse used for classifying OTU (I hate that phrase)
-    -   assembled_fa    generated in scripts from the reads data
-    -   sd, the number of stadard deviations which is a reasonable threshold
+    - db_lens        array of lengths: reference database sequences
+    - assemb_lens    array of lengths: assembled ITS
+    - sd             an 'acceptable' threshold of difference in standard deviations
 
-    returns (str), (str)
-    returns: ok, ok\tSTATS
-    returns: fail, -/+.    the second string is an indication of
-    what is wrong. e.g.:
-    if assemb_mean < (db_mean - sd * db_sd)
-    reruns fail, -. The - means, assembled mean is much lower than expected.
-    If + then assembled mean is greater than expected.
+    TODO: either remove this function (it is only called in a test) or
+          describe a better test for 'equivalence'/'problems' in one or
+          other sequence set.
     """
-    sd = int(sd)
     db_mean, db_sd = numpy.mean(db_lens), numpy.std(db_lens)
     assemb_mean, assemb_sd = numpy.mean(assemb_lens), numpy.std(assemb_lens)
-    # No need to convert these values to strings, especially as they
-    # will be compared numerically, later!
     # TODO: This may be better as a namedtuple!
+    #       We don't need to report an error string; a value
+    #       representing the number of standard deviations difference
+    #       between the means (signed) would give the same information
+    #       and could be used directly downstream of the function call
     vals = (db_mean, db_sd, assemb_mean, assemb_sd)
-    # test assembled mean is within db_mean +- sd=3 * db_sd
     if assemb_mean < (db_mean - (sd * db_sd)):
         return "fail\t-", vals
     # check it is not significantly longer sequences
