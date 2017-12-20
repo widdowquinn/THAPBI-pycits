@@ -7,7 +7,7 @@ db_len_assembled_len_ok
 import os
 import shutil
 
-from nose.tools import nottest, assert_equal
+from nose.tools import nottest, assert_almost_equal
 from pycits.metapy_tools import db_len_assembled_len_ok
 from pycits.tools import NotExecutableError
 
@@ -46,56 +46,55 @@ def setup():
     os.makedirs(OUTDIR, exist_ok=True)
 
 
+def seqfile_to_length_list(filename, fmt='fasta'):
+    """Returns list of sequence lengths for passed filename."""
+    return [len(seq) for seq in SeqIO.parse(filename, fmt)]
+
+
 def test_assem_db_seq_len_short():
     """Run db_len_assem_len_ok too SHORT from metapy_tools
     """
-    error, msg = db_len_assembled_len_ok(DB,
-                                         INFILE_TOO_SHORT)
-    errtype, db_mean, db_sd, assemb_mean, assemb_sd = msg.split("\t")
-    assert error == "fail"
-    # msg : -       196.139 18.997  21.636  8.391
-    assert errtype == "-"
-    assert str(db_mean) == "196.139"
-    assert str(db_sd) == "18.997"
-    assert str(assemb_mean) == "21.636"
-    assert str(assemb_sd) == "8.391"
+    error, vals = db_len_assembled_len_ok(seqfile_to_length_list(DB),
+                                          seqfile_to_length_list(INFILE_TOO_SHORT))
+    (db_mean, db_sd, assemb_mean, assemb_sd) = vals
+    assert error == "fail\t-"
+    assert_almost_equal(db_mean, 196.953, delta=0.001)
+    assert_almost_equal(db_sd, 18.846, delta=0.001)
+    assert_almost_equal(assemb_mean, 21.636, delta=0.001)
+    assert_almost_equal(assemb_sd, 8.391, delta=0.001)
 
 
 def test_assem_db_seq_len_long():
     """Run db_len_assem_len_ok too LONG from metapy_tools
     """
-    error, msg = db_len_assembled_len_ok(DB,
-                                         INFILE_TOO_LONG)
-    errtype, db_mean, db_sd, assemb_mean, assemb_sd = msg.split("\t")
-    assert error == "fail"
-    # msg : "+       196.139 18.997  1150.800        141.426"
-    assert errtype == "+"
-    assert str(db_mean) == "196.139"
-    assert str(db_sd) == "18.997"
-    assert str(assemb_mean) == "1150.800"
-    assert str(assemb_sd) == "141.426"
+    error, vals = db_len_assembled_len_ok(seqfile_to_length_list(DB),
+                                          seqfile_to_length_list(INFILE_TOO_LONG))
+    (db_mean, db_sd, assemb_mean, assemb_sd) = vals
+    assert error == "fail\t+"
+    assert_almost_equal(db_mean, 196.953, delta=0.001)
+    assert_almost_equal(db_sd, 18.846, delta=0.001)
+    assert_almost_equal(assemb_mean, 1150.8, delta=0.001)
+    assert_almost_equal(assemb_sd, 141.426, delta=0.001)
 
 
 def test_assem_db_seq_len_ok():
     """Run db_len_assem_len_ok OK from metapy_tools
     """
-    error, msg = db_len_assembled_len_ok(DB,
-                                         INFILE_GOOD,
-                                         10)
-    # ok   196.139 18.997  182.684 19.263
+    error, vals = db_len_assembled_len_ok(seqfile_to_length_list(DB),
+                                          seqfile_to_length_list(INFILE_GOOD),
+                                          10)
+    (db_mean, db_sd, assemb_mean, assemb_sd) = vals
     assert error == "ok"
-    errtype, db_mean, db_sd, assemb_mean, assemb_sd = msg.split("\t")
-    assert errtype == "ok"
-    assert str(db_mean) == "196.139"
-    assert str(db_sd) == "18.997"
-    assert str(assemb_mean) == "182.684"
-    assert str(assemb_sd) == "19.263"
+    assert_almost_equal(db_mean, 196.953, delta=0.001)
+    assert_almost_equal(db_sd, 18.846, delta=0.001)
+    assert_almost_equal(assemb_mean, 182.684, delta=0.001)
+    assert_almost_equal(assemb_sd, 19.262, delta=0.001)
 
 
 def test_assem_db_seq_len_ok_sd_0():
     """Run db_len_assem_len 0 sd threshold
     """
-    error, msg = db_len_assembled_len_ok(DB,
-                                         INFILE_GOOD,
+    error, msg = db_len_assembled_len_ok(seqfile_to_length_list(DB),
+                                         seqfile_to_length_list(INFILE_GOOD),
                                          0)
-    assert error == "fail"
+    assert error.startswith("fail")

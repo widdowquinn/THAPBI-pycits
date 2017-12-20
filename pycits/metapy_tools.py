@@ -8,21 +8,28 @@
 
 import os
 import gzip
-from .tools import convert_fq_to_fa
 import sys
 import subprocess
 import numpy
+
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 from Bio.Alphabet import IUPAC
+
 # for tests
 # https://docs.scipy.org/doc/scipy/reference/
 # tutorial/stats.html#t-test-and-ks-test
 from scipy import stats
 from scipy.stats import mannwhitneyu
+
 import matplotlib
+import matplotlib.pyplot as plt
+import pylab
+
+from .tools import convert_fq_to_fa
+
 # this code added to prevent this error:
 # self.tk = _tkinter.create(screenName, baseName,
 # className, interactive, wantobjects, useTk, sync, use)
@@ -30,8 +37,6 @@ import matplotlib
 # no $DISPLAY environment variable
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import pylab
 
 
 # TODO: The PSL has the gzip library for this!!!!!
@@ -80,15 +85,13 @@ def convert_ab1_to_fq(in_file, out_file):
     SeqIO.convert(in_file, "abi", out_file, "fastq")
 
 
-def average_standard_dev(lengths):
-    """function to return the avaerage and stadard deviation
-    for a list of number.
-    Uses Numpy to do the calculations.
-    Take in a list of lens
-    returns the mean and standard deviation of the list"""
-    the_mean = sum(lengths) / float(len(lengths))
-    standard_dev = numpy.std(lengths)
-    return the_mean, standard_dev
+def average_standard_dev(vals):
+    """return average and standard deviation for array of numbers.
+
+    TODO: Is a function really necessary for this, when the module
+          can be imported and functions called directly?
+    """
+    return numpy.mean(vals), numpy.std(vals)
 
 
 def get_sizes(infasta):
@@ -153,8 +156,12 @@ def plot_seq_len_histograms(folder, db, assembled):
 
 
 def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
-    """func compare the avergase of and the standard deviations
+    """func compare the averages and the standard deviations
     of the database file used for clustering and the assembled reads.
+
+    TODO: Describe the means/sdevs of what values? Not clear what this
+          function does!
+
     Basically, I have been given ITS clustering database from two
     projects, both published, which have the full ribosomal region in.
     This is not correct for Swarm clustering.
@@ -164,9 +171,18 @@ def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
     If database sequence mean < or > assembled fasta mean +- sd
     then we whave a problem.
     takes in:
+
+    TODO: arguments do not correspond to documentation! I'm assuming that
+          you *want* lengths, not filenames (which is what the test passes).
+          I can't see any other calls to this in pycits, so I'm modfying the
+          test code.
+          As this function is never called other than in testing, it belongs
+          in a module/file under the tests directory.
+
     -   db_fa    the databse used for classifying OTU (I hate that phrase)
     -   assembled_fa    generated in scripts from the reads data
     -   sd, the number of stadard deviations which is a reasonable threshold
+
     returns (str), (str)
     returns: ok, ok\tSTATS
     returns: fail, -/+.    the second string is an indication of
@@ -179,21 +195,18 @@ def db_len_assembled_len_ok(db_lens, assemb_lens, sd=2):
     # call the functtion average_standard_dev(lengths)
     db_mean, db_sd = average_standard_dev(db_lens)
     assemb_mean, assemb_sd = average_standard_dev(assemb_lens)
-    info = "%.3f\t%.3f\t%.3f\t%.3f" % (db_mean,
-                                       db_sd,
-                                       assemb_mean,
-                                       assemb_sd)
+    # No need to convert these values to strings, especially as they
+    # will be compared numerically, later!
+    # TODO: This may be better as a namedtuple!
+    vals = (db_mean, db_sd, assemb_mean, assemb_sd)
     # test assembled mean is within db_mean +- sd=3 * db_sd
     if assemb_mean < (db_mean - (sd * db_sd)):
-        error_str = "-\t%s" % (info)
-        return "fail", error_str
+        return "fail\t-", vals
     # check it is not significantly longer sequences
     if assemb_mean > (db_mean + (sd * db_sd)):
-        error_str = "+\t%s" % (info)
-        return "fail", error_str
+        return "fail\t+", vals
     else:
-        pass_str = "ok\t%s" % (info)
-        return "ok", pass_str
+        return "ok", vals
 
 
 def make_folder(folder, WORKING_DIR, exist_ok=True):
@@ -202,8 +215,8 @@ def make_folder(folder, WORKING_DIR, exist_ok=True):
     try:
         os.makedirs(dest_dir)
     except OSError:
-        print ("folder already exists " +
-               "I will write over what is in there!!")
+        print("folder already exists " +
+              "I will write over what is in there!!")
     return dest_dir
 
 
@@ -326,8 +339,8 @@ def full_illegal_charac_check(in_fasta):
             name_seq
             if set(seq).difference(nucl):
                 out = ("Check:\t%s for %s\n%s\n" % (title,
-                                                  set(seq).difference(nucl),
-                                                  seq))
+                                                    set(seq).difference(nucl),
+                                                    seq))
                 warnings = warnings + out
                 continue
     return warnings
